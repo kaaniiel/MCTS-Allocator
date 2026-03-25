@@ -10,7 +10,8 @@ private:
 
 public:
     Allocation() = default;
-    Allocation(const std::vector<int> &alloc) : allocation(alloc) {};
+    Allocation(const int numObjects) : allocation(numObjects, -1) {}; // Initialize with -1 to indicate unallocated objects
+    Allocation(const std::vector<int> &alloc) : allocation(alloc) {}; // Constructor that takes a vector of allocations
 
     /**
      * @brief Get the allocation vector

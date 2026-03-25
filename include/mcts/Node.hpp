@@ -13,7 +13,9 @@ private:
     int h; // height of the node in the tree
 
 public:
-    Node() : visits(0), h(0) {};
+    Node() : currentAllocation(Allocation()), visits(0), h(0) {};
+    Node(const int numObjects) : currentAllocation(Allocation(numObjects)), visits(0), h(0) {};
+    Node(const Node &other) : currentAllocation(other.currentAllocation), visits(other.visits), bestAllocation(other.bestAllocation), h(other.h) {};
     Node(const Allocation &alloc) : currentAllocation(alloc), visits(0), h(0) {};
     Node(const Allocation &alloc, int height) : currentAllocation(alloc), visits(0), h(height) {};
 
