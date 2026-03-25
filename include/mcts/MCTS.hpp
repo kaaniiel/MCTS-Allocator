@@ -18,7 +18,7 @@ private:
     std::stack<Node> nodeStack;
 
 public:
-    MCTS(const int numAgents, const int numObjects) : numberOfAgents(numAgents), numberOfObjects(numObjects), root() {}
+    MCTS(const int numAgents, const int numObjects) : numberOfAgents(numAgents), numberOfObjects(numObjects), root(Node()) {}
 
     /** @brief Runs the MCTS algorithm for a specified number of iterations
      *  @param iterations The number of iterations to run
