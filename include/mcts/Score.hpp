@@ -17,6 +17,13 @@ public:
      * @return const std::vector<double>& The score vector
      */
     const std::vector<double> &getScores() const { return scores; };
+
+    /**
+     * @brief Set the score vector
+     * @param newScores The new score vector to set
+     * @return void
+     */
+    void setScores(const std::vector<double> &newScores) { scores = newScores; };
 };
 
 #endif // SCORE_HPP
