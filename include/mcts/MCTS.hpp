@@ -38,13 +38,7 @@ public:
      */
     Node selectNode(const Node &node, std::stack<Node> &nodeStack);
 
-    /** @brief Expands a node by generating one of its unvisited children
-     *  @param node The node to expand
-     *  @return The expanded node
-     */
-    Node extendNode(const Node &node);
-
-    /** @brief Simulates a random playout from the given node
+        /** @brief Simulates a random playout from the given node
      *  @param node The node to simulate from
      *  @return The reward obtained from the simulation
      */

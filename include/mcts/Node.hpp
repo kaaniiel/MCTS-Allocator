@@ -1,6 +1,8 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
+#include <optional>
+
 #include "Allocation.hpp"
 #include "Score.hpp"
 
@@ -10,7 +12,8 @@ private:
     int numObjects; // Number of objects to allocate, needed for generating children
     int numAgents;  // Number of agents, needed for generating children
     int visits;
-    int h; // height of the node in the tree
+    int h;             // height of the node in the tree
+    int childrenIndex; // index of the next child to expand
     Allocation currentAllocation;
     std::pair<Allocation, Score> bestAllocation;
     std::vector<Node> children;
@@ -20,17 +23,20 @@ public:
              numAgents(0),
              visits(0),
              h(0),
+             childrenIndex(0),
              currentAllocation(Allocation()) {};
     Node(const int numAgents, const int numObjects) : numObjects(numObjects),
                                                       numAgents(numAgents),
                                                       visits(0),
                                                       h(0),
+                                                      childrenIndex(0),
                                                       currentAllocation(Allocation(numAgents, numObjects)) {};
 
     Node(const Node &other) : numObjects(other.numObjects),
                               numAgents(other.numAgents),
                               visits(other.visits),
                               h(other.h),
+                              childrenIndex(0),
                               currentAllocation(other.currentAllocation),
                               bestAllocation(other.bestAllocation) {};
 
@@ -38,12 +44,15 @@ public:
                                     numAgents(alloc.getNumAgents()),
                                     visits(0),
                                     h(0),
+                                    childrenIndex(0),
                                     currentAllocation(alloc) {};
 
     Node(const Allocation &alloc, int height) : numObjects(alloc.getNumObjects()),
                                                 numAgents(alloc.getNumAgents()),
                                                 visits(0),
                                                 h(height),
+                                                childrenIndex(0),
+
                                                 currentAllocation(alloc) {};
 
     /**
@@ -51,6 +60,7 @@ public:
      * @return int The number of objects
      */
     int getNumObjects() const { return numObjects; };
+
     /**
      * @brief Get the number of agents
      * @return int The number of agents
@@ -69,6 +79,17 @@ public:
      */
     int getVisits() const { return visits; };
 
+    /**
+     * @brief Get the index of the next child to expand
+     * @return int The index of the next child to expand
+     */
+    int getChildrenIndex() const { return childrenIndex; };
+
+    /**
+     * @brief Increment the index of the next child to expand
+     * @return void
+     */
+    void incrementChildrenIndex() { childrenIndex++; };
     /**
      * @brief Get the best allocation and score
      * @return const std::pair<Allocation, Score>& The best allocation and score
@@ -105,6 +126,12 @@ public:
      * @return void
      */
     void updateBestAllocation(const std::pair<Allocation, Score> &alloc);
+
+    /** @brief Expands a node by generating one of its unvisited children
+     *  @param node The node to expand
+     *  @return The expanded node
+     */
+    std::optional<Node> extendNode(Node &node);
 };
 
 #endif // NODE_HPP
