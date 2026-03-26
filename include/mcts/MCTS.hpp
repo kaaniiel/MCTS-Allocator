@@ -8,6 +8,7 @@
 #include "Node.hpp"
 #include "Allocation.hpp"
 #include "Score.hpp"
+#include "Preferences.hpp"
 
 class MCTS
 {
@@ -16,9 +17,13 @@ private:
     int numberOfObjects;
     Node root;
     std::stack<Node> nodeStack;
+    Preferences preferences;
 
 public:
-    MCTS(const int numAgents, const int numObjects) : numberOfAgents(numAgents), numberOfObjects(numObjects), root(Node()) {}
+    MCTS(const int numAgents, const int numObjects) : numberOfAgents(numAgents),
+                                                      numberOfObjects(numObjects),
+                                                      root(Node()),
+                                                      preferences(numAgents, numObjects) {};
 
     /** @brief Runs the MCTS algorithm for a specified number of iterations
      *  @param iterations The number of iterations to run
