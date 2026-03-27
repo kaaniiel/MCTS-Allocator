@@ -65,8 +65,8 @@ int testExtendNode()
 }
 int testMCTS()
 {
-    MCTS<int> mcts(3, 4); // Create an MCTS instance with 3 agents and 4 objects
-    const int budget = 1; // Set the budget for the MCTS run
+    MCTS<int> mcts(3, 4);  // Create an MCTS instance with 3 agents and 4 objects
+    const int budget = 10; // Set the budget for the MCTS run
     mcts.run(budget);
     std::cout << "MCTS run completed." << std::endl;
     std::cout << "Get the best allocation and score from the root node: " << std::endl;
@@ -83,5 +83,7 @@ int testMCTS()
 }
 int main()
 {
-    return testMCTS();
+    std::cout << "Testing MCTS algorithm..." << std::endl;
+    testMCTS();
+    return EXIT_SUCCESS;
 }

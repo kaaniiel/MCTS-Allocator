@@ -1,5 +1,6 @@
 #include "mcts/MCTS.hpp"
 #include "mcts/UCB.hpp"
+#include "metrics/Utility.hpp"
 
 #include <cmath>
 #include <iostream>
@@ -17,7 +18,6 @@ void MCTS<T>::run(const int budget)
         Node *childNode = node->extend();
         std::cout << "Budget counter: " << budgetCounter << std::endl;
         if (childNode != nullptr)
-
         {
             std::cout << "Child Node: " << " ";
             for (int object : childNode->getCurrentAllocation().getAllocation())
@@ -25,15 +25,13 @@ void MCTS<T>::run(const int budget)
                 std::cout << object << " ";
             }
             std::cout << std::endl;
-            {
-                nodeStack.push(childNode);
-                /*simulation*/
-                std::pair<Allocation, Score> reward = simulate(*childNode);
-                /*backpropagation*/
-                backpropagate(nodeStack, reward);
-                budgetCounter++;
-            }
+            nodeStack.push(childNode);
+            /*simulation*/
+            std::pair<Allocation, Score> reward = simulate(*childNode);
+            /*backpropagation*/
+            backpropagate(nodeStack, reward);
         }
+        budgetCounter++; // Always increment to avoid infinite loop
     }
 }
 
@@ -93,14 +91,28 @@ Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
 }
 
 template <typename T>
-std::pair<Allocation, Score> MCTS<T>::simulate(const Node &node)
+std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
 {
-    // Simulate a random playout from the given node and return the reward obtained from the simulation
-    // This is a placeholder implementation and should be replaced with actual simulation logic based on the problem domain
-    Allocation randomAllocation(node.getNumAgents(), std::vector<int>(node.getNumObjects(), 0)); // Create a random allocation (this should be replaced with actual random allocation logic)
-    Score randomScore(std::vector<double>{0.0});
-    std::pair<Allocation, Score> reward = std::make_pair(randomAllocation, randomScore); // Create a random reward (this should be replaced with actual reward calculation logic)
-    return reward;
+    Allocation maxAllocation;
+    Score maxScore;
+    Node *currentNode = &node;
+    while (currentNode->getHeight() < currentNode->getNumObjects())
+    {
+        Node *childNode = currentNode->extendsRandom();
+        if (childNode == nullptr)
+        {
+            break; // If we cannot extend further, break the loop
+        }
+        currentNode = childNode;
+        std::pair<Allocation, Score> currentAllocScore = std::make_pair(childNode->getCurrentAllocation(), Score(std::vector<double>{Utility<T>::calculateUtilityMul(preferences, childNode->getCurrentAllocation())}));
+        if (currentAllocScore.second.getScores()[0] > maxScore.getScores()[0])
+        {
+            maxScore = currentAllocScore.second;
+            maxAllocation = currentAllocScore.first;
+        }
+    }
+
+    return std::make_pair(maxAllocation, maxScore); // Return the best allocation and score found during the simulation
 }
 
 template <typename T>

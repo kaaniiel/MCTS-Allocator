@@ -3,6 +3,8 @@
 
 #include <iostream>
 #include <vector>
+#include <random>
+#include <ctime>
 
 #include "Allocation.hpp"
 #include "Score.hpp"
@@ -168,6 +170,32 @@ public:
         return &children.back();
     };
 
+    Node *extendsRandom(const int seed = static_cast<int>(std::time(nullptr)))
+    {
+        std::random_device rd;
+        std::mt19937 gen(rd());
+        // Generate a new child node by creating a new allocation based on the current allocation and modifying it
+        Allocation newAlloc = this->getCurrentAllocation();
+        std::vector<int> allocVec = newAlloc.getAllocation();
+
+        int indexToModify = this->getHeight();
+
+        int numAgents = this->getNumAgents();
+        if (indexToModify < 0 || indexToModify >= static_cast<int>(allocVec.size()))
+        {
+            return nullptr;
+        }
+
+        std::uniform_int_distribution<> distrib(0, numAgents - 1);
+        int nombre_aleatoire = distrib(gen);
+
+        allocVec[indexToModify] = (allocVec[indexToModify] + (nombre_aleatoire + 1)); // Modify the allocation for the current index
+        this->incrementChildrenIndex();                                               // Increment the index of the next child to expand
+
+        newAlloc.setAllocation(allocVec);
+        children.emplace_back(newAlloc, this->getHeight() + 1); // Persist child in the tree
+        return &children.back();
+    }
     void debug_print() const
     {
         std::cout << "Node at height " << h << " with allocation: ";

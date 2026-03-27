@@ -74,7 +74,7 @@ public:
      *  @param node The node to simulate from
      *  @return The reward obtained from the simulation
      */
-    std::pair<Allocation, Score> simulate(const Node &node);
+    std::pair<Allocation, Score> simulate(Node &node);
 
     /** @brief Backpropagates the reward obtained from a simulation up the tree
      *  @param nodeStack The stack of nodes to backpropagate through
