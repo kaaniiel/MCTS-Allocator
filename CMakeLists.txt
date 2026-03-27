@@ -11,6 +11,12 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 # --- 1. RECHERCHE DES LIBRAIRIES DE PARALLÉLISATION ---
 
+# Avec MSVC récent, FindOpenMP peut exiger le runtime LLVM (/openmp:llvm).
+if(MSVC)
+    set(OpenMP_RUNTIME_MSVC "llvm")
+    set(OpenMP_CXX_FLAGS "-openmp:llvm" CACHE STRING "CXX compiler flags for OpenMP parallelization" FORCE)
+endif()
+
 # Recherche d'OpenMP
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
@@ -30,7 +36,9 @@ endif()
 add_library(mcts_core
     src/mcts/Node.cpp
     # Ajoutez vos autres fichiers sources ici au fur et à mesure
-    # src/mcts/MCTS.cpp
+    src/mcts/MCTS.cpp
+    src/mcts/UCB.cpp
+    
 )
 
 target_include_directories(mcts_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)

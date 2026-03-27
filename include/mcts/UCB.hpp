@@ -18,9 +18,9 @@ public:
      * @brief Select the best child node based on the UCB1 value
      * @param node The parent node from which to select the best child
      * @param explorationParameter The exploration parameter to use in the UCB1 calculation
-     * @return Node The child node with the highest UCB1 value, or the current node if it was not fully expanded
+     * @return Node* The child node with the highest UCB1 value, or the current node if it was not fully expanded
      */
-    static Node selectBestChild(const Node &node, const double explorationParameter);
+    static Node *selectBestChild(Node *node, const double explorationParameter);
 };
 
 #endif // UCB_HPP

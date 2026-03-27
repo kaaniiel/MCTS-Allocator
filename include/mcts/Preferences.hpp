@@ -4,7 +4,9 @@
 #include <vector>
 #include <string>
 #include <cstdlib>
+#include <ctime>
 #include <algorithm>
+#include <numeric>
 
 template <typename T>
 class Preferences
@@ -59,7 +61,7 @@ public:
      * @param totalPerAgents The total preference score for each agent. The generated preferences will be scaled to ensure that the sum of preferences for each agent equals this value.
      * @return void
      */
-    void generateRandomPreferences(int totalPerAgents, int seed = static_cast<int>(time(nullptr)));
+    void generateRandomPreferences(int totalPerAgents, int seed = static_cast<int>(std::time(nullptr)));
 
     /**
      * @brief Get the number of agents

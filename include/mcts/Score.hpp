@@ -9,7 +9,7 @@ private:
     std::vector<double> scores;
 
 public:
-    Score() = default;
+    Score() : scores(std::vector<double>{0.0}) {};
     Score(const std::vector<double> &scores) : scores(scores) {};
 
     /**

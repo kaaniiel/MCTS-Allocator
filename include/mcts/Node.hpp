@@ -1,7 +1,8 @@
 #ifndef NODE_HPP
 #define NODE_HPP
 
-#include <optional>
+#include <iostream>
+#include <vector>
 
 #include "Allocation.hpp"
 #include "Score.hpp"
@@ -24,13 +25,15 @@ public:
              visits(0),
              h(0),
              childrenIndex(0),
-             currentAllocation(Allocation()) {};
+             currentAllocation(Allocation()),
+             bestAllocation(Allocation(), Score()) {};
     Node(const int numAgents, const int numObjects) : numObjects(numObjects),
                                                       numAgents(numAgents),
                                                       visits(0),
                                                       h(0),
                                                       childrenIndex(0),
-                                                      currentAllocation(Allocation(numAgents, numObjects)) {};
+                                                      currentAllocation(Allocation(numAgents, numObjects)),
+                                                      bestAllocation(Allocation(numAgents, numObjects), Score()) {};
 
     Node(const Node &other) : numObjects(other.numObjects),
                               numAgents(other.numAgents),
@@ -45,15 +48,16 @@ public:
                                     visits(0),
                                     h(0),
                                     childrenIndex(0),
-                                    currentAllocation(alloc) {};
+                                    currentAllocation(alloc),
+                                    bestAllocation(Allocation(numAgents, numObjects), Score()) {};
 
     Node(const Allocation &alloc, int height) : numObjects(alloc.getNumObjects()),
                                                 numAgents(alloc.getNumAgents()),
                                                 visits(0),
                                                 h(height),
                                                 childrenIndex(0),
-
-                                                currentAllocation(alloc) {};
+                                                currentAllocation(alloc),
+                                                bestAllocation(Allocation(numAgents, numObjects), Score()) {};
 
     /**
      * @brief Get the number of objects
@@ -115,6 +119,12 @@ public:
     const std::vector<Node> &getChildren() const { return children; };
 
     /**
+     * @brief Get the children of the node
+     * @return std::vector<Node>& The children of the node
+     */
+    std::vector<Node> &getChildren() { return children; };
+
+    /**
      * @brief Increment the number of visits
      * @return void
      */
@@ -131,7 +141,51 @@ public:
      *  @param node The node to expand
      *  @return The expanded node
      */
-    std::optional<Node> extendNode(Node &node);
+    Node *extend()
+    {
+        // Generate a new child node by creating a new allocation based on the current allocation and modifying it
+        Allocation newAlloc = this->getCurrentAllocation();
+        std::vector<int> allocVec = newAlloc.getAllocation();
+
+        int indexToModify = this->getHeight();
+
+        int numAgents = this->getNumAgents();
+        if (indexToModify < 0 || indexToModify >= static_cast<int>(allocVec.size()))
+        {
+            return nullptr;
+        }
+
+        if (allocVec[indexToModify] + (this->getChildrenIndex() + 1) >= numAgents)
+        {
+            // If the modified allocation exceeds the number of agents, we cannot create a new child node
+            return nullptr;
+        }
+        allocVec[indexToModify] = (allocVec[indexToModify] + (this->getChildrenIndex() + 1)); // Modify the allocation for the current index
+        this->incrementChildrenIndex();                                                       // Increment the index of the next child to expand
+
+        newAlloc.setAllocation(allocVec);
+        children.emplace_back(newAlloc, this->getHeight() + 1); // Persist child in the tree
+        return &children.back();
+    };
+
+    void debug_print() const
+    {
+        std::cout << "Node at height " << h << " with allocation: ";
+        const std::vector<int> &allocVec = currentAllocation.getAllocation();
+        for (int object : allocVec)
+        {
+            std::cout << object << " ";
+        }
+        std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
+        // Show best allocation and score for debugging purposes
+        std::cout << "Best allocation (size : " << bestAllocation.first.getAllocation().size() << "): ";
+        const std::vector<int> &bestAllocVec = bestAllocation.first.getAllocation();
+        for (int object : bestAllocVec)
+        {
+            std::cout << object << " ";
+        }
+        std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
+    }
 };
 
 #endif // NODE_HPP

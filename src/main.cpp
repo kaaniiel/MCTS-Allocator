@@ -5,6 +5,7 @@
 #include "mcts/Preferences.hpp"
 #include "mcts/Allocation.hpp"
 #include "mcts/Node.hpp"
+#include "mcts/MCTS.hpp"
 
 int testPreferences()
 {
@@ -42,8 +43,8 @@ int testExtendNode()
     Node node(numAgents, numObjects); // Create a node with 4 agents and 4 objects
     while (true)
     {
-        std::optional<Node> childNode = node.extendNode(node); // Attempt to extend the node to create a new child node
-        if (childNode.has_value())
+        Node *childNode = node.extend(); // Attempt to extend the node to create a new child node
+        if (childNode != nullptr)
         {
             std::cout << "Extended node at height " << childNode->getHeight() << " with allocation: ";
             const std::vector<int> &allocVec = childNode->getCurrentAllocation().getAllocation();
@@ -62,7 +63,25 @@ int testExtendNode()
 
     return EXIT_SUCCESS;
 }
+int testMCTS()
+{
+    MCTS<int> mcts(3, 4); // Create an MCTS instance with 3 agents and 4 objects
+    const int budget = 1; // Set the budget for the MCTS run
+    mcts.run(budget);
+    std::cout << "MCTS run completed." << std::endl;
+    std::cout << "Get the best allocation and score from the root node: " << std::endl;
+    std::pair<Allocation, Score> bestAlloc = mcts.getRoot().getBestAllocation();
+    std::cout << "Best allocation: ";
+    const std::vector<int> &allocVec = bestAlloc.first.getAllocation();
+    for (int object : allocVec)
+    {
+        std::cout << object << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Best score: " << bestAlloc.second.getScores()[0] << std::endl;
+    return EXIT_SUCCESS;
+}
 int main()
 {
-    return testExtendNode();
+    return testMCTS();
 }

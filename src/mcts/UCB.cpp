@@ -18,28 +18,33 @@ double UCB::calculate(const Node &node, const double explorationParameter)
     return averageReward + explorationTerm;
 }
 
-Node UCB::selectBestChild(const Node &node, const double explorationParameter)
+Node *UCB::selectBestChild(Node *node, const double explorationParameter)
 {
-    if (node.getChildren().empty())
+    if (node == nullptr)
     {
-        return node; // Return the current node if it has no children
+        return nullptr;
     }
 
-    if (node.getChildren().size() != node.getNumAgents())
+    if (node->getChildren().empty())
     {
         return node; // Return the current node if it is not fully expanded
     }
 
-    Node bestChild;
+    if (node->getChildren().size() < static_cast<size_t>(node->getNumAgents()))
+    {
+        return node;
+    }
+
+    Node *bestChild = &node->getChildren().front();
     double bestValue = -std::numeric_limits<double>::infinity();
 
-    for (const auto &child : node.getChildren())
+    for (auto &child : node->getChildren())
     {
         double ucbValue = calculate(child, explorationParameter);
         if (ucbValue > bestValue)
         {
             bestValue = ucbValue;
-            bestChild = child;
+            bestChild = &child;
         }
     }
 
