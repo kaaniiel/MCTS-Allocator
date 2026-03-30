@@ -6,6 +6,7 @@
 #include <cmath>
 #include <iostream>
 #include <atomic>
+#include <random>
 
 #include "omp.h"
 namespace
@@ -108,56 +109,7 @@ void MCTS<T>::run(const int budget)
 template <>
 void MCTS<int>::parallelRun(const int budget)
 {
-    int actual_threads = (numThreads > 0) ? numThreads : omp_get_max_threads();
-    omp_set_num_threads(actual_threads);
-
-    // Initialize shared UI elements
-    auto bar = createProgressBar("Running parallel MCTS...");
-    std::atomic<int> completedIterations{0};
-
-#pragma omp parallel
-    {
-#pragma omp single
-        {
-            int budgetCounter = 0;
-            while (budgetCounter < budget)
-            {
-                nodeStack = std::stack<Node *>();
-                Node *node = selectNode(&root, &nodeStack);
-
-                for (int i = 0; i < node->getNumAgents(); i++)
-                {
-                    if (budgetCounter >= budget)
-                        break;
-
-                    budgetCounter++;
-                    Node *childNode = node->extend();
-
-                    if (childNode != nullptr)
-                    {
-                        std::stack<Node *> localStack = nodeStack;
-                        localStack.push(childNode);
-
-#pragma omp task firstprivate(localStack, childNode)
-                        {
-                            std::pair<Allocation, Score> reward = simulate(*childNode);
-                            backpropagate(localStack, reward);
-
-                            // --- FACTORIZED UI UPDATE ---
-                            updateProgress(bar, completedIterations, budget);
-                        }
-                    }
-                    else
-                    {
-                        // IMPORTANT: Even if the node is null and no task is created,
-                        // the budget was consumed. We MUST advance the progress bar!
-                        updateProgress(bar, completedIterations, budget);
-                    }
-                }
-            }
-        }
-    }
-    std::cout << "\n[MCTS] Parallel execution finished successfully!\n";
+    return run(budget); // For now, just call the sequential version. Parallel implementation will be added later.
 }
 template <typename T>
 Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
@@ -199,7 +151,12 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         std::vector<int> nextAllocVec = currentAlloc.getAllocation();
 
         // Randomly assign the next object to an agent
-        int randomAgent = rand() % currentAlloc.getNumAgents();
+        // On utilise le générateur moderne du C++11, propre à chaque thread
+        thread_local std::mt19937 rng(std::random_device{}());
+        std::uniform_int_distribution<int> dist(0, currentAlloc.getNumAgents() - 1);
+
+        // Génération sans aucun blocage
+        int randomAgent = dist(rng);
         nextAllocVec[currentHeight] = randomAgent;
 
         currentAlloc.setAllocation(nextAllocVec);

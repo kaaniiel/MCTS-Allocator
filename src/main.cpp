@@ -129,11 +129,11 @@ int main(int argc, char **argv)
     // If an option is NOT passed in the terminal, the variable keeps its TOML value.
     app.add_option("-n,--num-agents", config.numAgents, "Override the number of agents");
     app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
-    app.add_option("-p,--parallel", config.parallelRun, "Override whether to run MCTS in parallel (true/false)");
     app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
     app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
     app.add_option("-t,--threads", config.threads, "Override the number of threads (OpenMP/TBB)");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
+    app.add_flag("-p,--parallel", config.parallelRun, "Override whether to run MCTS in parallel (true/false)");
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
