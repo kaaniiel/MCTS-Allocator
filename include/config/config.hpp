@@ -4,6 +4,7 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
+
 #include "toml.hpp"
 
 struct MCTSConfig
@@ -17,6 +18,7 @@ struct MCTSConfig
     int threads = -1;
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
+
     // 2. Function to generate the default configuration file
     static void generate_default(const std::string &filepath, const MCTSConfig &default_config)
     {
@@ -30,7 +32,8 @@ struct MCTSConfig
                                {"exploration_constant", default_config.exploration},
                                {"num_threads", default_config.threads},
                                {"seed", default_config.seed},
-                               {"verbose", default_config.verbose}});
+                               {"verbose", default_config.verbose},
+                           });
 
         // Write to file
         std::ofstream file(filepath);

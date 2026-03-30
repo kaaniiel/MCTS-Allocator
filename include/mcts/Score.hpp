@@ -12,7 +12,7 @@ private:
 public:
     Score() : scores(std::vector<double>{0.0}), verbose(false) {};
     Score(const std::vector<double> &scores, const bool verbose = false) : scores(scores), verbose(verbose) {};
-
+    Score(const double score, const bool verbose = false) : scores(std::vector<double>{score}), verbose(verbose) {};
     /**
      * @brief Get the score vector
      * @return const std::vector<double>& The score vector

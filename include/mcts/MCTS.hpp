@@ -5,11 +5,13 @@
 #include <stack>
 #include <utility>
 #include <cmath>
+#include <functional>
 
 #include "Node.hpp"
 #include "Allocation.hpp"
 #include "Score.hpp"
 #include "Preferences.hpp"
+#include "metrics/Utility.hpp"
 #include "config/config.hpp"
 
 template <typename T>
@@ -24,6 +26,7 @@ private:
     double explorationParameter; // Exploration parameter for UCB
     int numThreads;              // Number of threads for parallel execution
     int seed;
+    std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
 
 public:
@@ -35,19 +38,21 @@ public:
              explorationParameter(std::sqrt(2.0)),
              numThreads(1),
              seed(42),
+             evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false) {};
-    MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const bool verbose) : numberOfAgents(numAgents),
-                                                                                                                                                                                                                                  numberOfObjects(numObjects),
-                                                                                                                                                                                                                                  root(root),
-                                                                                                                                                                                                                                  nodeStack(nodeStack),
-                                                                                                                                                                                                                                  preferences(prefs),
-                                                                                                                                                                                                                                  explorationParameter(explorationParameter),
-                                                                                                                                                                                                                                  numThreads(threads),
-                                                                                                                                                                                                                                  seed(seed),
-                                                                                                                                                                                                                                  verbose(verbose) {};
-    MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, verbose) {};
-    MCTS(const int numAgents, const int numObjects, const double explorationParameter, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
-    MCTS(const int numAgents, const int numObjects, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
+    MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
+                                                                                                                                                                                                                                                                                                                                                                   numberOfObjects(numObjects),
+                                                                                                                                                                                                                                                                                                                                                                   root(root),
+                                                                                                                                                                                                                                                                                                                                                                   nodeStack(nodeStack),
+                                                                                                                                                                                                                                                                                                                                                                   preferences(prefs),
+                                                                                                                                                                                                                                                                                                                                                                   explorationParameter(explorationParameter),
+                                                                                                                                                                                                                                                                                                                                                                   numThreads(threads),
+                                                                                                                                                                                                                                                                                                                                                                   seed(seed),
+                                                                                                                                                                                                                                                                                                                                                                   evalFunction(evalFunction),
+                                                                                                                                                                                                                                                                                                                                                                   verbose(verbose) {};
+    MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, const std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, evalFunction, verbose) {};
+    MCTS(const int numAgents, const int numObjects, const double explorationParameter, const std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
+    MCTS(const int numAgents, const int numObjects, const std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
     MCTS(MCTSConfig &config) : MCTS() { loadConfig(config); };
     /**
      * @brief Get the number of objects

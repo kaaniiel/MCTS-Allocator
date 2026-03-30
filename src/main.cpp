@@ -32,10 +32,10 @@ int testPreferences()
         std::cout << "total : " << std::accumulate(agentPrefs.begin(), agentPrefs.end(), 0) << " ";
         std::cout << std::endl;
     }
-    std::vector<int> allocVec = {0, 1, 2, 1};                         // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
-    Allocation alloc(numAgents, allocVec);                            // Create an allocation based on the example vector
-    double utility = Utility<int>::calculateUtilityMul(prefs, alloc); // Calculate the utility of the allocation based on the preferences
-    std::cout << "Utility of the allocation: " << utility << std::endl;
+    std::vector<int> allocVec = {0, 1, 2, 1};                                      // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
+    Allocation alloc(numAgents, allocVec);                                         // Create an allocation based on the example vector
+    std::vector<double> utility = Utility<int>::calculateUtilityMul(prefs, alloc); // Calculate the utility of the allocation based on the preferences
+    std::cout << "Utility of the allocation: " << (utility.empty() ? 0.0 : utility[0]) << std::endl;
     return EXIT_SUCCESS;
 }
 
@@ -68,8 +68,12 @@ int testExtendNode()
 }
 int testMCTS()
 {
-    MCTS<int> mcts(3, 4);  // Create an MCTS instance with 3 agents and 4 objects
-    const int budget = 10; // Set the budget for the MCTS run
+    auto evalFn = [](const Preferences<int> &prefs, const Allocation &alloc, const bool verbose) -> std::vector<double>
+    {
+        return Utility<int>::calculateUtilityMul(prefs, alloc, verbose);
+    };
+    MCTS<int> mcts(3, 4, evalFn); // Create an MCTS instance with 3 agents and 4 objects
+    const int budget = 10;        // Set the budget for the MCTS run
     mcts.parallelRun(budget);
     std::cout << "MCTS run completed." << std::endl;
     std::cout << "Get the best allocation and score from the root node: " << std::endl;
@@ -156,5 +160,16 @@ int main(int argc, char **argv)
         mcts.run(config.iterations);
     }
 
-    return 0;
+    // Show best allocation and score after the run
+    std::cout << "Best allocation and score after MCTS run:" << std::endl;
+    std::pair<Allocation, Score> bestAlloc = mcts.getRoot().getBestAllocation();
+    std::cout << "Best allocation: ";
+    const std::vector<int> &allocVec = bestAlloc.first.getAllocation();
+    for (int object : allocVec)
+    {
+        std::cout << object << " ";
+    }
+    std::cout << "\nBest score: " << bestAlloc.second.getScores()[0] << std::endl;
+
+    return EXIT_SUCCESS;
 }

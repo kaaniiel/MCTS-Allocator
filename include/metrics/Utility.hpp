@@ -1,5 +1,6 @@
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
+#include <vector>
 
 #include "../mcts/Preferences.hpp"
 #include "../mcts/Allocation.hpp"
@@ -14,7 +15,7 @@ public:
      * @param alloc The allocation for which to calculate the utility
      * @return double The calculated utility value
      */
-    static double calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
+    static std::vector<double> calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
     {
         double totalUtility = 1.0; // Start with a utility of 1 for multiplication
         const std::vector<int> &allocation = alloc.getAllocation();
@@ -30,7 +31,7 @@ public:
             }
             totalUtility *= (agentUtility + 1e-6); // Multiply the agent's utility to the total utility, adding a small value to avoid multiplying by zero
         }
-        return totalUtility;
+        return std::vector<double>{totalUtility};
     }
 };
 #endif // UTILITY_HPP

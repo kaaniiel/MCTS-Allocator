@@ -188,7 +188,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
 
     // Calculate value for the final allocation
     // For now, return empty score (will be calculated by caller if needed)
-    return std::make_pair(currentAlloc, Score(std::vector<double>{0.0}));
+    return std::make_pair(currentAlloc, Score(evalFunction(preferences, currentAlloc, this->getVerbose())));
 }
 
 template <typename T>
