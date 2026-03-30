@@ -1,6 +1,7 @@
 #include <iostream>
 #include <numeric>
 #include <iostream>
+#include <clocale>
 
 #include "config/config.hpp"
 #include "config/CLI11.hpp" // Assure-toi que le chemin d'inclusion est correct
@@ -99,6 +100,18 @@ int main(int argc, char **argv)
     // Force console output to UTF-8
 #ifdef _WIN32
     SetConsoleOutputCP(CP_UTF8);
+    SetConsoleCP(CP_UTF8);
+    std::setlocale(LC_ALL, ".UTF-8");
+    /* HANDLE hOut = GetStdHandle(STD_OUTPUT_HANDLE);
+    if (hOut != INVALID_HANDLE_VALUE)
+    {
+        DWORD dwMode = 0;
+        if (GetConsoleMode(hOut, &dwMode))
+        {
+            dwMode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            SetConsoleMode(hOut, dwMode);
+        }
+    } */
 #endif
 
     // ---------------------------------------------------------
@@ -148,8 +161,8 @@ int main(int argc, char **argv)
 
     // Print the generated preferences for debugging purposes
     std::cout << "Generated Preferences:" << std::endl;
-    Preferences<int> &prefs = mcts.getPreferences();
-    prefs.printPreferences();
+    // Preferences<int> &prefs = mcts.getPreferences();
+    // prefs.printPreferences();
 
     if (config.parallelRun)
     {

@@ -15,6 +15,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 if(MSVC)
     set(OpenMP_RUNTIME_MSVC "llvm")
     set(OpenMP_CXX_FLAGS "-openmp:llvm" CACHE STRING "CXX compiler flags for OpenMP parallelization" FORCE)
+    add_compile_options(/utf-8)
 endif()
 
 # Recherche d'OpenMP

@@ -1,14 +1,68 @@
 #include "mcts/MCTS.hpp"
 #include "mcts/UCB.hpp"
 #include "metrics/Utility.hpp"
+#include "indicators/progress_bar.hpp"
 
 #include <cmath>
 #include <iostream>
+#include <atomic>
+
 #include "omp.h"
+namespace
+{
+
+    // 1. Setup the beautiful progress bar
+    indicators::ProgressBar createProgressBar(const std::string &postfix_text)
+    {
+        return indicators::ProgressBar{
+            indicators::option::BarWidth{50},
+            // 1. Remove the brackets
+            indicators::option::Start{""},
+            indicators::option::End{""},
+            // 2. Use solid blocks for the filled part
+            indicators::option::Fill{"\u2588"},
+            indicators::option::Lead{"\u2588"},
+            // indicators::option::Fill{"#"},
+            // indicators::option::Lead{"#"},
+            //  3. Use dotted blocks for the empty part
+            indicators::option::Remainder{"\u2591"},
+            // indicators::option::Remainder{"-"},
+            //  4. Change color to Cyan
+            indicators::option::ForegroundColor{indicators::Color::cyan},
+            indicators::option::PostfixText{postfix_text},
+            indicators::option::ShowPercentage{true},
+            indicators::option::ShowElapsedTime{true},
+            indicators::option::ShowRemainingTime{true},
+            indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
+    }
+
+    // 2. Thread-safe function to update the bar
+    void updateProgress(indicators::ProgressBar &bar, std::atomic<int> &counter, int budget)
+    {
+        // Thread-safe incrementation
+        int current = ++counter;
+
+        // UI Optimization: Only draw the bar every 50 iterations, or at the very end
+        if (current % 50 == 0 || current == budget)
+        {
+            // Critical section: safe for both sequential and OpenMP parallel execution
+#pragma omp critical(print_lock)
+            {
+                // FIXED: Calculate as double, then explicitly cast to size_t to avoid C4244 warnings
+                size_t progress = static_cast<size_t>((static_cast<double>(current) / budget) * 100.0);
+                bar.set_progress(progress);
+            }
+        }
+    }
+
+} // End of anonymous namespace
 
 template <typename T>
 void MCTS<T>::run(const int budget)
 {
+    auto bar = createProgressBar("Running sequential MCTS...");
+    std::atomic<int> completedIterations{0};
+
     int budgetCounter = 0;
     while (budgetCounter < budget)
     {
@@ -46,34 +100,21 @@ void MCTS<T>::run(const int budget)
             backpropagate(nodeStack, reward);
         }
         budgetCounter++; // Always increment to avoid infinite loop
+
+        updateProgress(bar, completedIterations, budget);
     }
 }
 
+template <>
 void MCTS<int>::parallelRun(const int budget)
 {
-    int max_system_threads = omp_get_max_threads();
-    int actual_threads = 1; // Default fallback
-
-    if (numThreads == -1 || numThreads > max_system_threads)
-    {
-        // If the user requested -1 (all threads) or asked for more threads
-        // than the machine can physically handle, we cap it to the maximum available.
-        actual_threads = max_system_threads;
-    }
-    else if (numThreads > 0)
-    {
-        // Use the exact requested number of threads
-        actual_threads = numThreads;
-    }
-
-    // Optional: Good practice to log this so the user knows what's happening
-    // std::cout << "[MCTS] Launching parallel execution with " << actual_threads << " threads.\n";
-
+    int actual_threads = (numThreads > 0) ? numThreads : omp_get_max_threads();
     omp_set_num_threads(actual_threads);
-    if (verbose)
-    {
-        std::cout << "[MCTS] Launching parallel execution with " << actual_threads << " threads.\n";
-    }
+
+    // Initialize shared UI elements
+    auto bar = createProgressBar("Running parallel MCTS...");
+    std::atomic<int> completedIterations{0};
+
 #pragma omp parallel
     {
 #pragma omp single
@@ -81,56 +122,43 @@ void MCTS<int>::parallelRun(const int budget)
             int budgetCounter = 0;
             while (budgetCounter < budget)
             {
-                nodeStack = std::stack<Node *>(); // Clear the stack at the beginning of each run
-                /*Selection*/
-                if (verbose)
-                {
-                    std::cout << "[MCTS] Selection phase..." << std::endl;
-                }
+                nodeStack = std::stack<Node *>();
                 Node *node = selectNode(&root, &nodeStack);
-                /*expansion*/
-                if (verbose)
-                {
-                    std::cout << "[MCTS] Expansion phase..." << std::endl;
-                }
 
                 for (int i = 0; i < node->getNumAgents(); i++)
                 {
                     if (budgetCounter >= budget)
                         break;
+
                     budgetCounter++;
                     Node *childNode = node->extend();
+
                     if (childNode != nullptr)
                     {
-                        if (this->getVerbose())
-                        {
-                            std::cout << "[MCTS] Budget counter: " << budgetCounter << ", extended node with allocation: ";
-                            for (int object : childNode->getCurrentAllocation().getAllocation())
-                            {
-                                std::cout << object << " ";
-                            }
-                            std::cout << std::endl;
-                        }
                         std::stack<Node *> localStack = nodeStack;
                         localStack.push(childNode);
+
 #pragma omp task firstprivate(localStack, childNode)
                         {
-                            if (this->getVerbose())
-                            {
-                                std::cout << "[MCTS] Running simulation and backpropagation..." << std::endl;
-                            }
-                            /*simulation*/
                             std::pair<Allocation, Score> reward = simulate(*childNode);
-                            /*backpropagation*/
                             backpropagate(localStack, reward);
+
+                            // --- FACTORIZED UI UPDATE ---
+                            updateProgress(bar, completedIterations, budget);
                         }
+                    }
+                    else
+                    {
+                        // IMPORTANT: Even if the node is null and no task is created,
+                        // the budget was consumed. We MUST advance the progress bar!
+                        updateProgress(bar, completedIterations, budget);
                     }
                 }
             }
         }
     }
+    std::cout << "\n[MCTS] Parallel execution finished successfully!\n";
 }
-
 template <typename T>
 Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
 {
