@@ -12,7 +12,7 @@ public:
      * @param explorationParameter The exploration parameter (commonly denoted as 'c' in the UCB1 formula)
      * @return double The calculated UCB1 value
      */
-    static double calculate(const Node &node, const double explorationParameter);
+    static double calculate(const Node &node, const double explorationParameter, const bool verbose = false);
 
     /**
      * @brief Select the best child node based on the UCB1 value
@@ -20,7 +20,7 @@ public:
      * @param explorationParameter The exploration parameter to use in the UCB1 calculation
      * @return Node* The child node with the highest UCB1 value, or the current node if it was not fully expanded
      */
-    static Node *selectBestChild(Node *node, const double explorationParameter);
+    static Node *selectBestChild(Node *node, const double explorationParameter, const bool verbose = false);
 };
 
 #endif // UCB_HPP

@@ -9,17 +9,20 @@ private:
     int numAgents;  // Number of agents, needed for generating children
     // A vector for each agent: ex 3 agents & 4object: [0,1,2,1] means agent 0 gets object 0, agent 1 gets object 1 and 3, agent 2 gets object 2]
     std::vector<int> allocation;
+    bool verbose;
 
 public:
     Allocation() = default;
     // Constructor to initialize the allocation with the number of objects and agents
-    Allocation(const int numAgents, const int numObjects) : numObjects(numObjects),
-                                                            numAgents(numAgents),
-                                                            allocation(numObjects, -1) {}; // Initialize with -1 to indicate unallocated objects
+    Allocation(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
+                                                                                        numAgents(numAgents),
+                                                                                        allocation(numObjects, -1),
+                                                                                        verbose(verbose) {}; // Initialize with -1 to indicate unallocated objects
 
-    Allocation(const int numAgents, const std::vector<int> &alloc) : numObjects(alloc.size()),
-                                                                     numAgents(numAgents),
-                                                                     allocation(alloc) {};
+    Allocation(const int numAgents, const std::vector<int> &alloc, const bool verbose = false) : numObjects(alloc.size()),
+                                                                                                 numAgents(numAgents),
+                                                                                                 allocation(alloc),
+                                                                                                 verbose(verbose) {};
 
     /**
      * @brief Get the allocation vector
@@ -44,6 +47,18 @@ public:
      * @return int The number of agents
      */
     int getNumAgents() const { return numAgents; };
+
+    /**
+     * @brief Set the verbose mode
+     * @param v The verbose mode
+     */
+    void setVerbose(bool v) { verbose = v; }
+
+    /**
+     * @brief Get the verbose mode
+     * @return bool The verbose mode
+     */
+    bool getVerbose() const { return verbose; }
 };
 
 #endif // ALLOCATION_HPP

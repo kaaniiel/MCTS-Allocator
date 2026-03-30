@@ -20,6 +20,7 @@ private:
     Allocation currentAllocation;
     std::pair<Allocation, Score> bestAllocation;
     std::vector<Node> children;
+    bool verbose;
 
 public:
     Node() : numObjects(0),
@@ -28,14 +29,21 @@ public:
              h(0),
              childrenIndex(0),
              currentAllocation(Allocation()),
-             bestAllocation(Allocation(), Score()) {};
-    Node(const int numAgents, const int numObjects) : numObjects(numObjects),
-                                                      numAgents(numAgents),
-                                                      visits(0),
-                                                      h(0),
-                                                      childrenIndex(0),
-                                                      currentAllocation(Allocation(numAgents, numObjects)),
-                                                      bestAllocation(Allocation(numAgents, numObjects), Score()) {};
+             bestAllocation(Allocation(), Score()),
+             verbose(false) {};
+    Node(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
+                                                                                  numAgents(numAgents),
+                                                                                  visits(0),
+                                                                                  h(0),
+                                                                                  childrenIndex(0),
+                                                                                  currentAllocation(Allocation(numAgents, numObjects, verbose)),
+                                                                                  bestAllocation(Allocation(numAgents, numObjects, verbose), Score(std::vector<double>{0.0}, verbose)),
+                                                                                  verbose(verbose)
+
+    {
+        bestAllocation.first.setAllocation(currentAllocation.getAllocation());
+        bestAllocation.second.setScores(std::vector<double>{0.0});
+    };
 
     Node(const Node &other) : numObjects(other.numObjects),
                               numAgents(other.numAgents),
@@ -43,7 +51,8 @@ public:
                               h(other.h),
                               childrenIndex(0),
                               currentAllocation(other.currentAllocation),
-                              bestAllocation(other.bestAllocation) {};
+                              bestAllocation(other.bestAllocation),
+                              verbose(other.verbose) {};
 
     Node(const Allocation &alloc) : numObjects(alloc.getNumObjects()),
                                     numAgents(alloc.getNumAgents()),
@@ -51,15 +60,17 @@ public:
                                     h(0),
                                     childrenIndex(0),
                                     currentAllocation(alloc),
-                                    bestAllocation(Allocation(numAgents, numObjects), Score()) {};
+                                    bestAllocation(alloc, Score(std::vector<double>{0.0}, alloc.getVerbose())),
+                                    verbose(alloc.getVerbose()) {};
 
-    Node(const Allocation &alloc, int height) : numObjects(alloc.getNumObjects()),
-                                                numAgents(alloc.getNumAgents()),
-                                                visits(0),
-                                                h(height),
-                                                childrenIndex(0),
-                                                currentAllocation(alloc),
-                                                bestAllocation(Allocation(numAgents, numObjects), Score()) {};
+    Node(const Allocation &alloc, int height, const bool verbose = false) : numObjects(alloc.getNumObjects()),
+                                                                            numAgents(alloc.getNumAgents()),
+                                                                            visits(0),
+                                                                            h(height),
+                                                                            childrenIndex(0),
+                                                                            currentAllocation(alloc),
+                                                                            bestAllocation(alloc, Score(std::vector<double>{0.0}, verbose)),
+                                                                            verbose(verbose) {};
 
     /**
      * @brief Get the number of objects
@@ -139,6 +150,18 @@ public:
      */
     void updateBestAllocation(const std::pair<Allocation, Score> &alloc);
 
+    /**
+     * @brief Set the verbose mode
+     * @param v The verbose mode
+     */
+    void setVerbose(bool v) { verbose = v; }
+
+    /**
+     * @brief Get the verbose mode
+     * @return bool The verbose mode
+     */
+    bool getVerbose() const { return verbose; }
+
     /** @brief Expands a node by generating one of its unvisited children
      *  @param node The node to expand
      *  @return The expanded node
@@ -166,36 +189,10 @@ public:
         this->incrementChildrenIndex();                                                       // Increment the index of the next child to expand
 
         newAlloc.setAllocation(allocVec);
-        children.emplace_back(newAlloc, this->getHeight() + 1); // Persist child in the tree
+        children.emplace_back(newAlloc, this->getHeight() + 1, this->getVerbose()); // Persist child in the tree
         return &children.back();
     };
 
-    Node *extendsRandom(const int seed = static_cast<int>(std::time(nullptr)))
-    {
-        std::random_device rd;
-        std::mt19937 gen(rd());
-        // Generate a new child node by creating a new allocation based on the current allocation and modifying it
-        Allocation newAlloc = this->getCurrentAllocation();
-        std::vector<int> allocVec = newAlloc.getAllocation();
-
-        int indexToModify = this->getHeight();
-
-        int numAgents = this->getNumAgents();
-        if (indexToModify < 0 || indexToModify >= static_cast<int>(allocVec.size()))
-        {
-            return nullptr;
-        }
-
-        std::uniform_int_distribution<> distrib(0, numAgents - 1);
-        int nombre_aleatoire = distrib(gen);
-
-        allocVec[indexToModify] = (allocVec[indexToModify] + (nombre_aleatoire + 1)); // Modify the allocation for the current index
-        this->incrementChildrenIndex();                                               // Increment the index of the next child to expand
-
-        newAlloc.setAllocation(allocVec);
-        children.emplace_back(newAlloc, this->getHeight() + 1); // Persist child in the tree
-        return &children.back();
-    }
     void debug_print() const
     {
         std::cout << "Node at height " << h << " with allocation: ";

@@ -14,7 +14,7 @@ public:
      * @param alloc The allocation for which to calculate the utility
      * @return double The calculated utility value
      */
-    static double calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc)
+    static double calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
     {
         double totalUtility = 1.0; // Start with a utility of 1 for multiplication
         const std::vector<int> &allocation = alloc.getAllocation();

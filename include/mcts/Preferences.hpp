@@ -15,23 +15,30 @@ private:
     int numAgents;
     int numObjects;
     std::vector<std::vector<T>> preferences; // A 2D vector where preferences[agent][object] gives the preference score of an agent for an object
+    bool verbose;
+
 public:
     Preferences() = default;
-    Preferences(const int numAgents, const int numObjects) : numAgents(numAgents),
-                                                             numObjects(numObjects),
-                                                             preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))) {}; // Initialize with 0.0 to indicate no preference
-    Preferences(const int numAgents, const int numObjets, const int seed, const int totalPerAgents) : numAgents(numAgents),
-                                                                                                      numObjects(numObjets),
-                                                                                                      preferences(numAgents, std::vector<T>(numObjets, static_cast<T>(0))) {}; // Initialize with 0 to indicate no preference
+    Preferences(const int numAgents, const int numObjects, const bool verbose = false) : numAgents(numAgents),
+                                                                                         numObjects(numObjects),
+                                                                                         preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))),
+                                                                                         verbose(verbose) {}; // Initialize with 0.0 to indicate no preference
+    Preferences(const int numAgents, const int numObjects, const int seed, const int totalPerAgents) : numAgents(numAgents),
+                                                                                                       numObjects(numObjects),
+                                                                                                       preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))),
+                                                                                                       verbose(false) {}; // Initialize with 0 to indicate no preference
     Preferences(const int numAgents, const std::vector<std::vector<T>> &prefs) : numAgents(numAgents),
                                                                                  numObjects(prefs.empty() ? 0 : prefs[0].size()),
-                                                                                 preferences(prefs) {};
+                                                                                 preferences(prefs),
+                                                                                 verbose(false) {};
     Preferences(const std::vector<std::vector<T>> &prefs) : numAgents(prefs.size()),
                                                             numObjects(prefs.empty() ? 0 : prefs[0].size()),
-                                                            preferences(prefs) {};
+                                                            preferences(prefs),
+                                                            verbose(false) {};
 
     Preferences(const std::string &filename) : numAgents(0),
-                                               numObjects(0) { loadFromFile(filename); };
+                                               numObjects(0),
+                                               verbose(false) { loadFromFile(filename); };
     /**
      * @brief Get the preference score of an agent for an object
      * @param agentIndex The index of the agent
@@ -54,6 +61,35 @@ public:
      * @return void
      */
     void setPreference(int agentIndex, int objectIndex, T score) { preferences[agentIndex][objectIndex] = score; };
+
+    /**
+     * @brief Set the verbose mode
+     * @param v The verbose mode
+     */
+    void setVerbose(bool v) { verbose = v; }
+    /**
+     * @brief Get the verbose mode
+     * @return bool The verbose mode
+     */
+    bool getVerbose() const { return verbose; }
+    /**
+     * @brief Print the preferences for debugging purposes
+     * @return void
+     */
+    void printPreferences() const
+    {
+        for (int agent = 0; agent < numAgents; agent++)
+        {
+            std::cout << "Agent " << agent << " preferences: ";
+            for (int object = 0; object < numObjects; ++object)
+            {
+                std::cout << preferences[agent][object] << " ";
+            }
+            std::vector<T> agentPrefs = getPreference(agent);
+            std::cout << "total : " << std::accumulate(agentPrefs.begin(), agentPrefs.end(), static_cast<T>(0)) << " ";
+            std::cout << std::endl;
+        }
+    }
 
     /**
      * @brief Generate random preferences for all agents and objects. This can be useful for testing and simulations when you don't have specific preferences to work with. The random values will be between 0 and 1.

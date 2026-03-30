@@ -1,12 +1,15 @@
 #include <iostream>
 #include <numeric>
+#include <iostream>
 
+#include "config/config.hpp"
+#include "config/CLI11.hpp" // Assure-toi que le chemin d'inclusion est correct
 #include "metrics/Utility.hpp"
 #include "mcts/Preferences.hpp"
 #include "mcts/Allocation.hpp"
 #include "mcts/Node.hpp"
 #include "mcts/MCTS.hpp"
-
+#include "omp.h"
 int testPreferences()
 {
     int numAgents = 3;
@@ -67,7 +70,7 @@ int testMCTS()
 {
     MCTS<int> mcts(3, 4);  // Create an MCTS instance with 3 agents and 4 objects
     const int budget = 10; // Set the budget for the MCTS run
-    mcts.run(budget);
+    mcts.parallelRun(budget);
     std::cout << "MCTS run completed." << std::endl;
     std::cout << "Get the best allocation and score from the root node: " << std::endl;
     std::pair<Allocation, Score> bestAlloc = mcts.getRoot().getBestAllocation();
@@ -81,9 +84,77 @@ int testMCTS()
     std::cout << "Best score: " << bestAlloc.second.getScores()[0] << std::endl;
     return EXIT_SUCCESS;
 }
-int main()
+// src/main.cpp
+
+#ifdef _WIN32
+#include <windows.h>
+#endif
+
+int main(int argc, char **argv)
 {
-    std::cout << "Testing MCTS algorithm..." << std::endl;
-    testMCTS();
-    return EXIT_SUCCESS;
+    // Force console output to UTF-8
+#ifdef _WIN32
+    SetConsoleOutputCP(CP_UTF8);
+#endif
+
+    // ---------------------------------------------------------
+    // STEP 1: Load base configuration (TOML file)
+    // ---------------------------------------------------------
+    // This will read config.toml, or create it if it doesn't exist
+    MCTSConfig config = MCTSConfig::load("config.toml");
+
+    // ---------------------------------------------------------
+    // STEP 2: Terminal override (CLI11)
+    // ---------------------------------------------------------
+    CLI::App app{"MCTS Engine for resource allocation"};
+
+    // Bind terminal options directly to the 'config' variables.
+    // If an option is NOT passed in the terminal, the variable keeps its TOML value.
+    app.add_option("-n,--num-agents", config.numAgents, "Override the number of agents");
+    app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
+    app.add_option("-p,--parallel", config.parallelRun, "Override whether to run MCTS in parallel (true/false)");
+    app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
+    app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
+    app.add_option("-t,--threads", config.threads, "Override the number of threads (OpenMP/TBB)");
+    app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
+    app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
+    // Parse the arguments provided at launch
+    // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
+    CLI11_PARSE(app, argc, argv);
+
+    // ---------------------------------------------------------
+    // STEP 3: Algorithm execution
+    // ---------------------------------------------------------
+    std::cout << "\n=== [MCTS] Starting with final configuration ===\n";
+    std::cout << " - Num Agents    : " << config.numAgents << "\n";
+    std::cout << " - Num Objects   : " << config.numObjects << "\n";
+    std::cout
+        << " - Parallel      : " << (config.parallelRun ? "true" : "false") << "\n";
+    std::cout << " - Iterations    : " << config.iterations << "\n";
+    std::cout << " - Exploration C : " << config.exploration << "\n";
+    std::cout << " - Threads       : " << (config.threads == -1 || config.threads > omp_get_max_threads() ? "All available" : std::to_string(config.threads)) << "\n";
+    std::cout << " - Seed          : " << config.seed << "\n";
+    std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
+    std::cout << "================================================\n\n";
+
+    // Example of how you would instantiate and run your engine:
+    // MCTS mcts_engine(config.iterations, config.exploration);
+    // mcts_engine.run(config.threads);
+    MCTS<int> mcts(config);
+
+    // Print the generated preferences for debugging purposes
+    std::cout << "Generated Preferences:" << std::endl;
+    Preferences<int> &prefs = mcts.getPreferences();
+    prefs.printPreferences();
+
+    if (config.parallelRun)
+    {
+        mcts.parallelRun(config.iterations);
+    }
+    else
+    {
+        mcts.run(config.iterations);
+    }
+
+    return 0;
 }

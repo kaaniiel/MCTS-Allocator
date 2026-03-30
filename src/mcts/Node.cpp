@@ -11,12 +11,15 @@ void Node::updateBestAllocation(const std::pair<Allocation, Score> &alloc)
         bestAllocation = alloc;
     }
     // show new best allocation and score for debugging purposes
-    std::cout << "Updated best allocation: ";
-    const std::vector<int> &updatedBestAllocVec = bestAllocation.first.getAllocation();
-    for (int object : updatedBestAllocVec)
+    if (verbose)
     {
-        std::cout << object << " ";
+        std::cout << "Updated best allocation: ";
+        const std::vector<int> &updatedBestAllocVec = bestAllocation.first.getAllocation();
+        for (int object : updatedBestAllocVec)
+        {
+            std::cout << object << " ";
+        }
+        std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
+        std::cout << "" << std::endl; // Print a newline for better readability in the debug output
     }
-    std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
-    std::cout << "" << std::endl; // Print a newline for better readability in the debug output
 }

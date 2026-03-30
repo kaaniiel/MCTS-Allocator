@@ -2,7 +2,7 @@
 
 #include <cmath>
 #include <limits>
-double UCB::calculate(const Node &node, const double explorationParameter)
+double UCB::calculate(const Node &node, const double explorationParameter, const bool verbose)
 {
     // if the node has not been visited yet, return infinity to ensure it gets selected
     if (node.getVisits() == 0)
@@ -18,7 +18,7 @@ double UCB::calculate(const Node &node, const double explorationParameter)
     return averageReward + explorationTerm;
 }
 
-Node *UCB::selectBestChild(Node *node, const double explorationParameter)
+Node *UCB::selectBestChild(Node *node, const double explorationParameter, const bool verbose)
 {
     if (node == nullptr)
     {
@@ -40,7 +40,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter)
 
     for (auto &child : node->getChildren())
     {
-        double ucbValue = calculate(child, explorationParameter);
+        double ucbValue = calculate(child, explorationParameter, verbose);
         if (ucbValue > bestValue)
         {
             bestValue = ucbValue;
