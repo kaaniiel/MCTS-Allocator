@@ -7,6 +7,8 @@
 #include <iostream>
 #include <atomic>
 #include <random>
+#include <thread>
+#include <functional>
 
 #include "omp.h"
 namespace
@@ -138,21 +140,26 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         std::cout << std::endl;
     }
 
+    // Initialize MT19937_64 (64-bit Mersenne Twister) once per thread
+    // Better distribution than 32-bit version and slightly faster for random number generation
+    thread_local static std::mt19937_64 rng64(std::random_device{}() ^ (std::hash<std::thread::id>{}(std::this_thread::get_id())));
+    thread_local static std::uniform_real_distribution<double> dist(0.0, 1.0);
+
     // Simulate down the tree with temporary allocations (not adding to tree)
     int currentHeight = node.getHeight();
+    int numAgents = currentAlloc.getNumAgents();
+
     while (currentHeight < currentAlloc.getNumObjects())
     {
         std::vector<int> nextAllocVec = currentAlloc.getAllocation();
 
-        // Randomly assign the next object to an agent
-        // On utilise le générateur moderne du C++11, propre à chaque thread
-        thread_local std::mt19937 rng(std::random_device{}());
-        std::uniform_int_distribution<int> dist(0, currentAlloc.getNumAgents() - 1);
+        // Faster random int generation: use real distribution [0,1) then multiply
+        // This avoids the overhead of uniform_int_distribution for every call
+        int randomAgent = static_cast<int>(dist(rng64) * numAgents);
+        // Clamp to valid range just in case of floating point edge cases
+        randomAgent = (randomAgent >= numAgents) ? numAgents - 1 : randomAgent;
 
-        // Génération sans aucun blocage
-        int randomAgent = dist(rng);
         nextAllocVec[currentHeight] = randomAgent;
-
         currentAlloc.setAllocation(nextAllocVec);
         currentHeight++;
 

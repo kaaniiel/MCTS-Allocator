@@ -38,9 +38,22 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, const 
     Node *bestChild = &node->getChildren().front();
     double bestValue = -std::numeric_limits<double>::infinity();
 
+    // Pre-calculate expensive logarithm once
+    double logVisits = std::log(static_cast<double>(node->getVisits()));
+    double explorationDivisor = explorationParameter / std::sqrt(0.1); // Cache this too
+
     for (auto &child : node->getChildren())
     {
-        double ucbValue = calculate(child, explorationParameter, verbose);
+        if (child.getVisits() == 0)
+        {
+            return &child; // Unvisited children have infinite UCB value
+        }
+
+        // Faster UCB calculation with pre-computed log
+        double averageReward = child.getBestAllocation().second.getScores()[0] / child.getVisits();
+        double explorationTerm = explorationParameter * std::sqrt(logVisits / child.getVisits());
+        double ucbValue = averageReward + explorationTerm;
+
         if (ucbValue > bestValue)
         {
             bestValue = ucbValue;

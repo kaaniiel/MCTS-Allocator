@@ -43,6 +43,8 @@ public:
     {
         bestAllocation.first.setAllocation(currentAllocation.getAllocation());
         bestAllocation.second.setScores(std::vector<double>{0.0});
+        // Pre-allocate space for children to avoid reallocations
+        children.reserve(numAgents);
     };
 
     Node(const Node &other) : numObjects(other.numObjects),
@@ -169,27 +171,28 @@ public:
     Node *extend()
     {
         // Generate a new child node by creating a new allocation based on the current allocation and modifying it
-        Allocation newAlloc = this->getCurrentAllocation();
-        std::vector<int> allocVec = newAlloc.getAllocation();
-
         int indexToModify = this->getHeight();
-
         int numAgents = this->getNumAgents();
-        if (indexToModify < 0 || indexToModify >= static_cast<int>(allocVec.size()))
+
+        if (indexToModify < 0 || indexToModify >= static_cast<int>(numObjects))
         {
             return nullptr;
         }
+
+        // Get allocation and modify in-place to avoid copies
+        std::vector<int> allocVec = this->getCurrentAllocation().getAllocation();
 
         if (allocVec[indexToModify] + (this->getChildrenIndex() + 1) >= numAgents)
         {
             // If the modified allocation exceeds the number of agents, we cannot create a new child node
             return nullptr;
         }
-        allocVec[indexToModify] = (allocVec[indexToModify] + (this->getChildrenIndex() + 1)); // Modify the allocation for the current index
-        this->incrementChildrenIndex();                                                       // Increment the index of the next child to expand
 
-        newAlloc.setAllocation(allocVec);
-        children.emplace_back(newAlloc, this->getHeight() + 1, this->getVerbose()); // Persist child in the tree
+        allocVec[indexToModify] = (allocVec[indexToModify] + (this->getChildrenIndex() + 1));
+        this->incrementChildrenIndex();
+
+        // Use move semantics to avoid copying the allocation vector
+        children.emplace_back(Allocation(numAgents, std::move(allocVec), verbose), this->getHeight() + 1, this->getVerbose());
         return &children.back();
     };
 

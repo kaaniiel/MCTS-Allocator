@@ -17,19 +17,26 @@ public:
      */
     static std::vector<double> calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
     {
-        double totalUtility = 1.0; // Start with a utility of 1 for multiplication
         const std::vector<int> &allocation = alloc.getAllocation();
-        for (int agent = 0; agent < alloc.getNumAgents(); ++agent)
+        int numAgents = alloc.getNumAgents();
+        int numObjects = alloc.getNumObjects();
+
+        // Pre-compute agent utilities in a single pass (O(n) instead of O(n²))
+        std::vector<double> agentUtilities(numAgents, 0.0);
+        for (int object = 0; object < numObjects; ++object)
         {
-            double agentUtility = 0.0; // Utility for the current agent
-            for (int object = 0; object < alloc.getNumObjects(); ++object)
-            {
-                if (allocation[object] == agent) // If the object is allocated to the current agent
-                {
-                    agentUtility += prefs.getPreference(agent, object); // Add the preference score for this object to the agent's utility
-                }
+            int agent = allocation[object];
+            if (agent >= 0 && agent < numAgents)
+            { // Valid agent assignment
+                agentUtilities[agent] += prefs.getPreference(agent, object);
             }
-            totalUtility *= (agentUtility + 1e-6); // Multiply the agent's utility to the total utility, adding a small value to avoid multiplying by zero
+        }
+
+        // Multiply agent utilities to get total utility
+        double totalUtility = 1.0;
+        for (int agent = 0; agent < numAgents; ++agent)
+        {
+            totalUtility *= (agentUtilities[agent] + 1e-6);
         }
         return std::vector<double>{totalUtility};
     }

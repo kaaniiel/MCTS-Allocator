@@ -28,6 +28,7 @@ private:
     int seed;
     std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
+    MCTSConfig config; // Store configuration for thread access
 
 public:
     MCTS() : numberOfAgents(0),
@@ -39,7 +40,8 @@ public:
              numThreads(1),
              seed(42),
              evalFunction(Utility<T>::calculateUtilityMul),
-             verbose(false) {};
+             verbose(false),
+             config(MCTSConfig()) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<std::vector<double>(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                                    numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                                    root(root),
@@ -126,9 +128,9 @@ public:
      * @param config The configuration to load
      * @return void
      */
-    void loadConfig(MCTSConfig &config)
+    void loadConfig(MCTSConfig &conf)
     {
-
+        this->config = conf; // Store config for thread access
         numberOfAgents = config.numAgents;
         numberOfObjects = config.numObjects;
         explorationParameter = config.exploration;

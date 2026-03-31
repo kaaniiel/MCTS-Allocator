@@ -24,6 +24,12 @@ public:
                                                                                                  allocation(alloc),
                                                                                                  verbose(verbose) {};
 
+    // Move constructor for efficiency
+    Allocation(const int numAgents, std::vector<int> &&alloc, const bool verbose = false) : numObjects(alloc.size()),
+                                                                                             numAgents(numAgents),
+                                                                                             allocation(std::move(alloc)),
+                                                                                             verbose(verbose) {};
+
     /**
      * @brief Get the allocation vector
      * @return const std::vector<int>& The allocation vector
