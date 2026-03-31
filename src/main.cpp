@@ -75,7 +75,7 @@ int testMCTS()
     };
     MCTS<int> mcts(3, 4, evalFn); // Create an MCTS instance with 3 agents and 4 objects
     const int budget = 10;        // Set the budget for the MCTS run
-    mcts.parallelRun(budget);
+    mcts.run(budget);
     std::cout << "MCTS run completed." << std::endl;
     std::cout << "Get the best allocation and score from the root node: " << std::endl;
     std::pair<Allocation, Score> bestAlloc = mcts.getRoot().getBestAllocation();
@@ -133,7 +133,6 @@ int main(int argc, char **argv)
     app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
     app.add_option("-t,--threads", config.threads, "Override the number of threads (OpenMP/TBB)");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
-    app.add_flag("-p,--parallel", config.parallelRun, "Override whether to run MCTS in parallel (true/false)");
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
@@ -160,18 +159,11 @@ int main(int argc, char **argv)
     MCTS<int> mcts(config);
 
     // Print the generated preferences for debugging purposes
-    std::cout << "Generated Preferences:" << std::endl;
+    // std::cout << "Generated Preferences:" << std::endl;
     // Preferences<int> &prefs = mcts.getPreferences();
     // prefs.printPreferences();
 
-    if (config.parallelRun)
-    {
-        mcts.parallelRun(config.iterations);
-    }
-    else
-    {
-        mcts.run(config.iterations);
-    }
+    mcts.run(config.iterations);
 
     // Show best allocation and score after the run
     std::cout << "Best allocation and score after MCTS run:" << std::endl;

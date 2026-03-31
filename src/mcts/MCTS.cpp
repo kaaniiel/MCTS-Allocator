@@ -46,8 +46,7 @@ namespace
         // UI Optimization: Only draw the bar every 50 iterations, or at the very end
         if (current % 50 == 0 || current == budget)
         {
-            // Critical section: safe for both sequential and OpenMP parallel execution
-#pragma omp critical(print_lock)
+
             {
                 // FIXED: Calculate as double, then explicitly cast to size_t to avoid C4244 warnings
                 size_t progress = static_cast<size_t>((static_cast<double>(current) / budget) * 100.0);
@@ -61,7 +60,7 @@ namespace
 template <typename T>
 void MCTS<T>::run(const int budget)
 {
-    auto bar = createProgressBar("Running sequential MCTS...");
+    auto bar = createProgressBar("Running MCTS...");
     std::atomic<int> completedIterations{0};
 
     int budgetCounter = 0;
@@ -106,11 +105,6 @@ void MCTS<T>::run(const int budget)
     }
 }
 
-template <>
-void MCTS<int>::parallelRun(const int budget)
-{
-    return run(budget); // For now, just call the sequential version. Parallel implementation will be added later.
-}
 template <typename T>
 Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
 {

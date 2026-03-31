@@ -101,12 +101,6 @@ public:
      */
     void run(const int budget);
 
-    /**
-     * @brief Runs the MCTS algorithm in parallel for a specified number of iterations
-     * @param budget The number of iterations to run
-     * @return void
-     */
-    void parallelRun(const int budget);
     /** @brief Selects a node to expand based on the UCB1 formula
      *  @param node The current node
      *  @param nodeStack The stack of nodes

@@ -72,7 +72,6 @@ struct MCTSConfig
             // value_or() will silently fail and keep the default value from 'config'.
             config.numAgents = tbl["mcts"]["num_agents"].value_or(config.numAgents);
             config.numObjects = tbl["mcts"]["num_objects"].value_or(config.numObjects);
-            config.parallelRun = tbl["mcts"]["parallel_run"].value_or(config.parallelRun);
             config.iterations = tbl["mcts"]["iterations"].value_or(config.iterations);
             config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration);
             config.threads = tbl["mcts"]["num_threads"].value_or(config.threads);
