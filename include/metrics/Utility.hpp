@@ -15,14 +15,20 @@ public:
      * @param alloc The allocation for which to calculate the utility
      * @return double The calculated utility value
      */
-    static std::vector<double> calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
+    static double calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
     {
         const std::vector<int> &allocation = alloc.getAllocation();
         int numAgents = alloc.getNumAgents();
         int numObjects = alloc.getNumObjects();
 
-        // Pre-compute agent utilities in a single pass (O(n) instead of O(n²))
-        std::vector<double> agentUtilities(numAgents, 0.0);
+        // Use thread_local to avoid repeated memory allocation across MCTS simulations
+        thread_local std::vector<double> agentUtilities;
+        if (agentUtilities.size() < static_cast<size_t>(numAgents)) {
+            agentUtilities.resize(numAgents, 0.0);
+        } else {
+            std::fill(agentUtilities.begin(), agentUtilities.begin() + numAgents, 0.0);
+        }
+
         for (int object = 0; object < numObjects; ++object)
         {
             int agent = allocation[object];
@@ -38,7 +44,7 @@ public:
         {
             totalUtility *= (agentUtilities[agent] + 1e-6);
         }
-        return std::vector<double>{totalUtility};
+        return totalUtility;
     }
 };
 #endif // UTILITY_HPP

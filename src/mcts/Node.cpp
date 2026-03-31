@@ -6,7 +6,7 @@
 void Node::updateBestAllocation(const std::pair<Allocation, Score> &alloc)
 {
     // Update the best allocation and score if the new score is better than the current best score
-    if (std::accumulate(bestAllocation.first.getAllocation().begin(), bestAllocation.first.getAllocation().end(), 0) == -static_cast<int>(bestAllocation.first.getAllocation().size()) || alloc.second.getScores()[0] > bestAllocation.second.getScores()[0])
+    if (std::accumulate(bestAllocation.first.getAllocation().begin(), bestAllocation.first.getAllocation().end(), 0) == -static_cast<int>(bestAllocation.first.getAllocation().size()) || alloc.second.getScore() > bestAllocation.second.getScore())
     {
         bestAllocation = alloc;
     }
@@ -19,7 +19,7 @@ void Node::updateBestAllocation(const std::pair<Allocation, Score> &alloc)
         {
             std::cout << object << " ";
         }
-        std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
+        std::cout << "with score: " << bestAllocation.second.getScore() << std::endl;
         std::cout << "" << std::endl; // Print a newline for better readability in the debug output
     }
 }

@@ -35,8 +35,8 @@ int testPreferences()
     }
     std::vector<int> allocVec = {0, 1, 2, 1};                                      // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
     Allocation alloc(numAgents, allocVec);                                         // Create an allocation based on the example vector
-    std::vector<double> utility = Utility<int>::calculateUtilityMul(prefs, alloc); // Calculate the utility of the allocation based on the preferences
-    std::cout << "Utility of the allocation: " << (utility.empty() ? 0.0 : utility[0]) << std::endl;
+    double utility = Utility<int>::calculateUtilityMul(prefs, alloc); // Calculate the utility of the allocation based on the preferences
+    std::cout << "Utility of the allocation: " << utility << std::endl;
     return EXIT_SUCCESS;
 }
 
@@ -69,7 +69,7 @@ int testExtendNode()
 }
 int testMCTS()
 {
-    auto evalFn = [](const Preferences<int> &prefs, const Allocation &alloc, const bool verbose) -> std::vector<double>
+    auto evalFn = [](const Preferences<int> &prefs, const Allocation &alloc, const bool verbose) -> double
     {
         return Utility<int>::calculateUtilityMul(prefs, alloc, verbose);
     };
@@ -86,7 +86,7 @@ int testMCTS()
         std::cout << object << " ";
     }
     std::cout << std::endl;
-    std::cout << "Best score: " << bestAlloc.second.getScores()[0] << std::endl;
+    std::cout << "Best score: " << bestAlloc.second.getScore() << std::endl;
     return EXIT_SUCCESS;
 }
 // src/main.cpp
@@ -174,7 +174,7 @@ int main(int argc, char **argv)
     {
         std::cout << object << " ";
     }
-    std::cout << "\nBest score: " << bestAlloc.second.getScores()[0] << std::endl;
+    std::cout << "\nBest score: " << bestAlloc.second.getScore() << std::endl;
 
     return EXIT_SUCCESS;
 }

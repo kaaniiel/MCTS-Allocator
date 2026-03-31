@@ -1,30 +1,29 @@
 #ifndef SCORE_HPP
 #define SCORE_HPP
-#include <vector>
+
 class Score
 {
 private:
-    // A vector with global score of an allocation.
-    // This can be used to store the OWA, the EF score, the utilitarian score, etc. for each allocation.
-    std::vector<double> scores;
+    // Global score of an allocation (OWA, EF score, utilitarian score, etc.)
+    double score;
     bool verbose;
 
 public:
-    Score() : scores(std::vector<double>{0.0}), verbose(false) {};
-    Score(const std::vector<double> &scores, const bool verbose = false) : scores(scores), verbose(verbose) {};
-    Score(const double score, const bool verbose = false) : scores(std::vector<double>{score}), verbose(verbose) {};
-    /**
-     * @brief Get the score vector
-     * @return const std::vector<double>& The score vector
-     */
-    const std::vector<double> &getScores() const { return scores; };
+    Score() : score(0.0), verbose(false) {};
+    Score(const double score, const bool verbose = false) : score(score), verbose(verbose) {};
 
     /**
-     * @brief Set the score vector
-     * @param newScores The new score vector to set
+     * @brief Get the score
+     * @return double The score
+     */
+    double getScore() const { return score; };
+
+    /**
+     * @brief Set the score
+     * @param newScore The new score to set
      * @return void
      */
-    void setScores(const std::vector<double> &newScores) { scores = newScores; };
+    void setScore(const double newScore) { score = newScore; };
 
     /**
      * @brief Set the verbose mode

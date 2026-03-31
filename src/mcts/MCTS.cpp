@@ -129,7 +129,8 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
 {
     // Algorithm 4: Create TEMPORARY allocations during simulation, not persistent nodes
     Allocation currentAlloc = node.getCurrentAllocation();
-    Score bestSimulValue = Score(std::vector<double>{0.0});
+    // Simulate initial score at 0.0
+    Score bestSimulValue = Score(0.0);
 
     if (this->getVerbose())
     {
@@ -188,7 +189,7 @@ std::pair<Allocation, Score> MCTS<T>::backpropagate(std::stack<Node *> &nodeStac
         nodeStack.pop();
         currentNode->incrementVisits();            // Increment the visit count for the current node
         currentNode->updateBestAllocation(reward); // Update the best allocation and score for the current node based on the reward from the simulation
-        if (currentNode->getBestAllocation().second.getScores()[0] > bestAlloc.second.getScores()[0])
+        if (currentNode->getBestAllocation().second.getScore() > bestAlloc.second.getScore())
         {
             bestAlloc = currentNode->getBestAllocation(); // Update the best allocation and score if the current node's best allocation has a better score than the current best allocation
         }

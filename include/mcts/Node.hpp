@@ -37,12 +37,12 @@ public:
                                                                                   h(0),
                                                                                   childrenIndex(0),
                                                                                   currentAllocation(Allocation(numAgents, numObjects, verbose)),
-                                                                                  bestAllocation(Allocation(numAgents, numObjects, verbose), Score(std::vector<double>{0.0}, verbose)),
+                                                                                  bestAllocation(Allocation(numAgents, numObjects, verbose), Score(0.0, verbose)),
                                                                                   verbose(verbose)
 
     {
         bestAllocation.first.setAllocation(currentAllocation.getAllocation());
-        bestAllocation.second.setScores(std::vector<double>{0.0});
+        bestAllocation.second.setScore(0.0);
         // Pre-allocate space for children to avoid reallocations
         children.reserve(numAgents);
     };
@@ -62,7 +62,7 @@ public:
                                     h(0),
                                     childrenIndex(0),
                                     currentAllocation(alloc),
-                                    bestAllocation(alloc, Score(std::vector<double>{0.0}, alloc.getVerbose())),
+                                    bestAllocation(alloc, Score(0.0, alloc.getVerbose())),
                                     verbose(alloc.getVerbose()) {};
 
     Node(const Allocation &alloc, int height, const bool verbose = false) : numObjects(alloc.getNumObjects()),
@@ -71,7 +71,7 @@ public:
                                                                             h(height),
                                                                             childrenIndex(0),
                                                                             currentAllocation(alloc),
-                                                                            bestAllocation(alloc, Score(std::vector<double>{0.0}, verbose)),
+                                                                            bestAllocation(alloc, Score(0.0, verbose)),
                                                                             verbose(verbose) {};
 
     /**
@@ -204,7 +204,7 @@ public:
         {
             std::cout << object << " ";
         }
-        std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
+        std::cout << "with score: " << bestAllocation.second.getScore() << std::endl;
         // Show best allocation and score for debugging purposes
         std::cout << "Best allocation (size : " << bestAllocation.first.getAllocation().size() << "): ";
         const std::vector<int> &bestAllocVec = bestAllocation.first.getAllocation();
@@ -212,7 +212,7 @@ public:
         {
             std::cout << object << " ";
         }
-        std::cout << "with score: " << bestAllocation.second.getScores()[0] << std::endl;
+        std::cout << "with score: " << bestAllocation.second.getScore() << std::endl;
     }
 };
 
