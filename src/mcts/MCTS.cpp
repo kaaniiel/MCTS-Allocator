@@ -157,7 +157,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         // Decide randomly whether to do a random simulation or a heuristic simulation based on the ratioRandomSimulation
         double randomValue = dist(rng64);
         int agent = -1;
-        if (randomValue < ratioRandomSimulation)
+        if (randomValue < ratioRandom)
         {
             // Perform a random simulation: assign a random agent to the current object
 

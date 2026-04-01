@@ -18,7 +18,7 @@ struct MCTSConfig
     int threads = -1;
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
-    double ratioRandomSimulation = 1;
+    double ratioRandom = 1;
 
     // 2. Function to generate the default configuration file
     static void generate_default(const std::string &filepath, const MCTSConfig &default_config)
@@ -34,7 +34,7 @@ struct MCTSConfig
                                {"num_threads", default_config.threads},
                                {"seed", default_config.seed},
                                {"verbose", default_config.verbose},
-                               {"ratio_random_simulation", default_config.ratioRandomSimulation},
+                               {"ratio_random", default_config.ratioRandom},
                            });
 
         // Write to file
@@ -79,7 +79,7 @@ struct MCTSConfig
             config.threads = tbl["mcts"]["num_threads"].value_or(config.threads);
             config.seed = tbl["mcts"]["seed"].value_or(config.seed);
             config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose);
-            config.ratioRandomSimulation = tbl["mcts"]["ratio_random_simulation"].value_or(config.ratioRandomSimulation);
+            config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom);
             std::cout << "[Config] Configuration loaded from " << filepath << "\n";
         }
         catch (const toml::parse_error &err)

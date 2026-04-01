@@ -28,8 +28,8 @@ private:
     int seed;
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
-    double ratioRandomSimulation; // Ratio of random simulations to heuristic simulations
-    MCTSConfig config;            // Store configuration for thread access
+    double ratioRandom; // Ratio of random simulations to heuristic simulations
+    MCTSConfig config;  // Store configuration for thread access
 
 public:
     MCTS() : numberOfAgents(0),
@@ -42,7 +42,7 @@ public:
              seed(42),
              evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false),
-             ratioRandomSimulation(1.0),
+             ratioRandom(1.0),
              config(MCTSConfig()) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
@@ -142,7 +142,7 @@ public:
         root = Node(numberOfAgents, numberOfObjects, config.verbose);                  // Reset the root node with the new number of agents and objects
         preferences = Preferences<T>(numberOfAgents, numberOfObjects, config.verbose); // Reset preferences with the new number of agents and objects
         verbose = config.verbose;
-        ratioRandomSimulation = config.ratioRandomSimulation;
+        ratioRandom = config.ratioRandom;
         preferences.generateRandomPreferences(numberOfAgents * numberOfObjects, config.seed);
     }
 };
