@@ -146,6 +146,13 @@ public:
     void incrementVisits() { visits++; };
 
     /**
+     * @brief Set the number of visits
+     * @param v The new number of visits to set
+     * @return void
+     */
+    void setVisits(int v) { visits = v; };
+
+    /**
      * @brief Update the best allocation and score
      * @param alloc The new best allocation and score
      * @return void

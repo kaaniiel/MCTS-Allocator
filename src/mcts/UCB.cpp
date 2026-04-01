@@ -3,7 +3,7 @@
 #include <cmath>
 #include <limits>
 #include <immintrin.h> // SIMD optimizations
-double UCB::calculate(const Node &node, const double explorationParameter, const bool verbose)
+double UCB::calculate(const Node &node, const int parentVisits, const double explorationParameter, const bool verbose)
 {
     // if the node has not been visited yet, return infinity to ensure it gets selected
     if (node.getVisits() == 0)
@@ -14,7 +14,7 @@ double UCB::calculate(const Node &node, const double explorationParameter, const
     // Calculate the average reward (exploitation term)
     double averageReward = node.getBestAllocation().second.getScore() / node.getVisits();
     // Calculate the exploration term
-    double explorationTerm = explorationParameter * std::sqrt(std::log(node.getVisits()) / node.getVisits());
+    double explorationTerm = explorationParameter * std::sqrt(static_cast<double>(parentVisits) / node.getVisits());
     // Return the sum of the exploitation and exploration terms
     return averageReward + explorationTerm;
 }
@@ -39,15 +39,15 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, const 
     Node *bestChild = &node->getChildren().front();
     double bestValue = -std::numeric_limits<double>::infinity();
 
-    // Pre-calculate expensive logarithm once
-    double logVisits = std::log(static_cast<double>(node->getVisits()));
+    // Pre-calculate parent visits once
+    double parentVisits = static_cast<double>(node->getVisits());
     
     auto &children = node->getChildren();
     size_t i = 0;
     size_t numChildren = children.size();
     
     // SIMD setup (m128d computes two doubles at once)
-    __m128d logVisits_vec = _mm_set1_pd(logVisits);
+    __m128d parentVisits_vec = _mm_set1_pd(parentVisits);
     __m128d expParam_vec = _mm_set1_pd(explorationParameter);
     
     for (; i + 1 < numChildren; i += 2)
@@ -65,8 +65,8 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, const 
         // averageReward = scores / visits
         __m128d avg_reward = _mm_div_pd(scores, visits);
         
-        // explorationTerm = expParam * sqrt(logVisits / visits)
-        __m128d inner_div = _mm_div_pd(logVisits_vec, visits);
+        // explorationTerm = expParam * sqrt(parentVisits / visits)
+        __m128d inner_div = _mm_div_pd(parentVisits_vec, visits);
         __m128d sqrt_val = _mm_sqrt_pd(inner_div);
         __m128d exp_term = _mm_mul_pd(expParam_vec, sqrt_val);
         
@@ -96,7 +96,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, const 
         }
 
         double averageReward = child.getBestAllocation().second.getScore() / child.getVisits();
-        double explorationTerm = explorationParameter * std::sqrt(logVisits / child.getVisits());
+        double explorationTerm = explorationParameter * std::sqrt(parentVisits / child.getVisits());
         double ucbValue = averageReward + explorationTerm;
 
         if (ucbValue > bestValue)

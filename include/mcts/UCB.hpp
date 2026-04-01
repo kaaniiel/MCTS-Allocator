@@ -12,7 +12,7 @@ public:
      * @param explorationParameter The exploration parameter (commonly denoted as 'c' in the UCB1 formula)
      * @return double The calculated UCB1 value
      */
-    static double calculate(const Node &node, const double explorationParameter, const bool verbose = false);
+    static double calculate(const Node &node, const int parentVisits, const double explorationParameter, const bool verbose = false);
 
     /**
      * @brief Select the best child node based on the UCB1 value

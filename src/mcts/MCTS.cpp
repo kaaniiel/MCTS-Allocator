@@ -154,13 +154,35 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
     {
         std::vector<int> nextAllocVec = currentAlloc.getAllocation();
 
-        // Faster random int generation: use real distribution [0,1) then multiply
-        // This avoids the overhead of uniform_int_distribution for every call
-        int randomAgent = static_cast<int>(dist(rng64) * numAgents);
-        // Clamp to valid range just in case of floating point edge cases
-        randomAgent = (randomAgent >= numAgents) ? numAgents - 1 : randomAgent;
+        // Decide randomly whether to do a random simulation or a heuristic simulation based on the ratioRandomSimulation
+        double randomValue = dist(rng64);
+        int agent = -1;
+        if (randomValue < ratioRandomSimulation)
+        {
+            // Perform a random simulation: assign a random agent to the current object
 
-        nextAllocVec[currentHeight] = randomAgent;
+            // Faster random int generation: use real distribution [0,1) then multiply
+            // This avoids the overhead of uniform_int_distribution for every call
+            agent = static_cast<int>(dist(rng64) * numAgents);
+            // Clamp to valid range just in case of floating point edge cases
+            agent = (agent >= numAgents) ? numAgents - 1 : agent;
+        }
+        else
+        {
+            // Perform a heuristic simulation: assign the agent with the highest preference for the current object
+            int objectIndex = currentHeight;
+            double bestPref = -std::numeric_limits<double>::infinity();
+            for (int a = 0; a < numAgents; a++)
+            {
+                double pref = preferences.getPreference(a, objectIndex);
+                if (pref > bestPref)
+                {
+                    bestPref = pref;
+                    agent = a;
+                }
+            }
+        }
+        nextAllocVec[currentHeight] = agent;
         currentAlloc.setAllocation(nextAllocVec);
         currentHeight++;
 

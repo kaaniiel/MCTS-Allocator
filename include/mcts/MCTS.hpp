@@ -28,7 +28,8 @@ private:
     int seed;
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
-    MCTSConfig config; // Store configuration for thread access
+    double ratioRandomSimulation; // Ratio of random simulations to heuristic simulations
+    MCTSConfig config;            // Store configuration for thread access
 
 public:
     MCTS() : numberOfAgents(0),
@@ -41,17 +42,18 @@ public:
              seed(42),
              evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false),
+             ratioRandomSimulation(1.0),
              config(MCTSConfig()) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
-                                                                                                                                                                                                                                                                                                                                                                   numberOfObjects(numObjects),
-                                                                                                                                                                                                                                                                                                                                                                   root(root),
-                                                                                                                                                                                                                                                                                                                                                                   nodeStack(nodeStack),
-                                                                                                                                                                                                                                                                                                                                                                   preferences(prefs),
-                                                                                                                                                                                                                                                                                                                                                                   explorationParameter(explorationParameter),
-                                                                                                                                                                                                                                                                                                                                                                   numThreads(threads),
-                                                                                                                                                                                                                                                                                                                                                                   seed(seed),
-                                                                                                                                                                                                                                                                                                                                                                   evalFunction(evalFunction),
-                                                                                                                                                                                                                                                                                                                                                                   verbose(verbose) {};
+                                                                                                                                                                                                                                                                                                                                                      numberOfObjects(numObjects),
+                                                                                                                                                                                                                                                                                                                                                      root(root),
+                                                                                                                                                                                                                                                                                                                                                      nodeStack(nodeStack),
+                                                                                                                                                                                                                                                                                                                                                      preferences(prefs),
+                                                                                                                                                                                                                                                                                                                                                      explorationParameter(explorationParameter),
+                                                                                                                                                                                                                                                                                                                                                      numThreads(threads),
+                                                                                                                                                                                                                                                                                                                                                      seed(seed),
+                                                                                                                                                                                                                                                                                                                                                      evalFunction(evalFunction),
+                                                                                                                                                                                                                                                                                                                                                      verbose(verbose) {};
     MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, evalFunction, verbose) {};
     MCTS(const int numAgents, const int numObjects, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
     MCTS(const int numAgents, const int numObjects, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
@@ -110,7 +112,7 @@ public:
      */
     Node *selectNode(Node *node, std::stack<Node *> *nodeStack);
 
-    /** @brief Simulates a random playout from the given node
+    /** @brief Simulates a playout from the given node. The simulation can be either random or heuristic based on the configuration.
      *  @param node The node to simulate from
      *  @return The reward obtained from the simulation
      */
@@ -140,7 +142,7 @@ public:
         root = Node(numberOfAgents, numberOfObjects, config.verbose);                  // Reset the root node with the new number of agents and objects
         preferences = Preferences<T>(numberOfAgents, numberOfObjects, config.verbose); // Reset preferences with the new number of agents and objects
         verbose = config.verbose;
-
+        ratioRandomSimulation = config.ratioRandomSimulation;
         preferences.generateRandomPreferences(numberOfAgents * numberOfObjects, config.seed);
     }
 };

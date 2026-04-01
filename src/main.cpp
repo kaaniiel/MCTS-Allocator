@@ -33,8 +33,8 @@ int testPreferences()
         std::cout << "total : " << std::accumulate(agentPrefs.begin(), agentPrefs.end(), 0) << " ";
         std::cout << std::endl;
     }
-    std::vector<int> allocVec = {0, 1, 2, 1};                                      // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
-    Allocation alloc(numAgents, allocVec);                                         // Create an allocation based on the example vector
+    std::vector<int> allocVec = {0, 1, 2, 1};                         // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
+    Allocation alloc(numAgents, allocVec);                            // Create an allocation based on the example vector
     double utility = Utility<int>::calculateUtilityMul(prefs, alloc); // Calculate the utility of the allocation based on the preferences
     std::cout << "Utility of the allocation: " << utility << std::endl;
     return EXIT_SUCCESS;
@@ -134,6 +134,7 @@ int main(int argc, char **argv)
     app.add_option("-t,--threads", config.threads, "Override the number of threads (OpenMP/TBB)");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
+    app.add_option("-r,--ratio-random-simulation", config.ratioRandomSimulation, "Override the ratio of random simulations");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     CLI11_PARSE(app, argc, argv);
@@ -151,6 +152,7 @@ int main(int argc, char **argv)
     std::cout << " - Threads       : " << (config.threads == -1 || config.threads > omp_get_max_threads() ? "All available" : std::to_string(config.threads)) << "\n";
     std::cout << " - Seed          : " << config.seed << "\n";
     std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
+    std::cout << " - Ratio Random Simulation : " << config.ratioRandomSimulation << "\n";
     std::cout << "================================================\n\n";
 
     // Example of how you would instantiate and run your engine:
