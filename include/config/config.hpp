@@ -19,6 +19,7 @@ struct MCTSConfig
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
     double ratioRandom = 1;
+    bool saveResults = false;
 
     // 2. Function to generate the default configuration file
     static void generate_default(const std::string &filepath, const MCTSConfig &default_config)
@@ -35,6 +36,7 @@ struct MCTSConfig
                                {"seed", default_config.seed},
                                {"verbose", default_config.verbose},
                                {"ratio_random", default_config.ratioRandom},
+                               {"save_results", default_config.saveResults},
                            });
 
         // Write to file
@@ -80,6 +82,7 @@ struct MCTSConfig
             config.seed = tbl["mcts"]["seed"].value_or(config.seed);
             config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose);
             config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom);
+            config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults);
             std::cout << "[Config] Configuration loaded from " << filepath << "\n";
         }
         catch (const toml::parse_error &err)

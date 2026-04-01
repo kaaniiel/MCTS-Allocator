@@ -23,9 +23,12 @@ public:
 
         // Use thread_local to avoid repeated memory allocation across MCTS simulations
         thread_local std::vector<double> agentUtilities;
-        if (agentUtilities.size() < static_cast<size_t>(numAgents)) {
+        if (agentUtilities.size() < static_cast<size_t>(numAgents))
+        {
             agentUtilities.resize(numAgents, 0.0);
-        } else {
+        }
+        else
+        {
             std::fill(agentUtilities.begin(), agentUtilities.begin() + numAgents, 0.0);
         }
 
@@ -42,7 +45,11 @@ public:
         double totalUtility = 1.0;
         for (int agent = 0; agent < numAgents; ++agent)
         {
-            totalUtility *= (agentUtilities[agent] + 1e-6);
+            if (verbose)
+            {
+                std::cout << "Agent " << agent << " utility: " << agentUtilities[agent] << std::endl;
+            }
+            totalUtility *= (agentUtilities[agent]);
         }
         return totalUtility;
     }

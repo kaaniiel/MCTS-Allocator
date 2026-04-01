@@ -99,6 +99,7 @@ public:
      */
     bool getVerbose() const { return verbose; }
 
+    std::function<double(const Preferences<T> &, const Allocation &, bool)> getEvalFunction() const { return evalFunction; }
     /** @brief Runs the MCTS algorithm for a specified number of iterations
      *  @param budget The number of iterations to run
      * @return void
@@ -144,6 +145,65 @@ public:
         verbose = config.verbose;
         ratioRandom = config.ratioRandom;
         preferences.generateRandomPreferences(numberOfAgents * numberOfObjects, config.seed);
+    }
+
+    void save_results_json(const std::string &filename)
+    {
+        std::string results_dir = "results";
+        if (!std::filesystem::exists(results_dir))
+        {
+            std::filesystem::create_directory(results_dir);
+        }
+        std::ofstream file(results_dir + "/" + filename);
+        if (file.is_open())
+        {
+            file << "{\n";
+            file << "  \"num_agents\": " << numberOfAgents << ",\n";
+            file << "  \"num_objects\": " << numberOfObjects << ",\n";
+            file << "  \"exploration_parameter\": " << explorationParameter << ",\n";
+            file << "  \"num_threads\": " << numThreads << ",\n";
+            file << "  \"seed\": " << seed << ",\n";
+            file << "  \"verbose\": " << (verbose ? "true" : "false") << ",\n";
+            file << "  \"ratio_random\": " << ratioRandom << ",\n";
+            file << "  \"iterations\": " << config.iterations << ",\n";
+            // add preferences matrix
+            file << "  \"preferences\": [\n";
+            for (int i = 0; i < numberOfAgents; ++i)
+            {
+                file << "    [";
+                for (int j = 0; j < numberOfObjects; ++j)
+                {
+                    file << preferences.getPreference(i, j);
+                    if (j < numberOfObjects - 1)
+                        file << ", ";
+                }
+                file << "]";
+                if (i < numberOfAgents - 1)
+                    file << ",\n";
+            }
+
+            file << "  ],\n";
+            // add best allocation and score
+            const Allocation &bestAlloc = root.getBestAllocation().first;
+            const Score &bestScore = root.getBestAllocation().second;
+            file << "  \"best_allocation\": [";
+            const std::vector<int> &allocVec = bestAlloc.getAllocation();
+            for (size_t i = 0; i < allocVec.size(); ++i)
+            {
+                file << allocVec[i];
+                if (i < allocVec.size() - 1)
+                    file << ", ";
+            }
+            file << "],\n";
+            file << "  \"best_score\": " << bestScore.getScore() << "\n";
+
+            file << "}\n";
+            std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
+        }
+        else
+        {
+            std::cerr << "[Results] Error: unable to save results to " << results_dir + "/" + filename << "\n";
+        }
     }
 };
 

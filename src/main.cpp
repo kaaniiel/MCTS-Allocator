@@ -87,6 +87,7 @@ int testMCTS()
     }
     std::cout << std::endl;
     std::cout << "Best score: " << bestAlloc.second.getScore() << std::endl;
+
     return EXIT_SUCCESS;
 }
 // src/main.cpp
@@ -135,6 +136,7 @@ int main(int argc, char **argv)
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
+    app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     CLI11_PARSE(app, argc, argv);
@@ -145,14 +147,13 @@ int main(int argc, char **argv)
     std::cout << "\n=== [MCTS] Starting with final configuration ===\n";
     std::cout << " - Num Agents    : " << config.numAgents << "\n";
     std::cout << " - Num Objects   : " << config.numObjects << "\n";
-    std::cout
-        << " - Parallel      : " << (config.parallelRun ? "true" : "false") << "\n";
     std::cout << " - Iterations    : " << config.iterations << "\n";
     std::cout << " - Exploration C : " << config.exploration << "\n";
     std::cout << " - Threads       : " << (config.threads == -1 || config.threads > omp_get_max_threads() ? "All available" : std::to_string(config.threads)) << "\n";
     std::cout << " - Seed          : " << config.seed << "\n";
     std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
     std::cout << " - Ratio Random Simulation : " << config.ratioRandom << "\n";
+    std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 
     // Example of how you would instantiate and run your engine:
@@ -178,5 +179,24 @@ int main(int argc, char **argv)
     }
     std::cout << "\nBest score: " << bestAlloc.second.getScore() << std::endl;
 
+    // mcts.getEvalFunction()(mcts.getPreferences(), bestAlloc.first, true);
+
+    if (config.saveResults)
+    {
+        auto t = std::time(nullptr);
+        std::tm tm{};
+
+#if defined(_WIN32) || defined(_WIN64)
+        localtime_s(&tm, &t);
+#else
+        localtime_r(&t, &tm);
+#endif
+
+        std::ostringstream oss;
+
+        // Format : YYYY-MM-DD_HH-MM-SS
+        oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+        mcts.save_results_json("mcts_results" + oss.str() + ".json");
+    }
     return EXIT_SUCCESS;
 }
