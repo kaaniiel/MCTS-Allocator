@@ -10,6 +10,7 @@
 #include "mcts/Allocation.hpp"
 #include "mcts/Node.hpp"
 #include "mcts/MCTS.hpp"
+#include "mcts_allocation_graph.hpp"
 #include "omp.h"
 int testPreferences()
 {
@@ -134,6 +135,7 @@ int main(int argc, char **argv)
     app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
     app.add_option("-t,--threads", config.threads, "Override the number of threads (OpenMP/TBB)");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
+    app.add_flag("-l,--launch", config.launch, "Launch the interface");
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
     app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
@@ -145,6 +147,7 @@ int main(int argc, char **argv)
     // STEP 3: Algorithm execution
     // ---------------------------------------------------------
     std::cout << "\n=== [MCTS] Starting with final configuration ===\n";
+    std::cout << " - launch        : " << (config.launch ? "true" : "false") << "\n";
     std::cout << " - Num Agents    : " << config.numAgents << "\n";
     std::cout << " - Num Objects   : " << config.numObjects << "\n";
     std::cout << " - Iterations    : " << config.iterations << "\n";
@@ -159,6 +162,15 @@ int main(int argc, char **argv)
     // Example of how you would instantiate and run your engine:
     // MCTS mcts_engine(config.iterations, config.exploration);
     // mcts_engine.run(config.threads);
+    if (config.launch)
+    {
+        std::cout << "Launching the interface..." << std::endl;
+        // Code to launch your interface would go here
+        MCTSAllocationGraph graph;
+        graph.exportGraph();
+        // For now, we'll just print a message and exit
+        return EXIT_SUCCESS;
+    }
     MCTS<int> mcts(config);
 
     // Print the generated preferences for debugging purposes

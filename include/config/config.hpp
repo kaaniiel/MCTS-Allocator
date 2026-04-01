@@ -10,6 +10,7 @@
 struct MCTSConfig
 {
     // 1. Default values (Source of truth)
+    bool launch = false;
     int numAgents = 3;
     int numObjects = 4;
     bool parallelRun = false;
@@ -27,6 +28,7 @@ struct MCTSConfig
         // Build the TOML structure
         toml::table tbl;
         tbl.insert("mcts", toml::table{
+                               {"launch", default_config.launch},
                                {"num_agents", default_config.numAgents},
                                {"num_objects", default_config.numObjects},
                                {"parallel_run", default_config.parallelRun},
@@ -74,6 +76,7 @@ struct MCTSConfig
             // Safe extraction:
             // If the key is missing OR the type is wrong (e.g., string instead of int),
             // value_or() will silently fail and keep the default value from 'config'.
+            config.launch = tbl["mcts"]["launch"].value_or(config.launch);
             config.numAgents = tbl["mcts"]["num_agents"].value_or(config.numAgents);
             config.numObjects = tbl["mcts"]["num_objects"].value_or(config.numObjects);
             config.iterations = tbl["mcts"]["iterations"].value_or(config.iterations);
