@@ -90,143 +90,48 @@ Notes:
 Use CMake to build the main executable.
 
 ```bash
-cmake --build build --config Release
+# Basic run based purely on what's defined in config.toml
+./mcts_main
 ```
 
-On single-config generators, the `--config Release` part is harmless. On multi-config generators, it is required to choose the Release configuration.
+### Command-Line Arguments (CLI)
 
-### Step 4: Run the executable
-
-The main binary is named `mcts_main`.
-
-- On Linux and macOS, it will usually be located in `build/` or a generator-specific subdirectory.
-- On Windows with Visual Studio generators, it is commonly placed under a `Release/` folder inside the build tree.
-
-Example:
+You can easily override your configuration directly from the terminal without mutating your `config.toml`:
 
 ```bash
-./build/mcts_main
+./mcts_main [OPTIONS]
+
+Options:
+  -h,--help                    Print this help message and exit
+  -n,--num-agents INT          Override the number of agents
+  -o,--num-objects INT         Override the number of objects
+  -i,--iterations INT          Override the number of MCTS iterations to execute
+  -e,--exploration FLOAT       Override the exploration constant (C in UCB1 formula)
+  -t,--threads INT             Override the number of allowed threads (OpenMP)
+  -s,--seed INT                Override the random seed used for generating preferences
+  -v,--verbose                 Enable verbose outputs for step-by-step debugging
+  -r,--ratio-random FLOAT      Determine the distribution ratio of random rollouts vs heuristic ones
 ```
 
-If your generator places the executable in a configuration subfolder, run the binary from that location instead.
+### Config.toml
 
-## Using VS Code
-
-If you use the CMake Tools extension in VS Code, the workflow is the same:
-
-1. Open the folder in VS Code.
-2. Select a CMake kit or compiler toolchain.
-3. Choose the Release variant when the extension asks for a build configuration.
-4. Run Configure.
-5. Run Build.
-
-For multi-config generators, make sure the active configuration shown by CMake Tools is Release before building.
-
-## Runtime Configuration
-
-The application reads its default settings from `config.toml`.
-
-If the file does not exist, the program generates one automatically with default values.
-
-### Default settings
-
-The most relevant settings are:
-
-- `num_agents`: number of agents in the allocation problem
-- `num_objects`: number of objects to allocate
-- `iterations`: number of MCTS iterations to run
-- `exploration_constant`: exploration term used by the tree policy
-- `seed`: seed used for preference generation
-- `verbose`: enables additional diagnostic output
-- `ratio_random`: controls the mix between random and heuristic simulations
-- `save_results`: enables JSON export of the final result
-- `launch`: switches the application into the graph/export mode instead of running the search directly
-
-Example configuration:
+At launch, the engine attempts to load configurations from `config.toml` located in the execution directory. If the file does not exist, the engine will safely generate a default one:
 
 ```toml
 [mcts]
-exploration_constant = 1.414
-iterations = 100
+exploration_constant = 1.414  # Corresponds generally to sqrt(2)
+iterations = 100              # Budget or max search loop allowance
 num_agents = 3
 num_objects = 4
-ratio_random = 1.0
-save_results = false
-seed = 42
-verbose = false
+num_threads = -1              # -1 dictates 'Use all physically available core threads'
+parallel_run = false          # Global parallelization toggling
+seed = -1389484284            # Deterministic RNG seed. Change to diversify preferences.
+verbose = false               # Keep terminal logs sparse (better performance)
 ```
 
-## Command-Line Arguments
+## Structure OVERVIEW
 
-The executable also accepts command-line overrides. Command-line values take priority over the TOML file.
-
-| Option               | Description                              |
-| -------------------- | ---------------------------------------- |
-| `-n, --num-agents`   | Override the number of agents            |
-| `-o, --num-objects`  | Override the number of objects           |
-| `-i, --iterations`   | Override the number of search iterations |
-| `-e, --exploration`  | Override the exploration constant        |
-| `-s, --seed`         | Override the random seed                 |
-| `-l, --launch`       | Launch the graph/export mode             |
-| `-v, --verbose`      | Enable verbose output                    |
-| `-r, --ratio-random` | Override the ratio of random simulations |
-| `-S, --save-results` | Save the final result as JSON            |
-
-Example:
-
-```bash
-./build/mcts_main --num-agents 5 --num-objects 8 --iterations 250 --save-results
-```
-
-## What The Program Does At Runtime
-
-When the application starts, it:
-
-1. Loads `config.toml` or creates it with default values.
-2. Applies command-line overrides.
-3. Generates preferences for the configured number of agents and objects.
-4. Runs the MCTS search for the requested number of iterations.
-5. Prints the best allocation and its score.
-6. Optionally writes a JSON result file in a `results/` directory.
-
-If `--launch` is enabled, the application follows a graph/export path instead of running the search loop.
-
-## Output
-
-By default, the program prints:
-
-- the resolved configuration,
-- the best allocation found,
-- the score associated with that allocation.
-
-If result export is enabled, the application creates a file named like `mcts_resultsYYYY-MM-DD_HH-MM-SS.json` inside `results/`.
-
-## Example Workflow
-
-### Linux or macOS
-
-```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-./build/mcts_main --iterations 200 --save-results
-```
-
-### Windows PowerShell
-
-```powershell
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --config Release
-.\build\Release\mcts_main.exe --iterations 200 --save-results
-```
-
-If you use Visual Studio as the generator, the executable is usually under `build/Release/`. If you use Ninja, it is typically under `build/`.
-
-## Notes
-
-- The repository ships with a default `config.toml`, but the program can regenerate one if needed.
-- The algorithm focuses on the allocation principle and on building an understandable search workflow.
-- The code is set up to be portable through CMake, so the same build steps apply across platforms with only minor path differences.
-
-## License
-
-See [LICENSE](LICENSE) for the license terms.
+- `src/main.cpp`: Executable entry point handling CLI configurations and TOML integration.
+- `src/mcts/`: Contains the fundamental implementations (`MCTS.cpp`, `Node.cpp`, `Allocation.cpp`, `UCB.cpp`).
+- `include/`: Holds project-wide headers alongside third-party headers (CLI11).
+- `metrics/Utility.hpp`: Computes the actual "Reward" based upon agent preferences metrics ensuring fairly distributed systems.
