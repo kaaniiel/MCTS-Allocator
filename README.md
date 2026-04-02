@@ -1,92 +1,108 @@
 # MCTS-Allocator
 
-**MCTS-Allocator** is a fast, C++17 engine implementing Monte Carlo Tree Search (MCTS) to solve complex **resource allocation** problems. It aims to optimally allocate a set of objects to multiple agents based on their preferences in order to maximize a global utility score (e.g., fairness or total value).
+`MCTS-Allocator` is a C++ project that applies **Monte Carlo Tree Search (MCTS)** to solve allocation/decision problems.  
+The goal is to explore possible actions and select high-quality allocations based on simulation outcomes.
 
-## Key Features
+---
 
-- **Monte Carlo Tree Search (MCTS)**: Employs standard UCB1 for tree traversal and selection, supporting customizable exploration parameters.
-- **High-Performance SIMD Processing**: Leverages AVX/SSE2 (`__m128d`) intrinsics to accelerate UCB1 calculations across multiple children simultaneously.
-- **Multi-Threading Capability**: Native implementation supporting `OpenMP` to parallelize simulation steps, making the most of multi-core CPUs.
-- **Dual Simulation Approaches (Rollout)**: Allows swapping between purely random stochastic simulations and heuristic-guided UCB1 rollout allocations using a dynamic adjustable ratio (`--ratio-random-simulation`).
-- **Dual Configuration Interfaces**:
-  - **`config.toml`**: Easily repeatable and trackable parameters loaded directly from a TOML file.
-  - **Command-Line Interface (CLI)**: A robust CLI powered by `CLI11` allowing you to temporarily override settings directly from the terminal.
-- **Beautiful Console Reporting**: Integrates real-time, terminal-friendly progress bars (`indicators` library).
+## Requirements
 
-## Prerequisites
+- **CMake** 3.16 or newer
+- **C++17** compatible compiler
 
-- **C++17 Compatible Compiler**: GCC, Clang, or MSVC (with `/utf-8` flag).
-- **CMake**: Version 3.14 or strictly higher.
-- **OpenMP** (Optional but Recommended): Automatically discovered via CMake if available on your system environment.
-- **LLVM**: For modern MSVC setups aiming to use OpenMP, the LLVM OpenMP runtime is explicitly queried.
+### Compilers by OS
+- **Windows**: MSVC (Visual Studio 2022 recommended) or MinGW
+- **Linux**: GCC or Clang
+- **macOS (AppleOS)**: Apple Clang (Xcode Command Line Tools)
 
-## Building the Project
+---
 
-1. Clone the repository to your local machine:
-   ```bash
-   git clone https://github.com/kaaniiel/MCTS-Allocator.git
-   cd MCTS-Allocator
-   ```
+## Build with CMake
 
-2. Create a build directory:
-   ```bash
-   mkdir build && cd build
-   ```
+### 1) Configure
 
-3. Generate build files and compile using CMake:
-   ```bash
-   cmake ..
-   cmake --build . --config Release
-   ```
-   > *Note: By default CMake will try to locate OpenMP. If it's found, multi-threading capabilities will automatically be linked into `mcts_core`.*
-
-## Usage & Configuration
-
-You can run the executable generated in the build directory.
+From project root:
 
 ```bash
-# Basic run based purely on what's defined in config.toml
-./mcts_main
+cmake -S . -B build
 ```
 
-### Command-Line Arguments (CLI)
-
-You can easily override your configuration directly from the terminal without mutating your `config.toml`:
+### 2) Build
 
 ```bash
-./mcts_main [OPTIONS]
-
-Options:
-  -h,--help                    Print this help message and exit
-  -n,--num-agents INT          Override the number of agents
-  -o,--num-objects INT         Override the number of objects
-  -i,--iterations INT          Override the number of MCTS iterations to execute
-  -e,--exploration FLOAT       Override the exploration constant (C in UCB1 formula)
-  -t,--threads INT             Override the number of allowed threads (OpenMP)
-  -s,--seed INT                Override the random seed used for generating preferences
-  -v,--verbose                 Enable verbose outputs for step-by-step debugging
-  -r,--ratio-random FLOAT      Determine the distribution ratio of random rollouts vs heuristic ones
+cmake --build build
 ```
 
-### Config.toml
+### 3) Run
 
-At launch, the engine attempts to load configurations from `config.toml` located in the execution directory. If the file does not exist, the engine will safely generate a default one:
+Executable name depends on your `CMakeLists.txt` target.  
+Typical example:
 
-```toml
-[mcts]
-exploration_constant = 1.414  # Corresponds generally to sqrt(2)
-iterations = 100              # Budget or max search loop allowance
-num_agents = 3
-num_objects = 4
-num_threads = -1              # -1 dictates 'Use all physically available core threads'
-parallel_run = false          # Global parallelization toggling
-seed = -1389484284            # Deterministic RNG seed. Change to diversify preferences.
-verbose = false               # Keep terminal logs sparse (better performance)
+- Linux/macOS: `./build/MCTS-Allocator`
+- Windows: `.\build\Debug\MCTS-Allocator.exe` or `.\build\Release\MCTS-Allocator.exe`
+
+---
+
+## OS-Specific Quick Commands
+
+### Windows (Visual Studio 2022)
+
+```powershell
+cmake -S . -B build -G "Visual Studio 17 2022" -A x64
+cmake --build build --config Release
+.\build\Release\MCTS-Allocator.exe
 ```
 
-## Structure OVERVIEW
+### Linux
 
-- `src/main.cpp`: Executable entry point handling CLI configurations and TOML integration.
-- `src/mcts/`: Contains the fundamental implementations (`MCTS.cpp`, `Node.cpp`, `Allocation.cpp`, `UCB.cpp`).
-- `include/`: Holds project-wide headers alongside third-party headers (CLI11).
-- `metrics/Utility.hpp`: Computes the actual "Reward" based upon agent preferences metrics ensuring fairly distributed systems.
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/MCTS-Allocator
+```
+
+### macOS (AppleOS)
+
+```bash
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build -j
+./build/MCTS-Allocator
+```
+
+If developer tools are missing on macOS:
+
+```bash
+xcode-select --install
+```
+
+---
+
+## Optional: Run Tests
+
+If tests are enabled in `CMakeLists.txt`:
+
+```bash
+ctest --test-dir build --output-on-failure
+```
+
+---
+
+## Project Layout 
+
+```text
+MCTS-Allocator/
+├── CMakeLists.txt
+├── include/
+├── src/
+├── data/
+└── README.md
+```
+
+---
+
+## Notes
+
+- Use `cmake --version` to verify CMake installation.
+- If build fails, remove the build folder and reconfigure:
+  - Linux/macOS: `rm -rf build`
+  - Windows PowerShell: `Remove-Item -Recurse -Force build`
