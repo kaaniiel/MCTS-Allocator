@@ -133,7 +133,6 @@ int main(int argc, char **argv)
     app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
     app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
     app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
-    app.add_option("-t,--threads", config.threads, "Override the number of threads (OpenMP/TBB)");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
     app.add_flag("-l,--launch", config.launch, "Launch the interface");
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
@@ -152,10 +151,9 @@ int main(int argc, char **argv)
     std::cout << " - Num Objects   : " << config.numObjects << "\n";
     std::cout << " - Iterations    : " << config.iterations << "\n";
     std::cout << " - Exploration C : " << config.exploration << "\n";
-    std::cout << " - Threads       : " << (config.threads == -1 || config.threads > omp_get_max_threads() ? "All available" : std::to_string(config.threads)) << "\n";
     std::cout << " - Seed          : " << config.seed << "\n";
     std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
-    std::cout << " - Ratio Random Simulation : " << config.ratioRandom << "\n";
+    std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
     std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 

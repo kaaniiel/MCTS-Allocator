@@ -24,7 +24,6 @@ private:
     std::stack<Node *> nodeStack;
     Preferences<T> preferences;
     double explorationParameter; // Exploration parameter for UCB
-    int numThreads;              // Number of threads for parallel execution
     int seed;
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
@@ -38,7 +37,6 @@ public:
              nodeStack(std::stack<Node *>()),
              preferences(Preferences<T>()),
              explorationParameter(std::sqrt(2.0)),
-             numThreads(1),
              seed(42),
              evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false),
@@ -50,7 +48,6 @@ public:
                                                                                                                                                                                                                                                                                                                                                       nodeStack(nodeStack),
                                                                                                                                                                                                                                                                                                                                                       preferences(prefs),
                                                                                                                                                                                                                                                                                                                                                       explorationParameter(explorationParameter),
-                                                                                                                                                                                                                                                                                                                                                      numThreads(threads),
                                                                                                                                                                                                                                                                                                                                                       seed(seed),
                                                                                                                                                                                                                                                                                                                                                       evalFunction(evalFunction),
                                                                                                                                                                                                                                                                                                                                                       verbose(verbose) {};
@@ -137,7 +134,6 @@ public:
         numberOfAgents = config.numAgents;
         numberOfObjects = config.numObjects;
         explorationParameter = config.exploration;
-        numThreads = config.threads;
         seed = config.seed;
         nodeStack = std::stack<Node *>();                                              // Clear the stack
         root = Node(numberOfAgents, numberOfObjects, config.verbose);                  // Reset the root node with the new number of agents and objects
@@ -161,7 +157,6 @@ public:
             file << "  \"num_agents\": " << numberOfAgents << ",\n";
             file << "  \"num_objects\": " << numberOfObjects << ",\n";
             file << "  \"exploration_parameter\": " << explorationParameter << ",\n";
-            file << "  \"num_threads\": " << numThreads << ",\n";
             file << "  \"seed\": " << seed << ",\n";
             file << "  \"verbose\": " << (verbose ? "true" : "false") << ",\n";
             file << "  \"ratio_random\": " << ratioRandom << ",\n";

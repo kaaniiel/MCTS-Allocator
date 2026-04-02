@@ -13,10 +13,8 @@ struct MCTSConfig
     bool launch = false;
     int numAgents = 3;
     int numObjects = 4;
-    bool parallelRun = false;
     int iterations = 100;
     double exploration = 1.414;
-    int threads = -1;
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
     double ratioRandom = 1;
@@ -31,10 +29,8 @@ struct MCTSConfig
                                {"launch", default_config.launch},
                                {"num_agents", default_config.numAgents},
                                {"num_objects", default_config.numObjects},
-                               {"parallel_run", default_config.parallelRun},
                                {"iterations", default_config.iterations},
                                {"exploration_constant", default_config.exploration},
-                               {"num_threads", default_config.threads},
                                {"seed", default_config.seed},
                                {"verbose", default_config.verbose},
                                {"ratio_random", default_config.ratioRandom},
@@ -81,7 +77,6 @@ struct MCTSConfig
             config.numObjects = tbl["mcts"]["num_objects"].value_or(config.numObjects);
             config.iterations = tbl["mcts"]["iterations"].value_or(config.iterations);
             config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration);
-            config.threads = tbl["mcts"]["num_threads"].value_or(config.threads);
             config.seed = tbl["mcts"]["seed"].value_or(config.seed);
             config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose);
             config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom);
