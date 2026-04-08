@@ -12,7 +12,7 @@ double UCB::calculate(const Node &node, const int parentVisits, const double exp
     }
 
     // Calculate the average reward (exploitation term)
-    double averageReward = node.getBestAllocation().second.getScore() / node.getVisits();
+    double averageReward = node.getBestAllocation().second.getScore();
     // Calculate the exploration term
     double explorationTerm = explorationParameter * std::sqrt(static_cast<double>(parentVisits) / node.getVisits());
     // Return the sum of the exploitation and exploration terms
