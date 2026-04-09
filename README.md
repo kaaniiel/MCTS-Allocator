@@ -13,6 +13,14 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build --config Release
 ```
 
+On Windows with Visual Studio, make sure the build tree is x64, for example:
+
+```bash
+cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
+```
+
+If you already configured `build/` as Win32, remove that build directory or use a fresh one before reconfiguring.
+
 Then run the executable:
 
 - Linux or macOS: `./build/mcts_main`
