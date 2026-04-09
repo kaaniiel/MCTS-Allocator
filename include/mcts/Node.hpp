@@ -117,9 +117,9 @@ public:
 
     /**
      * @brief Set the height of the node in the tree
-     * @return int The height of the node in the tree
+      * @return void
      */
-    int setHeight(int height) { h = height; };
+     void setHeight(int height) { h = height; }
 
     /**
      * @brief Get the height of the node in the tree

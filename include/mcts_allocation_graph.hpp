@@ -32,13 +32,12 @@ public:
 
         // Exécution de l'appel système pour lancer le rendu externe
 #ifdef _WIN32
-        std::system(("start \"\" \"" + serialized_path + "\"").c_str());
+        return std::system(("start \"\" \"" + serialized_path + "\"").c_str());
 #elif __APPLE__
-        std::system(("open \"" + serialized_path + "\"").c_str());
+        return std::system(("open \"" + serialized_path + "\"").c_str());
 #else // Linux et autres systèmes Unix-like
-        std::system(("xdg-open \"" + serialized_path + "\"").c_str());
+        return std::system(("xdg-open \"" + serialized_path + "\"").c_str());
 #endif
-        return EXIT_SUCCESS;
     }
 };
 
