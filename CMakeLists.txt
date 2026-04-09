@@ -34,22 +34,73 @@ endif()
 # Tu peux overrider ORTOOLS_VERSION et ORTOOLS_ARCHIVE via -D...
 set(ORTOOLS_VERSION "v9.11" CACHE STRING "OR-Tools release tag")
 set(ORTOOLS_BUILD_ID "4210" CACHE STRING "OR-Tools build id in release filename")
+set(ORTOOLS_ARCHIVE "" CACHE STRING "OR-Tools archive name (auto-detected if empty)")
 
-if(WIN32)
-    # Nom exact de l'archive C++ Windows publiee par OR-Tools pour VS2022 x64.
-    set(ORTOOLS_ARCHIVE "or-tools_x64_VisualStudio2022_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.zip" CACHE STRING "OR-Tools archive name" FORCE)
-elseif(UNIX AND NOT APPLE)
-    # Exemple Ubuntu 22.04 x64 (a ajuster selon ta cible Linux)
-    set(ORTOOLS_ARCHIVE "or-tools_amd64_ubuntu-22.04_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.tar.gz" CACHE STRING "OR-Tools archive name" FORCE)
+string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ORTOOLS_CPU_RAW)
+if(ORTOOLS_CPU_RAW MATCHES "^(x86_64|amd64)$")
+    set(ORTOOLS_CPU "x86_64")
+elseif(ORTOOLS_CPU_RAW MATCHES "^(arm64|aarch64)$")
+    set(ORTOOLS_CPU "arm64")
 else()
-    message(FATAL_ERROR "Plateforme non supportee par ce template.")
+    set(ORTOOLS_CPU "${ORTOOLS_CPU_RAW}")
+endif()
+
+if(ORTOOLS_ARCHIVE STREQUAL "")
+    if(WIN32)
+        if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+            message(FATAL_ERROR "OR-Tools prebuilt Windows package requires x64.")
+        endif()
+        # Nom exact de l'archive C++ Windows publiee par OR-Tools pour VS2022 x64.
+        set(ORTOOLS_ARCHIVE "or-tools_x64_VisualStudio2022_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.zip")
+    elseif(APPLE)
+        # OR-Tools package names include a macOS platform token; tweak if Google changes naming.
+        if(ORTOOLS_CPU STREQUAL "arm64")
+            set(ORTOOLS_MACOS_TAG "macOS-14.7" CACHE STRING "macOS package tag used in OR-Tools archive name")
+            set(ORTOOLS_ARCHIVE "or-tools_arm64_${ORTOOLS_MACOS_TAG}_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.tar.gz")
+        elseif(ORTOOLS_CPU STREQUAL "x86_64")
+            set(ORTOOLS_MACOS_TAG "macOS-13.7" CACHE STRING "macOS package tag used in OR-Tools archive name")
+            set(ORTOOLS_ARCHIVE "or-tools_x86_64_${ORTOOLS_MACOS_TAG}_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.tar.gz")
+        else()
+            message(FATAL_ERROR "Unsupported macOS CPU '${ORTOOLS_CPU}'. Set ORTOOLS_ARCHIVE manually.")
+        endif()
+    elseif(UNIX)
+        # Linux package token differs by distro; override ORTOOLS_LINUX_TAG or ORTOOLS_ARCHIVE if needed.
+        set(ORTOOLS_LINUX_TAG "Ubuntu-22.04" CACHE STRING "Linux package tag used in OR-Tools archive name")
+        if(ORTOOLS_CPU STREQUAL "x86_64")
+            set(ORTOOLS_ARCHIVE "or-tools_x86_64_${ORTOOLS_LINUX_TAG}_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.tar.gz")
+        else()
+            message(FATAL_ERROR "Unsupported Linux CPU '${ORTOOLS_CPU}' for default OR-Tools package. Set ORTOOLS_ARCHIVE manually.")
+        endif()
+    else()
+        message(FATAL_ERROR "Plateforme non supportee par ce template.")
+    endif()
 endif()
 
 set(ORTOOLS_URL "https://github.com/google/or-tools/releases/download/${ORTOOLS_VERSION}/${ORTOOLS_ARCHIVE}" CACHE STRING "OR-Tools download URL" FORCE)
 
 set(DEPS_DIR "${CMAKE_BINARY_DIR}/_deps")
 set(ORTOOLS_DIR "${DEPS_DIR}/ortools")
-set(ORTOOLS_CONFIG "${ORTOOLS_DIR}/lib/cmake/ortools/ortoolsConfig.cmake")
+
+# Some previous failed runs can leave a file named "ortools" instead of a directory.
+if(EXISTS "${ORTOOLS_DIR}" AND NOT IS_DIRECTORY "${ORTOOLS_DIR}")
+    file(REMOVE "${ORTOOLS_DIR}")
+endif()
+
+# Prefer an already extracted OR-Tools directory if one exists.
+set(ORTOOLS_ROOT_DIR "")
+file(GLOB ORTOOLS_EXTRACTED_CANDIDATES LIST_DIRECTORIES true "${DEPS_DIR}/or-tools*")
+foreach(CANDIDATE IN LISTS ORTOOLS_EXTRACTED_CANDIDATES)
+    if(IS_DIRECTORY "${CANDIDATE}")
+        set(ORTOOLS_ROOT_DIR "${CANDIDATE}")
+        break()
+    endif()
+endforeach()
+
+if(ORTOOLS_ROOT_DIR STREQUAL "" AND IS_DIRECTORY "${ORTOOLS_DIR}")
+    set(ORTOOLS_ROOT_DIR "${ORTOOLS_DIR}")
+endif()
+
+set(ORTOOLS_CONFIG "${ORTOOLS_ROOT_DIR}/lib/cmake/ortools/ortoolsConfig.cmake")
 
 file(MAKE_DIRECTORY "${DEPS_DIR}")
 
@@ -80,22 +131,29 @@ if(NOT EXISTS "${ORTOOLS_CONFIG}")
         message(FATAL_ERROR "Echec extraction OR-Tools.")
     endif()
 
-    # Renomme le dossier extrait (or-tools_...) vers _deps/ortools
+    # Identifie le dossier extrait (or-tools_...)
     file(GLOB EXTRACTED_CANDIDATES LIST_DIRECTORIES true "${DEPS_DIR}/or-tools*")
-    list(LENGTH EXTRACTED_CANDIDATES CAND_COUNT)
-    if(CAND_COUNT LESS 1)
+    set(ORTOOLS_ROOT_DIR "")
+    foreach(CANDIDATE IN LISTS EXTRACTED_CANDIDATES)
+        if(IS_DIRECTORY "${CANDIDATE}")
+            set(ORTOOLS_ROOT_DIR "${CANDIDATE}")
+            break()
+        endif()
+    endforeach()
+
+    if(ORTOOLS_ROOT_DIR STREQUAL "")
         message(FATAL_ERROR "Impossible de trouver le dossier OR-Tools extrait.")
     endif()
 
-    list(GET EXTRACTED_CANDIDATES 0 EXTRACTED_DIR)
-
-    if(EXISTS "${ORTOOLS_DIR}")
-        file(REMOVE_RECURSE "${ORTOOLS_DIR}")
-    endif()
-    file(RENAME "${EXTRACTED_DIR}" "${ORTOOLS_DIR}")
+    set(ORTOOLS_CONFIG "${ORTOOLS_ROOT_DIR}/lib/cmake/ortools/ortoolsConfig.cmake")
 endif()
 
-list(PREPEND CMAKE_PREFIX_PATH "${ORTOOLS_DIR}")
+if(NOT EXISTS "${ORTOOLS_CONFIG}")
+    message(FATAL_ERROR "OR-Tools configure file introuvable: ${ORTOOLS_CONFIG}")
+endif()
+
+set(ortools_DIR "${ORTOOLS_ROOT_DIR}/lib/cmake/ortools")
+list(PREPEND CMAKE_PREFIX_PATH "${ORTOOLS_ROOT_DIR}")
 find_package(ortools CONFIG REQUIRED)
 
 # ----------------------------
