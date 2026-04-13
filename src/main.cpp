@@ -169,7 +169,9 @@ int main(int argc, char **argv)
         // For now, we'll just print a message and exit
         return EXIT_SUCCESS;
     }
+    
     MCTS<int> mcts(config);
+    mcts.getPreferences().printPreferences(); // Print the generated preferences for debugging purposes
 
     // Print the generated preferences for debugging purposes
     // std::cout << "Generated Preferences:" << std::endl;
