@@ -72,6 +72,15 @@ Typical compiler choices are:
 
 OpenMP is detected automatically when available. If your compiler supports it, the core library will link against it. If not, the project still configures, but without OpenMP support.
 
+If you want to build the `testLp` executable that uses Gurobi, define `GUROBI_HOME` to the Gurobi installation root. On Windows, that usually looks like `C:\gurobi1301\win64`. The correct variable name is `GUROBI_HOME`; `GUROBU_HOME` will not be picked up.
+
+The build expects the following paths under that root:
+
+- `include/gurobi_c++.h`
+- `lib/` containing the Gurobi `.lib` files
+
+At runtime, the Gurobi `bin/` directory must also be available on `PATH` so the DLL can be loaded.
+
 ## Build With CMake
 
 The project is designed to be built the same way on every operating system: configure a build directory, then build the chosen target.

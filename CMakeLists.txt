@@ -29,132 +29,6 @@ else()
 endif()
 
 # ----------------------------
-# OR-Tools auto-download
-# ----------------------------
-# Tu peux overrider ORTOOLS_VERSION et ORTOOLS_ARCHIVE via -D...
-set(ORTOOLS_VERSION "v9.11" CACHE STRING "OR-Tools release tag")
-set(ORTOOLS_BUILD_ID "4210" CACHE STRING "OR-Tools build id in release filename")
-set(ORTOOLS_ARCHIVE "" CACHE STRING "OR-Tools archive name (auto-detected if empty)")
-
-if(ORTOOLS_ARCHIVE STREQUAL "")
-    if(WIN32)
-        if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-            message(FATAL_ERROR "OR-Tools prebuilt Windows package requires x64.")
-        endif()
-        # Nom exact de l'archive C++ Windows publiee par OR-Tools pour VS2022 x64.
-        set(ORTOOLS_ARCHIVE "or-tools_x64_VisualStudio2022_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.zip")
-    elseif(APPLE)
-        string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ORTOOLS_CPU_RAW)
-        if(ORTOOLS_CPU_RAW MATCHES "^(arm64|aarch64)$")
-            set(ORTOOLS_CPU "arm64")
-        elseif(ORTOOLS_CPU_RAW MATCHES "^(x86_64|amd64)$")
-            set(ORTOOLS_CPU "x86_64")
-        else()
-            message(FATAL_ERROR "Unsupported macOS CPU '${CMAKE_SYSTEM_PROCESSOR}'. Set ORTOOLS_ARCHIVE manually.")
-        endif()
-
-        # OR-Tools macOS archives use the exact macOS release token published in GitHub assets.
-        set(ORTOOLS_MACOS_TAG "macOS-14.6.1" CACHE STRING "macOS package tag used in OR-Tools archive name")
-        set(ORTOOLS_ARCHIVE "or-tools_${ORTOOLS_CPU}_${ORTOOLS_MACOS_TAG}_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.tar.gz")
-    elseif(UNIX)
-        string(TOLOWER "${CMAKE_SYSTEM_PROCESSOR}" ORTOOLS_CPU_RAW)
-        if(ORTOOLS_CPU_RAW MATCHES "^(x86_64|amd64)$")
-            set(ORTOOLS_CPU "amd64")
-        elseif(ORTOOLS_CPU_RAW MATCHES "^(arm64|aarch64)$")
-            set(ORTOOLS_CPU "arm64")
-        else()
-            message(FATAL_ERROR "Unsupported Linux CPU '${CMAKE_SYSTEM_PROCESSOR}' for default OR-Tools package. Set ORTOOLS_ARCHIVE manually.")
-        endif()
-
-        # Linux archives are distro-specific and use lowercase distro names in the asset names.
-        set(ORTOOLS_LINUX_TAG "ubuntu-22.04" CACHE STRING "Linux package tag used in OR-Tools archive name")
-        set(ORTOOLS_ARCHIVE "or-tools_${ORTOOLS_CPU}_${ORTOOLS_LINUX_TAG}_cpp_${ORTOOLS_VERSION}.${ORTOOLS_BUILD_ID}.tar.gz")
-    else()
-        message(FATAL_ERROR "Plateforme non supportee par ce template.")
-    endif()
-endif()
-
-set(ORTOOLS_URL "https://github.com/google/or-tools/releases/download/${ORTOOLS_VERSION}/${ORTOOLS_ARCHIVE}" CACHE STRING "OR-Tools download URL" FORCE)
-
-set(DEPS_DIR "${CMAKE_BINARY_DIR}/_deps")
-set(ORTOOLS_DIR "${DEPS_DIR}/ortools")
-
-# Some previous failed runs can leave a file named "ortools" instead of a directory.
-if(EXISTS "${ORTOOLS_DIR}" AND NOT IS_DIRECTORY "${ORTOOLS_DIR}")
-    file(REMOVE "${ORTOOLS_DIR}")
-endif()
-
-# Prefer an already extracted OR-Tools directory if one exists.
-set(ORTOOLS_ROOT_DIR "")
-file(GLOB ORTOOLS_EXTRACTED_CANDIDATES LIST_DIRECTORIES true "${DEPS_DIR}/or-tools*")
-foreach(CANDIDATE IN LISTS ORTOOLS_EXTRACTED_CANDIDATES)
-    if(IS_DIRECTORY "${CANDIDATE}")
-        set(ORTOOLS_ROOT_DIR "${CANDIDATE}")
-        break()
-    endif()
-endforeach()
-
-if(ORTOOLS_ROOT_DIR STREQUAL "" AND IS_DIRECTORY "${ORTOOLS_DIR}")
-    set(ORTOOLS_ROOT_DIR "${ORTOOLS_DIR}")
-endif()
-
-set(ORTOOLS_CONFIG "${ORTOOLS_ROOT_DIR}/lib/cmake/ortools/ortoolsConfig.cmake")
-
-file(MAKE_DIRECTORY "${DEPS_DIR}")
-
-if(NOT EXISTS "${ORTOOLS_CONFIG}")
-    set(ARCHIVE_PATH "${DEPS_DIR}/${ORTOOLS_ARCHIVE}")
-    message(STATUS "Telechargement OR-Tools: ${ORTOOLS_URL}")
-    file(DOWNLOAD
-        "${ORTOOLS_URL}"
-        "${ARCHIVE_PATH}"
-        SHOW_PROGRESS
-        STATUS DL_STATUS
-        TLS_VERIFY ON
-    )
-
-    list(GET DL_STATUS 0 DL_CODE)
-    if(NOT DL_CODE EQUAL 0)
-        list(GET DL_STATUS 1 DL_MSG)
-        message(FATAL_ERROR "Echec telechargement OR-Tools: ${DL_MSG}")
-    endif()
-
-    # Extraction de l'archive dans _deps
-    execute_process(
-        COMMAND "${CMAKE_COMMAND}" -E tar xvf "${ARCHIVE_PATH}"
-        WORKING_DIRECTORY "${DEPS_DIR}"
-        RESULT_VARIABLE EXTRACT_RC
-    )
-    if(NOT EXTRACT_RC EQUAL 0)
-        message(FATAL_ERROR "Echec extraction OR-Tools.")
-    endif()
-
-    # Identifie le dossier extrait (or-tools_...)
-    file(GLOB EXTRACTED_CANDIDATES LIST_DIRECTORIES true "${DEPS_DIR}/or-tools*")
-    set(ORTOOLS_ROOT_DIR "")
-    foreach(CANDIDATE IN LISTS EXTRACTED_CANDIDATES)
-        if(IS_DIRECTORY "${CANDIDATE}")
-            set(ORTOOLS_ROOT_DIR "${CANDIDATE}")
-            break()
-        endif()
-    endforeach()
-
-    if(ORTOOLS_ROOT_DIR STREQUAL "")
-        message(FATAL_ERROR "Impossible de trouver le dossier OR-Tools extrait.")
-    endif()
-
-    set(ORTOOLS_CONFIG "${ORTOOLS_ROOT_DIR}/lib/cmake/ortools/ortoolsConfig.cmake")
-endif()
-
-if(NOT EXISTS "${ORTOOLS_CONFIG}")
-    message(FATAL_ERROR "OR-Tools configure file introuvable: ${ORTOOLS_CONFIG}")
-endif()
-
-set(ortools_DIR "${ORTOOLS_ROOT_DIR}/lib/cmake/ortools")
-list(PREPEND CMAKE_PREFIX_PATH "${ORTOOLS_ROOT_DIR}")
-find_package(ortools CONFIG REQUIRED)
-
-# ----------------------------
 # Targets
 # ----------------------------
 add_library(mcts_core
@@ -171,7 +45,78 @@ if(OpenMP_CXX_FOUND)
     target_link_libraries(mcts_core PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-target_link_libraries(mcts_core PUBLIC ortools::ortools)
+# ----------------------------
+# Gurobi (optionnel, pour testLp)
+# ----------------------------
+set(GUROBI_HOME "" CACHE PATH "Path to the Gurobi installation root")
+
+if(NOT GUROBI_HOME AND DEFINED ENV{GUROBI_HOME})
+    set(GUROBI_HOME "$ENV{GUROBI_HOME}")
+endif()
+
+if(NOT GUROBI_HOME AND DEFINED ENV{GUROBU_HOME})
+    message(FATAL_ERROR "Environment variable GUROBU_HOME was found, but the correct variable name is GUROBI_HOME.")
+endif()
+
+if(GUROBI_HOME)
+    find_path(GUROBI_INCLUDE_DIR
+        NAMES gurobi_c++.h
+        PATHS "${GUROBI_HOME}/include"
+        NO_DEFAULT_PATH
+    )
+
+    file(GLOB GUROBI_ALL_LIBS
+        "${GUROBI_HOME}/lib/gurobi*.lib"
+        "${GUROBI_HOME}/lib/gurobi*.a"
+    )
+
+    set(GUROBI_CORE_LIBS "")
+    foreach(GUROBI_LIB IN LISTS GUROBI_ALL_LIBS)
+        string(FIND "${GUROBI_LIB}" "gurobi_c++" GUROBI_CXX_INDEX)
+        if(GUROBI_CXX_INDEX EQUAL -1)
+            list(APPEND GUROBI_CORE_LIBS "${GUROBI_LIB}")
+        endif()
+    endforeach()
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        file(GLOB GUROBI_CXX_LIBS
+            "${GUROBI_HOME}/lib/gurobi_c++mdd*.lib"
+            "${GUROBI_HOME}/lib/gurobi_c++mtd*.lib"
+            "${GUROBI_HOME}/lib/gurobi_c++mdd*.a"
+            "${GUROBI_HOME}/lib/gurobi_c++mtd*.a"
+        )
+    else()
+        file(GLOB GUROBI_CXX_LIBS
+            "${GUROBI_HOME}/lib/gurobi_c++md*.lib"
+            "${GUROBI_HOME}/lib/gurobi_c++mt*.lib"
+            "${GUROBI_HOME}/lib/gurobi_c++md*.a"
+            "${GUROBI_HOME}/lib/gurobi_c++mt*.a"
+        )
+    endif()
+
+    list(SORT GUROBI_CXX_LIBS)
+    if(GUROBI_CXX_LIBS)
+        list(GET GUROBI_CXX_LIBS 0 GUROBI_CXX_LIBRARY)
+    endif()
+
+    if(NOT GUROBI_INCLUDE_DIR OR NOT GUROBI_CXX_LIBRARY OR GUROBI_CORE_LIBS STREQUAL "")
+        message(FATAL_ERROR
+            "Gurobi was not found under GUROBI_HOME='${GUROBI_HOME}'. Expected include/gurobi_c++.h and library files in lib/."
+        )
+    endif()
+else()
+    message(STATUS "Gurobi not configured. Set GUROBI_HOME to build testLp.")
+endif()
+
+
 
 add_executable(mcts_main src/main.cpp)
 target_link_libraries(mcts_main PRIVATE mcts_core)
+# add executable for testLp
+add_executable(testLp src/testLp.cpp)
+target_link_libraries(testLp PRIVATE mcts_core)
+
+if(GUROBI_HOME)
+    target_include_directories(testLp PRIVATE "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(testLp PRIVATE ${GUROBI_CXX_LIBRARY} ${GUROBI_CORE_LIBS})
+endif()
