@@ -78,6 +78,11 @@ public:
      */
     Preferences<T> &getPreferences() { return preferences; }
 
+    /** @brief Get the preferences for the MCTS algorithm
+     * @return const Preferences<T>& The preferences for the MCTS algorithm
+     */
+    const Preferences<T> &getPreferences() const { return preferences; }
+
     /**
      * @brief Get the exploration parameter for the UCB formula
      * @return double The exploration parameter for the UCB formula
@@ -101,7 +106,7 @@ public:
      *  @param budget The number of iterations to run
      * @return void
      */
-    void run(const int budget);
+    void run(const int budget, bool showProgress = true);
 
     /** @brief Selects a node to expand based on the UCB1 formula
      *  @param node The current node

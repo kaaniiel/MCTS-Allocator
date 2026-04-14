@@ -60,7 +60,7 @@ namespace
 } // End of anonymous namespace
 
 template <typename T>
-void MCTS<T>::run(const int budget)
+void MCTS<T>::run(const int budget, bool showProgress)
 {
     auto bar = createProgressBar("Running MCTS...");
     std::atomic<int> completedIterations{0};
@@ -103,7 +103,10 @@ void MCTS<T>::run(const int budget)
         }
         budgetCounter++; // Always increment to avoid infinite loop
 
-        updateProgress(bar, completedIterations, budget);
+        if (showProgress)
+        {
+            updateProgress(bar, completedIterations, budget);
+        }
     }
 }
 

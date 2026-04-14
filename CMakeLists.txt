@@ -112,6 +112,17 @@ endif()
 
 add_executable(mcts_main src/main.cpp)
 target_link_libraries(mcts_main PRIVATE mcts_core)
+
+add_executable(mcts_experiments src/experiments.cpp)
+target_link_libraries(mcts_experiments PRIVATE mcts_core)
+
+if(GUROBI_HOME)
+    target_include_directories(mcts_main PRIVATE "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(mcts_main PRIVATE ${GUROBI_CXX_LIBRARY} ${GUROBI_CORE_LIBS})
+    target_include_directories(mcts_experiments PRIVATE "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(mcts_experiments PRIVATE ${GUROBI_CXX_LIBRARY} ${GUROBI_CORE_LIBS})
+endif()
+
 # add executable for testLp
 add_executable(testLp src/testLp.cpp)
 target_link_libraries(testLp PRIVATE mcts_core)

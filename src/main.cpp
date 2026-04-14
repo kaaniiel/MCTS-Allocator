@@ -2,7 +2,6 @@
 #include <numeric>
 #include <iostream>
 #include <clocale>
-
 #include "config/config.hpp"
 #include "config/CLI11.hpp" // Assure-toi que le chemin d'inclusion est correct
 #include "metrics/Utility.hpp"
@@ -12,6 +11,8 @@
 #include "mcts/MCTS.hpp"
 #include "mcts_allocation_graph.hpp"
 #include "omp.h"
+#include "Solver.hpp"
+
 int testPreferences()
 {
     int numAgents = 3;
@@ -119,8 +120,18 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------
     // STEP 1: Load base configuration (TOML file)
     // ---------------------------------------------------------
-    // This will read config.toml, or create it if it doesn't exist
-    MCTSConfig config = MCTSConfig::load("config.toml");
+    MCTSConfig config;
+    try
+    {
+        config = MCTSConfig::load("config.toml");
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << ex.what() << std::endl;
+        MCTSConfig::generate_default("config.toml", config);
+        std::cerr << "A default configuration file has been generated. Please review and modify 'config.toml' as needed, then re-run the program." << std::endl;
+        return EXIT_FAILURE;
+    }
 
     // ---------------------------------------------------------
     // STEP 2: Terminal override (CLI11)
@@ -138,6 +149,7 @@ int main(int argc, char **argv)
     app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
     app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
+    app.add_flag("-U,--use-solver", config.useSolver, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     CLI11_PARSE(app, argc, argv);
@@ -155,6 +167,7 @@ int main(int argc, char **argv)
     std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
     std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
     std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
+    std::cout << " - Use Solver    : " << (config.useSolver ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 
     // Example of how you would instantiate and run your engine:
@@ -169,7 +182,30 @@ int main(int argc, char **argv)
         // For now, we'll just print a message and exit
         return EXIT_SUCCESS;
     }
-    
+
+    if (config.useSolver)
+    {
+        std::cout << "Using the Gurobi solver to find the optimal allocation..." << std::endl;
+        Solver<int> solver(config);
+        std::pair<Allocation, Score> optimalAlloc = solver.solve(config.verbose);
+        std::cout << "Optimal allocation found by solver with score: " << optimalAlloc.second.getScore() << std::endl;
+
+        if (config.saveResults)
+        {
+            auto t = std::time(nullptr);
+            std::tm tm{};
+#if defined(_WIN32) || defined(_WIN64)
+            localtime_s(&tm, &t);
+#else
+            localtime_r(&t, &tm);
+#endif
+            std::ostringstream oss;
+            oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+            solver.save_results_json("solver_results" + oss.str() + ".json");
+        }
+        return EXIT_SUCCESS;
+    }
+
     MCTS<int> mcts(config);
     mcts.getPreferences().printPreferences(); // Print the generated preferences for debugging purposes
 

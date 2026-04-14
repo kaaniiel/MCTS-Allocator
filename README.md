@@ -130,6 +130,38 @@ Options:
   -r,--ratio-random FLOAT      Determine the distribution ratio of random rollouts vs heuristic ones
 ```
 
+The separate `mcts_experiments` executable reads the `[experiments]` section from `config.toml`, runs MCTS in chunks of `num_objects` iterations, and writes timestamped JSON files to the configured output directory.
+
+Build it with:
+
+```bash
+cmake --build build --config Release --target mcts_experiments
+```
+
+Example run:
+
+```bash
+./build/mcts_experiments
+```
+
+Example `config.toml` fragment:
+
+```toml
+[experiments]
+num_agents_min = 3
+num_agents_max = 3
+num_objects_min = 4
+num_objects_max = 4
+seed_min = 42
+seed_max = 42
+ratio_random_min = 1.0
+ratio_random_max = 1.0
+ratio_random_step = 1.0
+iterations = 100
+verbose = false
+output_directory = "results"
+```
+
 ### Config.toml
 
 At launch, the engine attempts to load configurations from `config.toml` located in the execution directory. If the file does not exist, the engine will safely generate a default one:
