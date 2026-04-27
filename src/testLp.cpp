@@ -1,7 +1,7 @@
 #include <iostream>
 #include <cmath>
 #include <vector>
-#include <windows.h>
+
 #include <gurobi_c++.h>
 
 #include "config/config.hpp"
@@ -9,7 +9,9 @@
 #include "mcts/Preferences.hpp"
 #include "metrics/Utility.hpp"
 #include "mcts/Allocation.hpp"
-
+#if defined(_WIN32) || defined(_WIN64)
+#include <windows.h>
+#endif
 
 int main(int argc, char **argv)
 {

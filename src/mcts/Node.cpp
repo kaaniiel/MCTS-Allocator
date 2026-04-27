@@ -5,8 +5,9 @@
 
 void Node::updateBestAllocation(const std::pair<Allocation, Score> &alloc)
 {
-    // Update the best allocation and score if the new score is better than the current best score
-    if (std::accumulate(bestAllocation.first.getAllocation().begin(), bestAllocation.first.getAllocation().end(), 0) == -static_cast<int>(bestAllocation.first.getAllocation().size()) || alloc.second.getScore() > bestAllocation.second.getScore())
+    // Update best allocation if uninitialized, better score, or equal score.
+    // Keeping equal-score updates avoids freezing on an early zero-score allocation.
+    if (std::accumulate(bestAllocation.first.getAllocation().begin(), bestAllocation.first.getAllocation().end(), 0) == -static_cast<int>(bestAllocation.first.getAllocation().size()) || alloc.second.getScore() >= bestAllocation.second.getScore())
     {
         bestAllocation = alloc;
     }

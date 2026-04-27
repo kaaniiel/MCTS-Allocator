@@ -21,7 +21,7 @@ private:
     Preferences<T> prefs;
     std::pair<Allocation, Score> optimalAllocation;
 
-    void load_config(const MCTSConfig &config)
+    void load_config(const Config &config)
     {
         seed = config.seed;
         prefs = Preferences<T>(config.numAgents, config.numObjects, config.verbose);
@@ -36,7 +36,7 @@ public:
 
     Solver(const Preferences<T> &preferences) : seed(static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())), prefs(preferences) {};
     Solver(const Preferences<T> &preferences, const int seed) : seed(seed), prefs(preferences) {};
-    Solver(const MCTSConfig &config) : seed(config.seed), prefs(config.numAgents, config.numObjects, config.verbose)
+    Solver(const Config &config) : seed(config.seed), prefs(config.numAgents, config.numObjects, config.verbose)
     {
         load_config(config);
     };

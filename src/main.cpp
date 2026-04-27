@@ -120,15 +120,15 @@ int main(int argc, char **argv)
     // ---------------------------------------------------------
     // STEP 1: Load base configuration (TOML file)
     // ---------------------------------------------------------
-    MCTSConfig config;
+    Config config;
     try
     {
-        config = MCTSConfig::load("config.toml");
+        config = Config::load("config.toml");
     }
     catch (const std::exception &ex)
     {
         std::cerr << ex.what() << std::endl;
-        MCTSConfig::generate_default("config.toml", config);
+        Config::generate_default("config.toml", config);
         std::cerr << "A default configuration file has been generated. Please review and modify 'config.toml' as needed, then re-run the program." << std::endl;
         return EXIT_FAILURE;
     }

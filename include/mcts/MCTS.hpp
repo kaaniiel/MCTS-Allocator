@@ -28,7 +28,7 @@ private:
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
     double ratioRandom; // Ratio of random simulations to heuristic simulations
-    MCTSConfig config;  // Store configuration for thread access
+    Config config;  // Store configuration for thread access
 
 public:
     MCTS() : numberOfAgents(0),
@@ -41,7 +41,7 @@ public:
              evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false),
              ratioRandom(1.0),
-             config(MCTSConfig()) {};
+             config(Config()) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                       root(root),
@@ -54,7 +54,7 @@ public:
     MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, evalFunction, verbose) {};
     MCTS(const int numAgents, const int numObjects, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
     MCTS(const int numAgents, const int numObjects, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
-    MCTS(MCTSConfig &config) : MCTS() { loadConfig(config); };
+    MCTS(Config &config) : MCTS() { loadConfig(config); };
     /**
      * @brief Get the number of objects
      * @return int The number of objects
@@ -133,7 +133,7 @@ public:
      * @param config The configuration to load
      * @return void
      */
-    void loadConfig(MCTSConfig &conf)
+    void loadConfig(Config &conf)
     {
         this->config = conf; // Store config for thread access
         numberOfAgents = config.numAgents;

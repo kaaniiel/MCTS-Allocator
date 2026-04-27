@@ -1,9 +1,6 @@
 #include <algorithm>
-#include <atomic>
 #include <chrono>
-#include <clocale>
 #include <cmath>
-#include <ctime>
 #include <filesystem>
 #include <fstream>
 #include <iomanip>
@@ -11,123 +8,245 @@
 #include <limits>
 #include <sstream>
 #include <string>
-#include <utility>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
-#ifdef _WIN32
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#endif
-
+#include "config/CLI11.hpp"
 #include "config/config.hpp"
 #include "indicators/progress_bar.hpp"
+#include "mcts/Allocation.hpp"
 #include "mcts/MCTS.hpp"
+#include "mcts/Score.hpp"
 #include "Solver.hpp"
 
 namespace
 {
-
-    struct IterationSnapshot
+    struct ExperimentParams
     {
-        int iterationIndex = 0;
-        long long elapsedMilliseconds = 0;
-        double bestScore = 0.0;
-        std::vector<int> bestAllocation;
+        int numAgents;
+        int numObjects;
+        int seed;
+        double ratioRandom;
+        int budget;
     };
 
-    struct ChunkSnapshot
+    struct SolverKey
     {
-        int budget = 0;
-        double bestScore = 0.0;
-        std::vector<int> bestAllocation;
-        std::vector<IterationSnapshot> iterations;
+        int numAgents;
+        int numObjects;
+        int seed;
+
+        bool operator==(const SolverKey &other) const
+        {
+            return numAgents == other.numAgents && numObjects == other.numObjects && seed == other.seed;
+        }
     };
 
-    struct SolverRunResult
+    struct SolverKeyHash
     {
-        bool succeeded = false;
-        long long elapsedMilliseconds = 0;
-        double bestScore = 0.0;
-        std::vector<int> bestAllocation;
-        std::string error;
+        std::size_t operator()(const SolverKey &key) const
+        {
+            std::size_t h1 = std::hash<int>{}(key.numAgents);
+            std::size_t h2 = std::hash<int>{}(key.numObjects);
+            std::size_t h3 = std::hash<int>{}(key.seed);
+            return h1 ^ (h2 << 1) ^ (h3 << 2);
+        }
     };
 
-    indicators::ProgressBar createProgressBar(const std::string &postfixText)
+    struct SolverResultCache
     {
-        return indicators::ProgressBar{
-            indicators::option::BarWidth{50},
-            indicators::option::Start{"["},
-            indicators::option::End{"]"},
-            indicators::option::Fill{"\u2588"},
-            indicators::option::Lead{"\u2588"},
-            indicators::option::Remainder{"-"},
-            indicators::option::ForegroundColor{indicators::Color::green},
-            indicators::option::PostfixText{postfixText},
-            indicators::option::ShowPercentage{true},
-            indicators::option::ShowElapsedTime{true},
-            indicators::option::ShowRemainingTime{true},
-            indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
+        bool ok;
+        double score;
+        std::vector<int> allocation;
+    };
+
+    bool is_near_integer(double value, double eps = 1e-9)
+    {
+        return std::fabs(value - std::round(value)) <= eps;
     }
 
-    std::string progressSideText(int current,
-                                 int total,
-                                 const std::string &phase,
-                                 int numAgents,
-                                 int numObjects,
-                                 int seed,
-                                 double ratioRandom,
-                                 int budget,
-                                 int iterationIndex,
-                                 int iterationsPerBudget)
+    std::string format_double(double value)
     {
         std::ostringstream oss;
-        oss << current << "/" << total
-            << " | " << phase
-            << " | a=" << numAgents
-            << " o=" << numObjects
-            << " s=" << seed
-            << " r=" << std::fixed << std::setprecision(2) << ratioRandom;
-
-        if (budget > 0)
-        {
-            oss << " | budget=" << budget;
-        }
-
-        if (iterationIndex > 0 && iterationsPerBudget > 0)
-        {
-            oss << " | it=" << iterationIndex << "/" << iterationsPerBudget;
-        }
-
+        oss << std::setprecision(12) << value;
         return oss.str();
     }
 
-    void updateProgress(indicators::ProgressBar &bar,
-                        std::atomic<int> &counter,
-                        int totalSteps,
-                        const std::string &phase,
-                        int numAgents,
-                        int numObjects,
-                        int seed,
-                        double ratioRandom,
-                        int stepBudget = 0,
-                        int iterationIndex = 0,
-                        int iterationsPerBudget = 0)
+    void write_int_array(std::ostream &out, const std::vector<int> &values)
     {
-        int current = ++counter;
-
-        bar.set_option(indicators::option::PostfixText{
-            progressSideText(current, totalSteps, phase, numAgents, numObjects, seed, ratioRandom, stepBudget, iterationIndex, iterationsPerBudget)});
-
-        const size_t progress = static_cast<size_t>((static_cast<double>(current) / totalSteps) * 100.0);
-        bar.set_progress(progress);
+        out << "[";
+        for (std::size_t i = 0; i < values.size(); ++i)
+        {
+            if (i > 0)
+            {
+                out << ", ";
+            }
+            out << values[i];
+        }
+        out << "]";
     }
 
-    std::string timestampString()
+    std::vector<double> build_ratio_values(double minValue, double maxValue, double step)
     {
-        auto now = std::chrono::system_clock::now();
-        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        constexpr double kEps = 1e-9;
+        std::vector<double> values;
+        if (std::fabs(minValue - maxValue) <= kEps)
+        {
+            values.push_back(minValue);
+            return values;
+        }
+
+        // For ratio_random in [0, 1], a value > 1 is interpreted as
+        // "number of samples" to generate between min and max (inclusive).
+        if (step > 1.0)
+        {
+            if (!is_near_integer(step))
+            {
+                throw std::runtime_error("ratio_random_step > 1 must be an integer (used as number of ratio_random samples).");
+            }
+
+            const int sampleCount = static_cast<int>(std::llround(step));
+            if (sampleCount < 2)
+            {
+                throw std::runtime_error("ratio_random_step interpreted as sample count must be >= 2.");
+            }
+
+            values.reserve(static_cast<std::size_t>(sampleCount));
+            const double range = maxValue - minValue;
+            for (int i = 0; i < sampleCount; ++i)
+            {
+                const double t = static_cast<double>(i) / static_cast<double>(sampleCount - 1);
+                values.push_back(minValue + (t * range));
+            }
+            return values;
+        }
+
+        for (double current = minValue; current <= maxValue + kEps; current += step)
+        {
+            values.push_back(std::min(current, maxValue));
+            if (values.size() > 100000)
+            {
+                throw std::runtime_error("Too many ratio_random values generated. Reduce [ratio_random_min, ratio_random_max] or increase ratio_random_step.");
+            }
+        }
+        return values;
+    }
+
+    std::vector<std::string> validate_experiment_config(const Config &config)
+    {
+        std::vector<std::string> errors;
+
+        auto push_error = [&errors](const std::string &message)
+        {
+            errors.push_back(message);
+        };
+
+        if (config.numAgentsMin <= 0)
+            push_error("experiments.num_agents_min must be > 0.");
+        if (config.numAgentsMax <= 0)
+            push_error("experiments.num_agents_max must be > 0.");
+        if (config.numAgentsMin > config.numAgentsMax)
+            push_error("experiments.num_agents_min must be <= experiments.num_agents_max.");
+
+        if (config.numObjectsMin <= 0)
+            push_error("experiments.num_objects_min must be > 0.");
+        if (config.numObjectsMax <= 0)
+            push_error("experiments.num_objects_max must be > 0.");
+        if (config.numObjectsMin > config.numObjectsMax)
+            push_error("experiments.num_objects_min must be <= experiments.num_objects_max.");
+        int budget = config.numObjectsMax * config.numAgentsMax;
+
+        if (config.seedMin > config.seedMax)
+            push_error("experiments.seed_min must be <= experiments.seed_max.");
+
+        if (config.ratioRandomMin < 0.0 || config.ratioRandomMin > 1.0)
+            push_error("experiments.ratio_random_min must be in [0, 1].");
+        if (config.ratioRandomMax < 0.0 || config.ratioRandomMax > 1.0)
+            push_error("experiments.ratio_random_max must be in [0, 1].");
+        if (config.ratioRandomMin > config.ratioRandomMax)
+            push_error("experiments.ratio_random_min must be <= experiments.ratio_random_max.");
+        if (config.ratioRandomStep <= 0.0 && std::fabs(config.ratioRandomMin - config.ratioRandomMax) > 1e-9)
+            push_error("experiments.ratio_random_step must be > 0 when ratio_random_min != ratio_random_max.");
+        if (config.ratioRandomStep > 1.0 && !is_near_integer(config.ratioRandomStep))
+            push_error("experiments.ratio_random_step > 1 is interpreted as sample count and must be an integer.");
+
+        if (config.numberOfTrys <= 0)
+            push_error("experiments.number_of_trys must be > 0.");
+
+        if (config.numberOfBudgetStep < 0.0)
+            push_error("experiments.numberOfBudgetStep must be >= 0.");
+        if (!is_near_integer(config.numberOfBudgetStep))
+            push_error("experiments.numberOfBudgetStep must be an integer value (0, 1, 2, ...).");
+
+        if (config.numberOfBudgetStep > 0.0)
+        {
+            const int numberOfSteps = static_cast<int>(std::round(config.numberOfBudgetStep));
+            const int minDynamicBudget = config.numAgentsMin * config.numObjectsMin;
+            if (numberOfSteps > minDynamicBudget)
+                push_error("experiments.numberOfBudgetStep cannot be greater than the dynamic budget (numAgents * numObjects) of any experiment.");
+        }
+
+        if (config.outputDirectory.empty())
+            push_error("experiments.output_directory cannot be empty.");
+
+        return errors;
+    }
+
+    std::vector<ExperimentParams> build_experiment_grid(const Config &config)
+    {
+        const std::vector<double> ratioValues = build_ratio_values(config.ratioRandomMin, config.ratioRandomMax, config.ratioRandomStep);
+        std::vector<ExperimentParams> experiments;
+
+        for (int numAgents = config.numAgentsMin; numAgents <= config.numAgentsMax; ++numAgents)
+        {
+            for (int numObjects = config.numObjectsMin; numObjects <= config.numObjectsMax; ++numObjects)
+            {
+                for (int seed = config.seedMin; seed <= config.seedMax; ++seed)
+                {
+                    for (double ratioRandom : ratioValues)
+                    {
+                        const int dynamicBudget = numAgents * numObjects;
+                        experiments.push_back(ExperimentParams{numAgents, numObjects, seed, ratioRandom, dynamicBudget});
+                    }
+                }
+            }
+        }
+
+        return experiments;
+    }
+
+    std::vector<int> build_step_targets(int budget, int numberOfSteps)
+    {
+        if (numberOfSteps <= 0)
+        {
+            return {budget};
+        }
+
+        std::vector<int> targets;
+        targets.reserve(static_cast<std::size_t>(numberOfSteps));
+
+        int previous = 0;
+        for (int step = 1; step <= numberOfSteps; ++step)
+        {
+            int target = static_cast<int>(std::llround((static_cast<double>(step) * static_cast<double>(budget)) / static_cast<double>(numberOfSteps)));
+            target = std::max(target, previous + 1);
+            target = std::min(target, budget);
+            targets.push_back(target);
+            previous = target;
+        }
+
+        if (!targets.empty())
+        {
+            targets.back() = budget;
+        }
+
+        return targets;
+    }
+
+    std::string build_output_filename()
+    {
+        auto t = std::time(nullptr);
         std::tm tm{};
 #if defined(_WIN32) || defined(_WIN64)
         localtime_s(&tm, &t);
@@ -135,468 +254,370 @@ namespace
         localtime_r(&t, &tm);
 #endif
         std::ostringstream oss;
-        oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+        oss << "experiments_" << std::put_time(&tm, "%d-%m-%Y_%H-%M-%S") << ".json";
         return oss.str();
     }
 
-    void writeAllocationJson(std::ostream &out, const std::vector<int> &allocation)
+    indicators::ProgressBar create_progress_bar()
     {
-        out << "[";
-        for (size_t index = 0; index < allocation.size(); ++index)
-        {
-            out << allocation[index];
-            if (index + 1 < allocation.size())
-            {
-                out << ", ";
-            }
-        }
-        out << "]";
+        return indicators::ProgressBar{
+            indicators::option::BarWidth{60},
+            indicators::option::Start{"|"},
+            indicators::option::End{"|"},
+            indicators::option::Fill{"="},
+            indicators::option::Lead{">"},
+            indicators::option::Remainder{"."},
+            indicators::option::PrefixText{"MCTS experiments"},
+            indicators::option::PostfixText{"Running experiments..."},
+            indicators::option::ForegroundColor{indicators::Color::cyan},
+            indicators::option::ShowPercentage{true},
+            indicators::option::ShowElapsedTime{true},
+            indicators::option::ShowRemainingTime{true},
+            indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
     }
 
-    std::string ratioToString(double value)
+    void update_progress(indicators::ProgressBar &bar, std::size_t done, std::size_t total)
+    {
+        if (total == 0)
+        {
+            bar.set_progress(100);
+            return;
+        }
+        const std::size_t progress = static_cast<std::size_t>((100.0 * static_cast<double>(done)) / static_cast<double>(total));
+        bar.set_progress(progress);
+    }
+
+    std::string format_duration(std::chrono::milliseconds duration)
+    {
+        const auto totalMs = duration.count();
+        const auto hours = totalMs / 3600000;
+        const auto minutes = (totalMs % 3600000) / 60000;
+        const auto seconds = (totalMs % 60000) / 1000;
+        const auto milliseconds = totalMs % 1000;
+
+        std::ostringstream oss;
+        if (hours > 0)
+        {
+            oss << hours << "h ";
+        }
+        if (hours > 0 || minutes > 0)
+        {
+            oss << minutes << "m ";
+        }
+        oss << seconds << "s " << milliseconds << "ms";
+        return oss.str();
+    }
+
+    bool should_emit_status(std::chrono::steady_clock::time_point &lastStatus,
+                            std::chrono::milliseconds minInterval = std::chrono::milliseconds(2000))
+    {
+        const auto now = std::chrono::steady_clock::now();
+        if ((now - lastStatus) >= minInterval)
+        {
+            lastStatus = now;
+            return true;
+        }
+        return false;
+    }
+
+    std::string build_live_postfix(std::size_t expIndex,
+                                   std::size_t totalExperiments,
+                                   int tryIndex,
+                                   int totalTries,
+                                   std::size_t stepIndex,
+                                   std::size_t totalSteps,
+                                   int executedBudget,
+                                   int targetBudget,
+                                   int numAgents,
+                                   int numObjects,
+                                   int seed,
+                                   double ratioRandom)
     {
         std::ostringstream oss;
-        oss << std::fixed << std::setprecision(3) << value;
-        std::string text = oss.str();
-        std::replace(text.begin(), text.end(), '.', '_');
-        return text;
+        oss << "exp " << (expIndex + 1) << "/" << totalExperiments
+            << " try " << tryIndex << "/" << totalTries
+            << " step " << (stepIndex + 1) << "/" << totalSteps
+            << " budget " << executedBudget << "->" << targetBudget
+            << " a=" << numAgents
+            << " o=" << numObjects
+            << " s=" << seed
+            << " r=" << format_double(ratioRandom);
+        return oss.str();
     }
+} // namespace
 
-    int maxMctsBudget(int numObjects, int numAgents)
-    {
-        if (numObjects <= 0 || numAgents <= 0)
-        {
-            return 1;
-        }
-
-        const long double maxRunsLd = std::pow(static_cast<long double>(numObjects), static_cast<long double>(numAgents));
-        if (!std::isfinite(static_cast<double>(maxRunsLd)))
-        {
-            return std::numeric_limits<int>::max();
-        }
-
-        const long double capped = std::min(maxRunsLd, static_cast<long double>(std::numeric_limits<int>::max()));
-        return std::max(1, static_cast<int>(capped));
-    }
-
-    std::vector<int> buildBudgetSchedule(int numObjects, int numAgents)
-    {
-        std::vector<int> schedule;
-        const int maxBudget = maxMctsBudget(numObjects, numAgents);
-        int currentBudget = std::max(1, numObjects);
-
-        while (currentBudget > 0 && currentBudget <= maxBudget)
-        {
-            schedule.push_back(currentBudget);
-
-            if (numObjects <= 1)
-            {
-                break;
-            }
-
-            if (currentBudget > maxBudget / numObjects)
-            {
-                break;
-            }
-
-            currentBudget *= numObjects;
-        }
-
-        if (schedule.empty())
-        {
-            schedule.push_back(1);
-        }
-
-        return schedule;
-    }
-
-    std::string jsonEscape(const std::string &value)
-    {
-        std::string escaped;
-        escaped.reserve(value.size());
-        for (char ch : value)
-        {
-            switch (ch)
-            {
-            case '\\':
-                escaped += "\\\\";
-                break;
-            case '"':
-                escaped += "\\\"";
-                break;
-            case '\n':
-                escaped += "\\n";
-                break;
-            case '\r':
-                escaped += "\\r";
-                break;
-            case '\t':
-                escaped += "\\t";
-                break;
-            default:
-                escaped += ch;
-                break;
-            }
-        }
-        return escaped;
-    }
-
-    void writeJsonExperimentFile(const std::string &outputPath,
-                                 const ExperimentsConfig &config,
-                                 int numAgents,
-                                 int numObjects,
-                                 int seed,
-                                 double ratioRandom,
-                                 int iterationsPerBudget,
-                                 const std::vector<int> &budgetSchedule,
-                                 const SolverRunResult &solver,
-                                 const Preferences<int> &preferences,
-                                 double finalBestScore,
-                                 const std::vector<int> &finalBestAllocation,
-                                 const std::vector<ChunkSnapshot> &chunks,
-                                 int maxBudget)
-    {
-        std::ofstream file(outputPath);
-        if (!file.is_open())
-        {
-            throw std::runtime_error("Unable to write results file: " + outputPath);
-        }
-
-        file << "{\n";
-        file << "  \"parameters\": {\n";
-        file << "    \"num_agents\": " << numAgents << ",\n";
-        file << "    \"num_objects\": " << numObjects << ",\n";
-        file << "    \"seed\": " << seed << ",\n";
-        file << "    \"ratio_random\": " << ratioRandom << ",\n";
-        file << "    \"iterations_per_budget\": " << iterationsPerBudget << ",\n";
-        file << "    \"max_budget\": " << maxBudget << ",\n";
-        file << "    \"budget_levels\": [";
-        for (size_t i = 0; i < budgetSchedule.size(); ++i)
-        {
-            file << budgetSchedule[i];
-            if (i + 1 < budgetSchedule.size())
-            {
-                file << ", ";
-            }
-        }
-        file << "]\n";
-        file << "  },\n";
-
-        file << "  \"preferences\": [\n";
-        for (int agent = 0; agent < preferences.getNumAgents(); ++agent)
-        {
-            file << "    [";
-            for (int object = 0; object < preferences.getNumObjects(); ++object)
-            {
-                file << preferences.getPreference(agent, object);
-                if (object + 1 < preferences.getNumObjects())
-                {
-                    file << ", ";
-                }
-            }
-            file << "]";
-            if (agent + 1 < preferences.getNumAgents())
-            {
-                file << ",";
-            }
-            file << "\n";
-        }
-        file << "  ],\n";
-
-        file << "  \"solver\": {\n";
-        file << "    \"succeeded\": " << (solver.succeeded ? "true" : "false") << ",\n";
-        file << "    \"elapsed_ms\": " << solver.elapsedMilliseconds;
-        if (solver.succeeded)
-        {
-            file << ",\n";
-            file << "    \"best_score\": " << solver.bestScore << ",\n";
-            file << "    \"best_allocation\": ";
-            writeAllocationJson(file, solver.bestAllocation);
-            file << "\n";
-        }
-        else
-        {
-            file << ",\n";
-            file << "    \"error\": \"" << jsonEscape(solver.error) << "\"\n";
-        }
-        file << "  },\n";
-
-        file << "  \"mcts\": {\n";
-        file << "    \"final_best_score\": " << finalBestScore << ",\n";
-        file << "    \"final_best_allocation\": ";
-        writeAllocationJson(file, finalBestAllocation);
-        file << ",\n";
-        file << "    \"chunks\": [\n";
-        for (size_t index = 0; index < chunks.size(); ++index)
-        {
-            const ChunkSnapshot &snapshot = chunks[index];
-            file << "      {\n";
-            file << "        \"budget\": " << snapshot.budget << ",\n";
-            file << "        \"best_score\": " << snapshot.bestScore << ",\n";
-            file << "        \"best_allocation\": ";
-            writeAllocationJson(file, snapshot.bestAllocation);
-            file << ",\n";
-            file << "        \"iterations\": [\n";
-            for (size_t iterationIndex = 0; iterationIndex < snapshot.iterations.size(); ++iterationIndex)
-            {
-                const IterationSnapshot &iteration = snapshot.iterations[iterationIndex];
-                file << "          {\n";
-                file << "            \"iteration_index\": " << iteration.iterationIndex << ",\n";
-                file << "            \"elapsed_ms\": " << iteration.elapsedMilliseconds << ",\n";
-                file << "            \"best_score\": " << iteration.bestScore << ",\n";
-                file << "            \"best_allocation\": ";
-                writeAllocationJson(file, iteration.bestAllocation);
-                file << "\n";
-                file << "          }";
-                if (iterationIndex + 1 < snapshot.iterations.size())
-                {
-                    file << ",";
-                }
-                file << "\n";
-            }
-            file << "        ]\n";
-            file << "      }";
-            if (index + 1 < chunks.size())
-            {
-                file << ",";
-            }
-            file << "\n";
-        }
-        file << "    ]\n";
-        file << "  }\n";
-        file << "}\n";
-    }
-
-    class Experiments
-    {
-    private:
-        ExperimentsConfig config;
-
-    public:
-        explicit Experiments(ExperimentsConfig config) : config(std::move(config)) {}
-
-        void runExperiments()
-        {
-#ifdef _WIN32
-            SetConsoleOutputCP(CP_UTF8);
-            SetConsoleCP(CP_UTF8);
-            std::setlocale(LC_ALL, ".UTF-8");
-#endif
-
-            if (config.numAgentsMin > config.numAgentsMax || config.numObjectsMin > config.numObjectsMax || config.seedMin > config.seedMax)
-            {
-                std::cerr << "[Experiments] Invalid range values in config.\n";
-                return;
-            }
-
-            if (config.ratioRandomStep <= 0.0)
-            {
-                std::cerr << "[Experiments] Invalid ratio_random_step: " << config.ratioRandomStep << "\n";
-                return;
-            }
-
-            if (!std::filesystem::exists(config.outputDirectory))
-            {
-                std::filesystem::create_directories(config.outputDirectory);
-            }
-
-            const int agentCount = config.numAgentsMax - config.numAgentsMin + 1;
-            const int objectCount = config.numObjectsMax - config.numObjectsMin + 1;
-            const int seedCount = config.seedMax - config.seedMin + 1;
-            const int ratioCount = std::max(1, static_cast<int>(std::floor((config.ratioRandomMax - config.ratioRandomMin) / config.ratioRandomStep + 0.5)) + 1);
-
-            int totalProgressSteps = 0;
-            for (int numAgents = config.numAgentsMin; numAgents <= config.numAgentsMax; ++numAgents)
-            {
-                for (int numObjects = config.numObjectsMin; numObjects <= config.numObjectsMax; ++numObjects)
-                {
-                    const std::vector<int> budgetSchedule = buildBudgetSchedule(numObjects, numAgents);
-                    totalProgressSteps += seedCount; // one solver step per (agents, objects, seed)
-                    totalProgressSteps += seedCount * ratioCount * static_cast<int>(budgetSchedule.size()) * config.iterations;
-                }
-            }
-
-            auto progressBar = createProgressBar("Running experiments...");
-            std::atomic<int> completedSteps{0};
-
-            for (int numAgents = config.numAgentsMin; numAgents <= config.numAgentsMax; ++numAgents)
-            {
-                for (int numObjects = config.numObjectsMin; numObjects <= config.numObjectsMax; ++numObjects)
-                {
-                    const std::vector<int> budgetSchedule = buildBudgetSchedule(numObjects, numAgents);
-                    const int maxBudget = budgetSchedule.empty() ? std::max(1, numObjects) : budgetSchedule.back();
-
-                    for (int seed = config.seedMin; seed <= config.seedMax; ++seed)
-                    {
-                        SolverRunResult solverResult;
-                        try
-                        {
-                            Solver<int> solver(numAgents, numObjects, seed);
-                            const auto solverStart = std::chrono::steady_clock::now();
-                            const std::pair<Allocation, Score> solverBest = solver.solve(config.verbose);
-                            const auto solverEnd = std::chrono::steady_clock::now();
-
-                            solverResult.succeeded = true;
-                            solverResult.elapsedMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(solverEnd - solverStart).count();
-                            solverResult.bestScore = solverBest.second.getScore();
-                            solverResult.bestAllocation = solverBest.first.getAllocation();
-                        }
-                        catch (const std::exception &ex)
-                        {
-                            solverResult.succeeded = false;
-                            solverResult.error = ex.what();
-                        }
-
-                        updateProgress(progressBar,
-                                       completedSteps,
-                                       totalProgressSteps,
-                                       "solver",
-                                       numAgents,
-                                       numObjects,
-                                       seed,
-                                       0.0,
-                                       0,
-                                       0,
-                                       0);
-
-                        for (int ratioIndex = 0; ratioIndex < ratioCount; ++ratioIndex)
-                        {
-                            const double ratioRandom = std::min(config.ratioRandomMin + ratioIndex * config.ratioRandomStep, config.ratioRandomMax);
-
-                            std::vector<ChunkSnapshot> chunks;
-                            std::vector<int> finalBestAllocation;
-                            double finalBestScore = -std::numeric_limits<double>::infinity();
-                            Preferences<int> preferencesForJson;
-                            bool hasPreferences = false;
-
-                            for (size_t budgetIndex = 0; budgetIndex < budgetSchedule.size(); ++budgetIndex)
-                            {
-                                const int budget = budgetSchedule[budgetIndex];
-                                ChunkSnapshot snapshot;
-                                snapshot.budget = budget;
-
-                                for (int iterationIndex = 0; iterationIndex < config.iterations; ++iterationIndex)
-                                {
-                                    MCTSConfig mctsConfig;
-                                    mctsConfig.numAgents = numAgents;
-                                    mctsConfig.numObjects = numObjects;
-                                    mctsConfig.iterations = budget;
-                                    mctsConfig.seed = seed;
-                                    mctsConfig.ratioRandom = ratioRandom;
-                                    mctsConfig.verbose = config.verbose;
-                                    mctsConfig.saveResults = false;
-                                    mctsConfig.useSolver = false;
-
-                                    MCTS<int> mcts(mctsConfig);
-                                    if (!hasPreferences)
-                                    {
-                                        preferencesForJson = mcts.getPreferences();
-                                        hasPreferences = true;
-                                    }
-
-                                    const auto start = std::chrono::steady_clock::now();
-                                    mcts.run(budget, false);
-                                    const auto end = std::chrono::steady_clock::now();
-
-                                    const auto bestAlloc = mcts.getRoot().getBestAllocation();
-                                    IterationSnapshot iterationSnapshot;
-                                    iterationSnapshot.iterationIndex = iterationIndex + 1;
-                                    iterationSnapshot.elapsedMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-                                    iterationSnapshot.bestScore = bestAlloc.second.getScore();
-                                    iterationSnapshot.bestAllocation = bestAlloc.first.getAllocation();
-                                    snapshot.iterations.push_back(std::move(iterationSnapshot));
-
-                                    if (bestAlloc.second.getScore() > snapshot.bestScore)
-                                    {
-                                        snapshot.bestScore = bestAlloc.second.getScore();
-                                        snapshot.bestAllocation = bestAlloc.first.getAllocation();
-                                    }
-
-                                    if (bestAlloc.second.getScore() > finalBestScore)
-                                    {
-                                        finalBestScore = bestAlloc.second.getScore();
-                                        finalBestAllocation = bestAlloc.first.getAllocation();
-                                    }
-
-                                    updateProgress(progressBar,
-                                                   completedSteps,
-                                                   totalProgressSteps,
-                                                   "mcts",
-                                                   numAgents,
-                                                   numObjects,
-                                                   seed,
-                                                   ratioRandom,
-                                                   budget,
-                                                   iterationIndex + 1,
-                                                   config.iterations);
-                                }
-
-                                chunks.push_back(std::move(snapshot));
-                            }
-
-                            const std::string fileName = "experiment_a" + std::to_string(numAgents) +
-                                                         "_o" + std::to_string(numObjects) +
-                                                         "_s" + std::to_string(seed) +
-                                                         "_r" + ratioToString(ratioRandom) +
-                                                         "_" + timestampString() + ".json";
-                            const std::string outputPath = config.outputDirectory + "/" + fileName;
-
-                            try
-                            {
-                                writeJsonExperimentFile(outputPath,
-                                                        config,
-                                                        numAgents,
-                                                        numObjects,
-                                                        seed,
-                                                        ratioRandom,
-                                                        config.iterations,
-                                                        budgetSchedule,
-                                                        solverResult,
-                                                        preferencesForJson,
-                                                        finalBestScore,
-                                                        finalBestAllocation,
-                                                        chunks,
-                                                        maxBudget);
-                                // std::cout << "[Experiments] Saved results to: " << outputPath << "\n";
-                            }
-                            catch (const std::exception &ex)
-                            {
-                                std::cerr << "[Experiments] " << ex.what() << "\n";
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    };
-}
-
-int main()
+int main(int argc, char **argv)
 {
-    ExperimentsConfig config;
-    try
+    const auto programStart = std::chrono::steady_clock::now();
+
+    std::string configPath = "config.toml";
+
+    CLI::App app{"MCTS experiments runner"};
+    app.add_option("-c,--config", configPath, "Path to TOML configuration file");
+
+    CLI11_PARSE(app, argc, argv);
+
+    if (!std::filesystem::exists(configPath))
     {
-        config = ExperimentsConfig::load("config.toml");
-    }
-    catch (const std::exception &ex)
-    {
-        std::cerr << ex.what() << std::endl;
-        ExperimentsConfig::generate_default("config.toml", config);
-        std::cerr << "A default configuration file has been generated. Please review and modify 'config.toml' as needed, then re-run the program." << std::endl;
+        const std::filesystem::path cfgPath(configPath);
+        const std::filesystem::path parentDir = cfgPath.parent_path();
+        if (!parentDir.empty())
+        {
+            std::filesystem::create_directories(parentDir);
+        }
+
+        Config defaultConfig;
+        Config::generate_default(configPath, defaultConfig);
+        std::cerr << "[Config] Missing configuration file: " << configPath << "\n";
+        std::cerr << "[Config] A default configuration file has been generated. Please review it, then re-run the experiments.\n";
         return EXIT_FAILURE;
     }
 
-    std::cout << "\n=== [Experiments] Starting with final configuration ===\n";
-    std::cout << " - Num Agents   : " << config.numAgentsMin << ".." << config.numAgentsMax << "\n";
-    std::cout << " - Num Objects  : " << config.numObjectsMin << ".." << config.numObjectsMax << "\n";
-    std::cout << " - Seed         : " << config.seedMin << ".." << config.seedMax << "\n";
-    std::cout << " - Ratio Random : " << config.ratioRandomMin << ".." << config.ratioRandomMax << " (step " << config.ratioRandomStep << ")\n";
-    std::cout << " - Iterations   : " << config.iterations << "\n";
-    std::cout << " - Verbose      : " << (config.verbose ? "true" : "false") << "\n";
-    std::cout << " - Output Dir   : " << config.outputDirectory << "\n";
-    std::cout << "====================================================\n\n";
+    Config config;
+    try
+    {
+        config = Config::load(configPath);
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << ex.what() << "\n";
+        return EXIT_FAILURE;
+    }
 
-    Experiments experiments(std::move(config));
-    experiments.runExperiments();
+    const std::vector<std::string> errors = validate_experiment_config(config);
+    if (!errors.empty())
+    {
+        std::cerr << "[Config] Invalid experiments configuration. Startup cancelled.\n";
+        for (const std::string &error : errors)
+        {
+            std::cerr << " - " << error << "\n";
+        }
+        return EXIT_FAILURE;
+    }
+
+    std::vector<ExperimentParams> experimentGrid;
+    try
+    {
+        experimentGrid = build_experiment_grid(config);
+    }
+    catch (const std::exception &ex)
+    {
+        std::cerr << "[Config] " << ex.what() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    const int numberOfSteps = static_cast<int>(std::llround(config.numberOfBudgetStep));
+    const std::size_t stepsPerTry = static_cast<std::size_t>(numberOfSteps > 0 ? numberOfSteps : 1);
+
+    std::unordered_set<SolverKey, SolverKeyHash> uniqueSolverKeys;
+    uniqueSolverKeys.reserve(experimentGrid.size());
+    for (const ExperimentParams &params : experimentGrid)
+    {
+        uniqueSolverKeys.insert(SolverKey{params.numAgents, params.numObjects, params.seed});
+    }
+
+    const std::size_t solverWorkUnits = uniqueSolverKeys.size();
+    const std::size_t mctsWorkUnits = experimentGrid.size() * static_cast<std::size_t>(config.numberOfTrys) * stepsPerTry;
+    const std::size_t totalWorkUnits = solverWorkUnits + mctsWorkUnits;
+    std::size_t completedWorkUnits = 0;
+    auto progressBar = create_progress_bar();
+    auto lastLiveStatus = std::chrono::steady_clock::now();
+    std::unordered_map<SolverKey, SolverResultCache, SolverKeyHash> solverCache;
+    solverCache.reserve(solverWorkUnits);
+
+    std::filesystem::create_directories(config.outputDirectory);
+    const std::filesystem::path outputPath = std::filesystem::path(config.outputDirectory) / build_output_filename();
+
+    std::ofstream out(outputPath);
+    if (!out.is_open())
+    {
+        std::cerr << "[Results] Error: unable to create output file at " << outputPath.string() << "\n";
+        return EXIT_FAILURE;
+    }
+
+    out << "{\n";
+    out << "  \"experiments\": [\n";
+
+    for (std::size_t expIndex = 0; expIndex < experimentGrid.size(); ++expIndex)
+    {
+        const ExperimentParams &params = experimentGrid[expIndex];
+
+        Config runConfig = config;
+        runConfig.numAgents = params.numAgents;
+        runConfig.numObjects = params.numObjects;
+        runConfig.seed = params.seed;
+        runConfig.ratioRandom = params.ratioRandom;
+        runConfig.iterations = params.budget;
+
+        const std::vector<int> stepTargets = build_step_targets(params.budget, numberOfSteps);
+
+        out << "    {\n";
+        out << "      \"parameters\": {\n";
+        out << "        \"numAgents\": " << params.numAgents << ",\n";
+        out << "        \"numObjects\": " << params.numObjects << ",\n";
+        out << "        \"seed\": " << params.seed << ",\n";
+        out << "        \"ratioRandom\": " << format_double(params.ratioRandom) << ",\n";
+        out << "        \"budget\": " << params.budget << "\n";
+        out << "      },\n";
+        out << "      \"results\": {\n";
+
+        out << "        \"solver\": {\n";
+        out << "          \"name\": \"Gurobi\",\n";
+
+        const SolverKey solverKey{params.numAgents, params.numObjects, params.seed};
+        auto cacheIt = solverCache.find(solverKey);
+        if (cacheIt == solverCache.end())
+        {
+            std::ostringstream solverStatus;
+            solverStatus << "solver a=" << params.numAgents
+                         << " o=" << params.numObjects
+                         << " s=" << params.seed;
+            progressBar.set_option(indicators::option::PostfixText{solverStatus.str()});
+
+            SolverResultCache computedResult{};
+            try
+            {
+                Solver<int> solver(runConfig);
+                std::pair<Allocation, Score> solverResult = solver.solve(config.verbose);
+                computedResult.ok = true;
+                computedResult.score = solverResult.second.getScore();
+                computedResult.allocation = solverResult.first.getAllocation();
+            }
+            catch (const std::exception &)
+            {
+                computedResult.ok = false;
+                computedResult.score = 0.0;
+                computedResult.allocation.clear();
+            }
+
+            cacheIt = solverCache.emplace(solverKey, std::move(computedResult)).first;
+            ++completedWorkUnits;
+            update_progress(progressBar, completedWorkUnits, totalWorkUnits);
+        }
+
+        if (cacheIt->second.ok)
+        {
+            out << "          \"status\": \"ok\",\n";
+            out << "          \"score\": " << format_double(cacheIt->second.score) << ",\n";
+            out << "          \"allocation\": ";
+            write_int_array(out, cacheIt->second.allocation);
+            out << "\n";
+        }
+        else
+        {
+            out << "          \"status\": \"error\",\n";
+            out << "          \"score\": 0,\n";
+            out << "          \"allocation\": []\n";
+        }
+
+        out << "        },\n";
+
+        out << "        \"mcts\": {\n";
+        out << "          \"tries\": [\n";
+
+        for (int tryIndex = 1; tryIndex <= config.numberOfTrys; ++tryIndex)
+        {
+            MCTS<int> mcts(runConfig);
+            int executedBudget = 0;
+            std::pair<Allocation, Score> finalBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
+
+            out << "            {\n";
+            out << "              \"tryIndex\": " << tryIndex << ",\n";
+            out << "              \"steps\": [\n";
+
+            for (std::size_t stepIdx = 0; stepIdx < stepTargets.size(); ++stepIdx)
+            {
+                const int targetBudget = stepTargets[stepIdx];
+                const int delta = targetBudget - executedBudget;
+                if (delta > 0)
+                {
+                    const int chunkSize = std::max(1, params.budget / 20);
+                    int remaining = delta;
+                    while (remaining > 0)
+                    {
+                        const int chunk = std::min(chunkSize, remaining);
+                        mcts.run(chunk, false);
+                        executedBudget += chunk;
+                        remaining -= chunk;
+
+                        if (should_emit_status(lastLiveStatus))
+                        {
+                            progressBar.set_option(indicators::option::PostfixText{
+                                build_live_postfix(
+                                    expIndex,
+                                    experimentGrid.size(),
+                                    tryIndex,
+                                    config.numberOfTrys,
+                                    stepIdx,
+                                    stepTargets.size(),
+                                    executedBudget,
+                                    targetBudget,
+                                    params.numAgents,
+                                    params.numObjects,
+                                    params.seed,
+                                    params.ratioRandom)});
+                        }
+                    }
+                }
+
+                finalBest = mcts.getRoot().getBestAllocation();
+                const double percentBudgetUsed = static_cast<double>(targetBudget) / static_cast<double>(params.budget);
+
+                out << "                {\n";
+                out << "                  \"currentBudget\": " << targetBudget << ",\n";
+                out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
+                out << "                  \"score\": " << format_double(finalBest.second.getScore()) << ",\n";
+                out << "                  \"allocation\": ";
+                write_int_array(out, finalBest.first.getAllocation());
+                out << "\n";
+                out << "                }";
+                if (stepIdx + 1 < stepTargets.size())
+                {
+                    out << ",";
+                }
+                out << "\n";
+
+                ++completedWorkUnits;
+                update_progress(progressBar, completedWorkUnits, totalWorkUnits);
+            }
+
+            out << "              ],\n";
+            out << "              \"finalScore\": " << format_double(finalBest.second.getScore()) << ",\n";
+            out << "              \"finalAllocation\": ";
+            write_int_array(out, finalBest.first.getAllocation());
+            out << "\n";
+            out << "            }";
+            if (tryIndex < config.numberOfTrys)
+            {
+                out << ",";
+            }
+            out << "\n";
+        }
+
+        out << "          ]\n";
+        out << "        }\n";
+        out << "      }\n";
+        out << "    }";
+        if (expIndex + 1 < experimentGrid.size())
+        {
+            out << ",";
+        }
+        out << "\n";
+    }
+
+    out << "  ]\n";
+    out << "}\n";
+
+    out.close();
+
+    progressBar.set_option(indicators::option::PostfixText{"Running experiments..."});
+
+    const auto programEnd = std::chrono::steady_clock::now();
+    const auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(programEnd - programStart);
+
+    std::cout << "[Experiments] Completed " << experimentGrid.size() << " experiment parameter set(s).\n";
+    std::cout << "[Experiments] Results written to " << outputPath.string() << "\n";
+    std::cout << "[Experiments] Total runtime: " << format_duration(totalDuration) << "\n";
+
     return EXIT_SUCCESS;
 }

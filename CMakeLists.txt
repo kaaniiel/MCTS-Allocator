@@ -59,6 +59,28 @@ if(NOT GUROBI_HOME AND DEFINED ENV{GUROBU_HOME})
 endif()
 
 if(GUROBI_HOME)
+    set(GUROBI_HOME_INPUT "${GUROBI_HOME}")
+    if(NOT IS_ABSOLUTE "${GUROBI_HOME}")
+        set(_GUROBI_HOME_CANDIDATES
+            "${GUROBI_HOME}"
+            "${CMAKE_SOURCE_DIR}/${GUROBI_HOME}"
+            "$ENV{HOME}/${GUROBI_HOME}"
+            "/opt/${GUROBI_HOME}"
+        )
+
+        foreach(_GUROBI_HOME_CANDIDATE IN LISTS _GUROBI_HOME_CANDIDATES)
+            if(EXISTS "${_GUROBI_HOME_CANDIDATE}")
+                set(GUROBI_HOME "${_GUROBI_HOME_CANDIDATE}")
+                break()
+            endif()
+        endforeach()
+    endif()
+
+    if(EXISTS "${GUROBI_HOME}")
+        get_filename_component(GUROBI_HOME "${GUROBI_HOME}" ABSOLUTE)
+        set(GUROBI_HOME "${GUROBI_HOME}" CACHE PATH "Path to the Gurobi installation root" FORCE)
+    endif()
+
     find_path(GUROBI_INCLUDE_DIR
         NAMES gurobi_c++.h
         PATHS "${GUROBI_HOME}/include"
@@ -68,6 +90,12 @@ if(GUROBI_HOME)
     file(GLOB GUROBI_ALL_LIBS
         "${GUROBI_HOME}/lib/gurobi*.lib"
         "${GUROBI_HOME}/lib/gurobi*.a"
+        "${GUROBI_HOME}/lib/gurobi*.so"
+        "${GUROBI_HOME}/lib/gurobi*.dylib"
+        "${GUROBI_HOME}/lib/libgurobi*.lib"
+        "${GUROBI_HOME}/lib/libgurobi*.a"
+        "${GUROBI_HOME}/lib/libgurobi*.so"
+        "${GUROBI_HOME}/lib/libgurobi*.dylib"
     )
 
     set(GUROBI_CORE_LIBS "")
@@ -94,16 +122,26 @@ if(GUROBI_HOME)
         )
     endif()
 
+    if(NOT GUROBI_CXX_LIBS)
+        file(GLOB GUROBI_CXX_LIBS
+            "${GUROBI_HOME}/lib/*gurobi_c++*.lib"
+            "${GUROBI_HOME}/lib/*gurobi_c++*.a"
+            "${GUROBI_HOME}/lib/*gurobi_c++*.so"
+            "${GUROBI_HOME}/lib/*gurobi_c++*.dylib"
+        )
+    endif()
+
     list(SORT GUROBI_CXX_LIBS)
     if(GUROBI_CXX_LIBS)
         list(GET GUROBI_CXX_LIBS 0 GUROBI_CXX_LIBRARY)
     endif()
 
-    if(NOT GUROBI_INCLUDE_DIR OR NOT GUROBI_CXX_LIBRARY OR GUROBI_CORE_LIBS STREQUAL "")
+    if(NOT GUROBI_INCLUDE_DIR OR NOT GUROBI_CXX_LIBRARY OR NOT GUROBI_CORE_LIBS)
         message(FATAL_ERROR
-            "Gurobi was not found under GUROBI_HOME='${GUROBI_HOME}'. Expected include/gurobi_c++.h and library files in lib/."
+            "Gurobi was not found under GUROBI_HOME='${GUROBI_HOME_INPUT}' (resolved to '${GUROBI_HOME}'). Expected include/gurobi_c++.h and library files in lib/."
         )
     endif()
+    message(STATUS "Gurobi configured from ${GUROBI_HOME}")
 else()
     message(STATUS "Gurobi not configured. Set GUROBI_HOME to build testLp.")
 endif()
