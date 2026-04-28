@@ -5,7 +5,7 @@
 #include <gurobi_c++.h>
 
 #include "config/config.hpp"
-#include "config/CLI11.hpp" // Assure-toi que le chemin d'inclusion est correct
+#include "config/CLI11.hpp"
 #include "mcts/Preferences.hpp"
 #include "metrics/Utility.hpp"
 #include "mcts/Allocation.hpp"
@@ -130,6 +130,4 @@ int main(int argc, char **argv)
 
     // Show preference matrix
     prefs.printPreferences();
-
-
 }

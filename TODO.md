@@ -9,7 +9,6 @@ peut être partir d'une solution réalisable ou partir d'un autre nœud de dépa
 résultats théorique (reflechir a ce que l'on peut avoir) (EF1 ? EFX ? PROP ? ..) => Fait partiellemement
 calibrage budget ==> a faire (interressant, qu'est ce qu'on lui donne) => MB
 
-
 ============================================================================================================
 
 guidage simulation par UCB1 (mixer entre aléatoire et guider) = FAIT
@@ -21,3 +20,9 @@ Faire complexité problème (inclure budget) => FAIT
 gurobi (solver PL) (licence académique) Cplex (solver IBM) => Pulp (écriture des contraintes et fonction optim)
 
 Passage de maximisation de produit a un max de somme de Log()
+
+============================================================================================================
+
+Savoir si une alloc est pareto optimal (comment faire +> dans these au cas ou)
+Corriger le code du solveur au cas ou
+Passer le score en log
