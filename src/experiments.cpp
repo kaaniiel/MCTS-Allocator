@@ -59,6 +59,7 @@ namespace
         bool ok;
         double score;
         std::vector<int> allocation;
+        long long timeUs{0};
     };
 
     bool is_near_integer(double value, double eps = 1e-9)
@@ -287,13 +288,14 @@ namespace
         bar.set_progress(progress);
     }
 
-    std::string format_duration(std::chrono::milliseconds duration)
+    std::string format_duration_us(long long totalUs)
     {
-        const auto totalMs = duration.count();
+        const auto totalMs = totalUs / 1000;
         const auto hours = totalMs / 3600000;
         const auto minutes = (totalMs % 3600000) / 60000;
         const auto seconds = (totalMs % 60000) / 1000;
         const auto milliseconds = totalMs % 1000;
+        const auto microseconds = totalUs % 1000;
 
         std::ostringstream oss;
         if (hours > 0)
@@ -304,7 +306,7 @@ namespace
         {
             oss << minutes << "m ";
         }
-        oss << seconds << "s " << milliseconds << "ms";
+        oss << seconds << "s " << milliseconds << "ms " << microseconds << "us";
         return oss.str();
     }
 
@@ -478,16 +480,20 @@ int main(int argc, char **argv)
             try
             {
                 Solver<int> solver(runConfig);
+                const auto solverStart = std::chrono::steady_clock::now();
                 std::pair<Allocation, Score> solverResult = solver.solve(config.verbose);
+                const auto solverEnd = std::chrono::steady_clock::now();
                 computedResult.ok = true;
                 computedResult.score = solverResult.second.getScore();
                 computedResult.allocation = solverResult.first.getAllocation();
+                computedResult.timeUs = std::chrono::duration_cast<std::chrono::microseconds>(solverEnd - solverStart).count();
             }
             catch (const std::exception &)
             {
                 computedResult.ok = false;
                 computedResult.score = 0.0;
                 computedResult.allocation.clear();
+                computedResult.timeUs = 0;
             }
 
             cacheIt = solverCache.emplace(solverKey, std::move(computedResult)).first;
@@ -499,6 +505,8 @@ int main(int argc, char **argv)
         {
             out << "          \"status\": \"ok\",\n";
             out << "          \"score\": " << format_double(cacheIt->second.score) << ",\n";
+            out << "          \"timeUs\": " << cacheIt->second.timeUs << ",\n";
+            out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
             out << "          \"allocation\": ";
             write_int_array(out, cacheIt->second.allocation);
             out << "\n";
@@ -517,75 +525,95 @@ int main(int argc, char **argv)
 
         for (int tryIndex = 1; tryIndex <= config.numberOfTrys; ++tryIndex)
         {
-            MCTS<int> mcts(runConfig);
-            int executedBudget = 0;
             std::pair<Allocation, Score> finalBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
-
+            
             out << "            {\n";
             out << "              \"tryIndex\": " << tryIndex << ",\n";
             out << "              \"steps\": [\n";
 
-            for (std::size_t stepIdx = 0; stepIdx < stepTargets.size(); ++stepIdx)
+            // Create MCTS in a limited scope to ensure memory is freed after each try
+            auto tryStart = std::chrono::steady_clock::now();
+            auto lastStepTime = tryStart;
             {
-                const int targetBudget = stepTargets[stepIdx];
-                const int delta = targetBudget - executedBudget;
-                if (delta > 0)
-                {
-                    const int chunkSize = std::max(1, params.budget / 20);
-                    int remaining = delta;
-                    while (remaining > 0)
-                    {
-                        const int chunk = std::min(chunkSize, remaining);
-                        mcts.run(chunk, false);
-                        executedBudget += chunk;
-                        remaining -= chunk;
+                MCTS<int> mcts(runConfig);
+                int executedBudget = 0;
 
-                        if (should_emit_status(lastLiveStatus))
+                for (std::size_t stepIdx = 0; stepIdx < stepTargets.size(); ++stepIdx)
+                {
+                    const int targetBudget = stepTargets[stepIdx];
+                    const int delta = targetBudget - executedBudget;
+                    if (delta > 0)
+                    {
+                        const int chunkSize = std::max(1, params.budget / 20);
+                        int remaining = delta;
+                        while (remaining > 0)
                         {
-                            progressBar.set_option(indicators::option::PostfixText{
-                                build_live_postfix(
-                                    expIndex,
-                                    experimentGrid.size(),
-                                    tryIndex,
-                                    config.numberOfTrys,
-                                    stepIdx,
-                                    stepTargets.size(),
-                                    executedBudget,
-                                    targetBudget,
-                                    params.numAgents,
-                                    params.numObjects,
-                                    params.seed,
-                                    params.ratioRandom)});
+                            const int chunk = std::min(chunkSize, remaining);
+                            mcts.run(chunk, false);
+                            executedBudget += chunk;
+                            remaining -= chunk;
+
+                            if (should_emit_status(lastLiveStatus))
+                            {
+                                progressBar.set_option(indicators::option::PostfixText{
+                                    build_live_postfix(
+                                        expIndex,
+                                        experimentGrid.size(),
+                                        tryIndex,
+                                        config.numberOfTrys,
+                                        stepIdx,
+                                        stepTargets.size(),
+                                        executedBudget,
+                                        targetBudget,
+                                        params.numAgents,
+                                        params.numObjects,
+                                        params.seed,
+                                        params.ratioRandom)});
+                            }
                         }
                     }
+
+                    finalBest = mcts.getRoot().getBestAllocation();
+                    const double percentBudgetUsed = static_cast<double>(targetBudget) / static_cast<double>(params.budget);
+
+                    const auto stepNow = std::chrono::steady_clock::now();
+                    const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - lastStepTime).count();
+                    const auto cumulativeUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - tryStart).count();
+                    lastStepTime = stepNow;
+
+                    out << "                {\n";
+                    out << "                  \"currentBudget\": " << targetBudget << ",\n";
+                    out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
+                    out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
+                    out << "                  \"cumulativeTimeUs\": " << cumulativeUs << ",\n";
+                    out << "                  \"score\": " << format_double(finalBest.second.getScore()) << ",\n";
+                    out << "                  \"allocation\": ";
+                    write_int_array(out, finalBest.first.getAllocation());
+                    out << "\n";
+                    out << "                }";
+                    if (stepIdx + 1 < stepTargets.size())
+                    {
+                        out << ",";
+                    }
+                    out << "\n";
+
+                    ++completedWorkUnits;
+                    update_progress(progressBar, completedWorkUnits, totalWorkUnits);
                 }
+            } // MCTS object is destroyed here, freeing all memory
+            // Force memory cleanup
+            std::cout.flush();
 
-                finalBest = mcts.getRoot().getBestAllocation();
-                const double percentBudgetUsed = static_cast<double>(targetBudget) / static_cast<double>(params.budget);
-
-                out << "                {\n";
-                out << "                  \"currentBudget\": " << targetBudget << ",\n";
-                out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
-                out << "                  \"score\": " << format_double(finalBest.second.getScore()) << ",\n";
-                out << "                  \"allocation\": ";
-                write_int_array(out, finalBest.first.getAllocation());
-                out << "\n";
-                out << "                }";
-                if (stepIdx + 1 < stepTargets.size())
-                {
-                    out << ",";
-                }
-                out << "\n";
-
-                ++completedWorkUnits;
-                update_progress(progressBar, completedWorkUnits, totalWorkUnits);
-            }
+            const auto tryEnd = std::chrono::steady_clock::now();
+            const auto tryDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(tryEnd - tryStart).count();
 
             out << "              ],\n";
             out << "              \"finalScore\": " << format_double(finalBest.second.getScore()) << ",\n";
             out << "              \"finalAllocation\": ";
             write_int_array(out, finalBest.first.getAllocation());
-            out << "\n";
+            out << ",\n";
+            out << "              \"tryDurationUs\": " << tryDurationUs << ",\n";
+            out << "              \"tryDuration\": \"" << format_duration_us(tryDurationUs) << "\"\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
             {
@@ -617,7 +645,7 @@ int main(int argc, char **argv)
 
     std::cout << "[Experiments] Completed " << experimentGrid.size() << " experiment parameter set(s).\n";
     std::cout << "[Experiments] Results written to " << outputPath.string() << "\n";
-    std::cout << "[Experiments] Total runtime: " << format_duration(totalDuration) << "\n";
+    std::cout << "[Experiments] Total runtime: " << format_duration_us(std::chrono::duration_cast<std::chrono::microseconds>(totalDuration).count()) << "\n";
 
     return EXIT_SUCCESS;
 }

@@ -1,0 +1,3 @@
+PySimpleGUI
+pandas
+matplotlib
