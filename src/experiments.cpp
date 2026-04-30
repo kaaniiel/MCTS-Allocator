@@ -506,7 +506,7 @@ int main(int argc, char **argv)
             out << "          \"status\": \"ok\",\n";
             out << "          \"score\": " << format_double(cacheIt->second.score) << ",\n";
             out << "          \"timeUs\": " << cacheIt->second.timeUs << ",\n";
-            out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
+            // out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
             out << "          \"allocation\": ";
             write_int_array(out, cacheIt->second.allocation);
             out << "\n";
@@ -526,7 +526,7 @@ int main(int argc, char **argv)
         for (int tryIndex = 1; tryIndex <= config.numberOfTrys; ++tryIndex)
         {
             std::pair<Allocation, Score> finalBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
-            
+
             out << "            {\n";
             out << "              \"tryIndex\": " << tryIndex << ",\n";
             out << "              \"steps\": [\n";
@@ -583,7 +583,7 @@ int main(int argc, char **argv)
 
                     out << "                {\n";
                     out << "                  \"currentBudget\": " << targetBudget << ",\n";
-                    out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
+                    // out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
                     out << "                  \"cumulativeTimeUs\": " << cumulativeUs << ",\n";
                     out << "                  \"score\": " << format_double(finalBest.second.getScore()) << ",\n";
@@ -613,7 +613,7 @@ int main(int argc, char **argv)
             write_int_array(out, finalBest.first.getAllocation());
             out << ",\n";
             out << "              \"tryDurationUs\": " << tryDurationUs << ",\n";
-            out << "              \"tryDuration\": \"" << format_duration_us(tryDurationUs) << "\"\n";
+            // out << "              \"tryDuration\": \"" << format_duration_us(tryDurationUs) << "\"\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
             {

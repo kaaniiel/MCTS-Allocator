@@ -1,5 +1,8 @@
 #ifndef UTILITY_HPP
 #define UTILITY_HPP
+#include <algorithm>
+#include <cmath>
+#include <iostream>
 #include <vector>
 
 #include "../mcts/Preferences.hpp"
@@ -41,15 +44,15 @@ public:
             }
         }
 
-        // Multiply agent utilities to get total utility
-        double totalUtility = 1.0;
+        // Sum the logarithms of agent utilities to optimize the product in log-space.
+        double totalUtility = 0.0;
         for (int agent = 0; agent < numAgents; ++agent)
         {
             if (verbose)
             {
                 std::cout << "Agent " << agent << " utility: " << agentUtilities[agent] << std::endl;
             }
-            totalUtility *= (agentUtilities[agent]);
+            totalUtility += std::log(agentUtilities[agent]);
         }
         return totalUtility;
     }

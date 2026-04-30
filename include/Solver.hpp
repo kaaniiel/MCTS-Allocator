@@ -151,9 +151,8 @@ public:
         }
 
         Allocation alloc(numAgents, allocVec);
-        const double productFromLogs = std::exp(model.get(GRB_DoubleAttr_ObjVal));
 
-        optimalAllocation = std::pair<Allocation, Score>(alloc, Score(productFromLogs, verbose));
+        optimalAllocation = std::pair<Allocation, Score>(alloc, Score(model.get(GRB_DoubleAttr_ObjVal), verbose));
         return optimalAllocation; // Return the assigned objects for each agent
     }
 

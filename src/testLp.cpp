@@ -33,8 +33,13 @@ int main(int argc, char **argv)
     const int totalPerAgent = numAgents * numObjects;
 
     // Use the same data shape/seed logic as MCTS default path.
-    Preferences<int> prefs(numAgents, numObjects, false, seed);
-    prefs.generateRandomPreferences(totalPerAgent, seed);
+    // Preferences<int> prefs(numAgents, numObjects, false, seed);
+    // prefs.generateRandomPreferences(totalPerAgent, seed);
+    std::vector<std::vector<int>> prefData = {
+        {2, 0, 5, 2, 1},
+        {1, 1, 2, 4, 2},
+        {4, 3, 1, 1, 1}};
+    Preferences<int> prefs(prefData);
 
     std::cout << "Preferences:" << std::endl;
     prefs.printPreferences();

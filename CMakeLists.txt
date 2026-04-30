@@ -106,40 +106,36 @@ if(GUROBI_HOME)
         endif()
     endforeach()
 
-    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        file(GLOB GUROBI_CXX_LIBS
-            "${GUROBI_HOME}/lib/gurobi_c++mdd*.lib"
-            "${GUROBI_HOME}/lib/gurobi_c++mtd*.lib"
-            "${GUROBI_HOME}/lib/gurobi_c++mdd*.a"
-            "${GUROBI_HOME}/lib/gurobi_c++mtd*.a"
-        )
-    else()
-        file(GLOB GUROBI_CXX_LIBS
-            "${GUROBI_HOME}/lib/gurobi_c++md*.lib"
-            "${GUROBI_HOME}/lib/gurobi_c++mt*.lib"
-            "${GUROBI_HOME}/lib/gurobi_c++md*.a"
-            "${GUROBI_HOME}/lib/gurobi_c++mt*.a"
-        )
+    file(GLOB GUROBI_CXX_LIBS_DEBUG
+        "${GUROBI_HOME}/lib/gurobi_c++mdd*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++mtd*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++mdd*.a"
+        "${GUROBI_HOME}/lib/gurobi_c++mtd*.a"
+    )
+    file(GLOB GUROBI_CXX_LIBS_RELEASE
+        "${GUROBI_HOME}/lib/gurobi_c++md*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++mt*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++md*.a"
+        "${GUROBI_HOME}/lib/gurobi_c++mt*.a"
+    )
+
+    list(SORT GUROBI_CXX_LIBS_DEBUG)
+    list(SORT GUROBI_CXX_LIBS_RELEASE)
+    if(GUROBI_CXX_LIBS_DEBUG)
+        list(GET GUROBI_CXX_LIBS_DEBUG 0 GUROBI_CXX_LIBRARY_DEBUG)
+    endif()
+    if(GUROBI_CXX_LIBS_RELEASE)
+        list(GET GUROBI_CXX_LIBS_RELEASE 0 GUROBI_CXX_LIBRARY_RELEASE)
     endif()
 
-    if(NOT GUROBI_CXX_LIBS)
-        file(GLOB GUROBI_CXX_LIBS
-            "${GUROBI_HOME}/lib/*gurobi_c++*.lib"
-            "${GUROBI_HOME}/lib/*gurobi_c++*.a"
-            "${GUROBI_HOME}/lib/*gurobi_c++*.so"
-            "${GUROBI_HOME}/lib/*gurobi_c++*.dylib"
-        )
-    endif()
-
-    list(SORT GUROBI_CXX_LIBS)
-    if(GUROBI_CXX_LIBS)
-        list(GET GUROBI_CXX_LIBS 0 GUROBI_CXX_LIBRARY)
-    endif()
-
-    if(NOT GUROBI_INCLUDE_DIR OR NOT GUROBI_CXX_LIBRARY OR NOT GUROBI_CORE_LIBS)
+    if(NOT GUROBI_INCLUDE_DIR OR NOT GUROBI_CXX_LIBRARY_RELEASE OR NOT GUROBI_CORE_LIBS)
         message(FATAL_ERROR
             "Gurobi was not found under GUROBI_HOME='${GUROBI_HOME_INPUT}' (resolved to '${GUROBI_HOME}'). Expected include/gurobi_c++.h and library files in lib/."
         )
+    endif()
+
+    if(NOT GUROBI_CXX_LIBRARY_DEBUG)
+        set(GUROBI_CXX_LIBRARY_DEBUG "${GUROBI_CXX_LIBRARY_RELEASE}")
     endif()
     message(STATUS "Gurobi configured from ${GUROBI_HOME}")
 else()
@@ -156,9 +152,9 @@ target_link_libraries(mcts_experiments PRIVATE mcts_core)
 
 if(GUROBI_HOME)
     target_include_directories(mcts_main PRIVATE "${GUROBI_INCLUDE_DIR}")
-    target_link_libraries(mcts_main PRIVATE ${GUROBI_CXX_LIBRARY} ${GUROBI_CORE_LIBS})
+    target_link_libraries(mcts_main PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
     target_include_directories(mcts_experiments PRIVATE "${GUROBI_INCLUDE_DIR}")
-    target_link_libraries(mcts_experiments PRIVATE ${GUROBI_CXX_LIBRARY} ${GUROBI_CORE_LIBS})
+    target_link_libraries(mcts_experiments PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
 endif()
 
 # add executable for testLp
@@ -167,5 +163,5 @@ target_link_libraries(testLp PRIVATE mcts_core)
 
 if(GUROBI_HOME)
     target_include_directories(testLp PRIVATE "${GUROBI_INCLUDE_DIR}")
-    target_link_libraries(testLp PRIVATE ${GUROBI_CXX_LIBRARY} ${GUROBI_CORE_LIBS})
+    target_link_libraries(testLp PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
 endif()
