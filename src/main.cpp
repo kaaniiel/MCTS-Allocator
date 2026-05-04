@@ -170,6 +170,13 @@ int main(int argc, char **argv)
     std::cout << " - Use Solver    : " << (config.useSolver ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 
+    // Safety: do not attempt to search for a solution when there are fewer objects than agents.
+    if (config.numObjects < config.numAgents)
+    {
+        std::cerr << "Error: number of objects (" << config.numObjects << ") is less than number of agents (" << config.numAgents << "). Aborting search.\n";
+        return EXIT_FAILURE;
+    }
+
     // Example of how you would instantiate and run your engine:
     // MCTS mcts_engine(config.iterations, config.exploration);
     // mcts_engine.run(config.threads);

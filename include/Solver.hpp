@@ -64,6 +64,16 @@ public:
         const int numAgents = inputPrefs.getNumAgents();
         const int numObjects = inputPrefs.getNumObjects();
 
+        // Safety: if there are fewer objects than agents, avoid attempting to solve/search.
+        if (numObjects < numAgents)
+        {
+            if (verbose)
+            {
+                std::cerr << "Solver: number of objects (" << numObjects << ") is less than number of agents (" << numAgents << "). Aborting solve.\n";
+            }
+            return std::pair<Allocation, Score>(Allocation(numAgents, numObjects), Score(0.0, verbose));
+        }
+
         // Create Boolean Variables
         std::vector<std::vector<GRBVar>> x(numAgents, std::vector<GRBVar>(numObjects));
         for (int i = 0; i < numAgents; ++i)
@@ -152,8 +162,29 @@ public:
 
         Allocation alloc(numAgents, allocVec);
 
-        optimalAllocation = std::pair<Allocation, Score>(alloc, Score(model.get(GRB_DoubleAttr_ObjVal), verbose));
-        return optimalAllocation; // Return the assigned objects for each agent
+        std::pair<Allocation, Score> result = std::pair<Allocation, Score>(alloc, Score(model.get(GRB_DoubleAttr_ObjVal), verbose));
+
+        // Release large in-memory structures to free memory as early as possible.
+        prefs.clear();
+
+        // Clear any previously stored optimalAllocation to avoid retaining data.
+        optimalAllocation.first.clear();
+        optimalAllocation.second = Score();
+
+        return result; // Return the result by value; internal storage is released
+    }
+
+    /**
+     * @brief Clear stored solver results and release memory held by preferences/allocation.
+     */
+    void clear()
+    {
+        // Reset stored optimal allocation and score
+        optimalAllocation.first.clear();
+        optimalAllocation.second = Score();
+
+        // Release preferences memory
+        prefs.clear();
     }
 
     void save_results_json(const std::string &filename)

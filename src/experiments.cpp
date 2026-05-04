@@ -74,6 +74,15 @@ namespace
         return oss.str();
     }
 
+    std::string format_json_score(double value)
+    {
+        if (std::isfinite(value))
+        {
+            return format_double(value);
+        }
+        return "null";
+    }
+
     void write_int_array(std::ostream &out, const std::vector<int> &values)
     {
         out << "[";
@@ -203,6 +212,9 @@ namespace
         {
             for (int numObjects = config.numObjectsMin; numObjects <= config.numObjectsMax; ++numObjects)
             {
+                // Skip configurations where there are fewer objects than agents.
+                if (numObjects < numAgents)
+                    continue;
                 for (int seed = config.seedMin; seed <= config.seedMax; ++seed)
                 {
                     for (double ratioRandom : ratioValues)
@@ -504,7 +516,7 @@ int main(int argc, char **argv)
         if (cacheIt->second.ok)
         {
             out << "          \"status\": \"ok\",\n";
-            out << "          \"score\": " << format_double(cacheIt->second.score) << ",\n";
+            out << "          \"score\": " << format_json_score(cacheIt->second.score) << ",\n";
             out << "          \"timeUs\": " << cacheIt->second.timeUs << ",\n";
             // out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
             out << "          \"allocation\": ";
@@ -586,7 +598,7 @@ int main(int argc, char **argv)
                     // out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
                     out << "                  \"cumulativeTimeUs\": " << cumulativeUs << ",\n";
-                    out << "                  \"score\": " << format_double(finalBest.second.getScore()) << ",\n";
+                    out << "                  \"score\": " << format_json_score(finalBest.second.getScore()) << ",\n";
                     out << "                  \"allocation\": ";
                     write_int_array(out, finalBest.first.getAllocation());
                     out << "\n";
@@ -608,11 +620,11 @@ int main(int argc, char **argv)
             const auto tryDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(tryEnd - tryStart).count();
 
             out << "              ],\n";
-            out << "              \"finalScore\": " << format_double(finalBest.second.getScore()) << ",\n";
+            out << "              \"finalScore\": " << format_json_score(finalBest.second.getScore()) << ",\n";
             out << "              \"finalAllocation\": ";
             write_int_array(out, finalBest.first.getAllocation());
             out << ",\n";
-            out << "              \"tryDurationUs\": " << tryDurationUs << ",\n";
+            out << "              \"tryDurationUs\": " << tryDurationUs << "\n";
             // out << "              \"tryDuration\": \"" << format_duration_us(tryDurationUs) << "\"\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)

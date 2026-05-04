@@ -65,6 +65,18 @@ public:
      * @return bool The verbose mode
      */
     bool getVerbose() const { return verbose; }
+
+    /**
+     * @brief Release internal memory used by allocation.
+     */
+    void clear()
+    {
+        allocation.clear();
+        allocation.shrink_to_fit();
+        numObjects = 0;
+        numAgents = 0;
+        verbose = false;
+    }
 };
 
 #endif // ALLOCATION_HPP

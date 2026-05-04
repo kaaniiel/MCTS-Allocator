@@ -91,10 +91,12 @@ if(GUROBI_HOME)
         "${GUROBI_HOME}/lib/gurobi*.lib"
         "${GUROBI_HOME}/lib/gurobi*.a"
         "${GUROBI_HOME}/lib/gurobi*.so"
+        "${GUROBI_HOME}/lib/gurobi[0-9]*.so"
         "${GUROBI_HOME}/lib/gurobi*.dylib"
         "${GUROBI_HOME}/lib/libgurobi*.lib"
         "${GUROBI_HOME}/lib/libgurobi*.a"
         "${GUROBI_HOME}/lib/libgurobi*.so"
+        "${GUROBI_HOME}/lib/libgurobi[0-9]*.so"
         "${GUROBI_HOME}/lib/libgurobi*.dylib"
     )
 
@@ -111,12 +113,18 @@ if(GUROBI_HOME)
         "${GUROBI_HOME}/lib/gurobi_c++mtd*.lib"
         "${GUROBI_HOME}/lib/gurobi_c++mdd*.a"
         "${GUROBI_HOME}/lib/gurobi_c++mtd*.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.so"
+        "${GUROBI_HOME}/lib/libgurobi_c++.dylib"
     )
     file(GLOB GUROBI_CXX_LIBS_RELEASE
         "${GUROBI_HOME}/lib/gurobi_c++md*.lib"
         "${GUROBI_HOME}/lib/gurobi_c++mt*.lib"
         "${GUROBI_HOME}/lib/gurobi_c++md*.a"
         "${GUROBI_HOME}/lib/gurobi_c++mt*.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.so"
+        "${GUROBI_HOME}/lib/libgurobi_c++.dylib"
     )
 
     list(SORT GUROBI_CXX_LIBS_DEBUG)

@@ -118,6 +118,18 @@ public:
      * @return bool True if the preferences were successfully loaded, false otherwise
      */
     bool loadFromFile(const std::string &filename);
+
+    /**
+     * @brief Release internal memory used by preferences.
+     */
+    void clear()
+    {
+        preferences.clear();
+        preferences.shrink_to_fit();
+        numAgents = 0;
+        numObjects = 0;
+        verbose = false;
+    }
 };
 
 template <typename T>
