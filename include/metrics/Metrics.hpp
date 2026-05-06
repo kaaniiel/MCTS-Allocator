@@ -212,4 +212,5 @@ bool isProp(const Preferences<T> &pref, const Allocation &alloc)
 {
     return isProp(pref, alloc.getAllocation());
 }
+
 #endif // METRICS_HPP

@@ -29,7 +29,7 @@ Passer le score en log => Fait
 
 ============================================================================================================
 
-EF, pareto, etc dans les resultats
+EF, pareto, etc dans les resultats => FAIT
 Graphique + idée de graphique
 Reflechir niveau agent pour Pareto-optimal
 Changer le ratio suite a l'execution (a voir)
