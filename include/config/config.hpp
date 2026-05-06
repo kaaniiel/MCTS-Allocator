@@ -35,6 +35,7 @@ struct Config
     int ratioRandomStep = 1;
     int numberOfTrys = 1;
     double numberOfBudgetStep = 0;
+    bool enableMetrics = false;
     std::string outputDirectory = "results";
 
     // 2. Function to generate the default configuration file
@@ -66,6 +67,7 @@ struct Config
                                       {"number_of_trys", default_config.numberOfTrys},
                                       {"numberOfBudgetStep", default_config.numberOfBudgetStep},
                                       {"verbose", default_config.verbose},
+                                      {"enable_metrics", default_config.enableMetrics},
                                       {"output_directory", default_config.outputDirectory},
                                   });
 
@@ -106,7 +108,7 @@ struct Config
             config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom);
             config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults);
             config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver);
-            
+
             // Experiments parameters
             config.numAgentsMin = tbl["experiments"]["num_agents_min"].value_or(config.numAgentsMin);
             config.numAgentsMax = tbl["experiments"]["num_agents_max"].value_or(config.numAgentsMax);
@@ -119,8 +121,9 @@ struct Config
             config.ratioRandomStep = tbl["experiments"]["ratio_random_step"].value_or(config.ratioRandomStep);
             config.numberOfTrys = tbl["experiments"]["number_of_trys"].value_or(config.numberOfTrys);
             config.numberOfBudgetStep = tbl["experiments"]["numberOfBudgetStep"].value_or(config.numberOfBudgetStep);
+            config.enableMetrics = tbl["experiments"]["enable_metrics"].value_or(config.enableMetrics);
             config.outputDirectory = tbl["experiments"]["output_directory"].value_or(config.outputDirectory);
-            
+
             std::cout << "[Config] Configuration loaded from " << filepath << "\n";
         }
         catch (const toml::parse_error &err)

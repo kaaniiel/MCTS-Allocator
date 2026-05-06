@@ -175,6 +175,11 @@ public:
     }
 
     /**
+     * @brief Get the preferences used by the solver
+     * @return Preferences<T> The preferences used by the solver
+     */
+    Preferences<T> getPreferences() const { return prefs; }
+    /**
      * @brief Clear stored solver results and release memory held by preferences/allocation.
      */
     void clear()

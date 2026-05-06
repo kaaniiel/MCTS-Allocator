@@ -62,6 +62,7 @@ public:
      */
     void setPreference(int agentIndex, int objectIndex, T score) { preferences[agentIndex][objectIndex] = score; };
 
+    std::vector<std::vector<T>> getAllPreferences() const { return preferences; };
     /**
      * @brief Set the verbose mode
      * @param v The verbose mode

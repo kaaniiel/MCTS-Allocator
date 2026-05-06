@@ -19,6 +19,7 @@
 #include "mcts/MCTS.hpp"
 #include "mcts/Score.hpp"
 #include "Solver.hpp"
+#include "metrics/Metrics.hpp"
 
 namespace
 {
@@ -54,12 +55,14 @@ namespace
         }
     };
 
+    template <typename T>
     struct SolverResultCache
     {
         bool ok;
         double score;
         std::vector<int> allocation;
         long long timeUs{0};
+        Preferences<T> prefs;
     };
 
     bool is_near_integer(double value, double eps = 1e-9)
@@ -83,7 +86,8 @@ namespace
         return "null";
     }
 
-    void write_int_array(std::ostream &out, const std::vector<int> &values)
+    template <typename T>
+    void write_array(std::ostream &out, const std::vector<T> &values)
     {
         out << "[";
         for (std::size_t i = 0; i < values.size(); ++i)
@@ -358,8 +362,45 @@ namespace
             << " r=" << format_double(ratioRandom);
         return oss.str();
     }
-} // namespace
 
+    void add_metrics(std::ostream &out, bool enableMetrics, const Preferences<int> &prefs, const std::vector<int> &alloc, const int numberWhiteSpace)
+    {
+        if (!enableMetrics)
+        {
+            return;
+        }
+
+        using MetricFunc = bool (*)(const Preferences<int> &, const std::vector<int> &);
+
+        struct Metric
+        {
+            const char *name;
+            MetricFunc func;
+        };
+
+        static const std::vector<Metric> metrics = {
+            {"Prop", isProp<int>},
+            {"EF", isEF<int>},
+            {"EFX", isEFX<int>},
+            {"EF1", isEF1<int>}};
+
+        const std::string whiteSpaceStr(static_cast<std::size_t>(numberWhiteSpace), ' ');
+
+        out << ",\n";
+        out << whiteSpaceStr << "\"metrics\": {\n";
+        for (std::size_t i = 0; i < metrics.size(); ++i)
+        {
+            const bool result = metrics[i].func(prefs, alloc);
+            out << whiteSpaceStr << "  \"" << metrics[i].name << "\": " << (result ? "true" : "false");
+            if (i + 1 < metrics.size())
+            {
+                out << ",";
+            }
+            out << "\n";
+        }
+        out << whiteSpaceStr << "}\n";
+    }
+}
 int main(int argc, char **argv)
 {
     const auto programStart = std::chrono::steady_clock::now();
@@ -436,7 +477,7 @@ int main(int argc, char **argv)
     std::size_t completedWorkUnits = 0;
     auto progressBar = create_progress_bar();
     auto lastLiveStatus = std::chrono::steady_clock::now();
-    std::unordered_map<SolverKey, SolverResultCache, SolverKeyHash> solverCache;
+    std::unordered_map<SolverKey, SolverResultCache<int>, SolverKeyHash> solverCache;
     solverCache.reserve(solverWorkUnits);
 
     std::filesystem::create_directories(config.outputDirectory);
@@ -473,6 +514,26 @@ int main(int argc, char **argv)
         out << "        \"ratioRandom\": " << format_double(params.ratioRandom) << ",\n";
         out << "        \"budget\": " << params.budget << "\n";
         out << "      },\n";
+        out << "      \"preferences\": [\n";
+        try
+        {
+            Preferences<int> prefs(params.numAgents, params.numObjects, false);
+            prefs.generateRandomPreferences(params.numAgents * params.numObjects, params.seed);
+            for (int agent = 0; agent < params.numAgents; ++agent)
+            {
+                out << "\t\t\t\t";
+                write_array(out, prefs.getPreference(agent));
+                if (agent < params.numAgents - 1)
+                {
+                    out << ",\n";
+                }
+            }
+            out << "],\n";
+        }
+        catch (const std::exception &)
+        {
+            out << "        \"preferences\": []\n";
+        }
         out << "      \"results\": {\n";
 
         out << "        \"solver\": {\n";
@@ -488,7 +549,7 @@ int main(int argc, char **argv)
                          << " s=" << params.seed;
             progressBar.set_option(indicators::option::PostfixText{solverStatus.str()});
 
-            SolverResultCache computedResult{};
+            SolverResultCache<int> computedResult{};
             try
             {
                 Solver<int> solver(runConfig);
@@ -499,6 +560,7 @@ int main(int argc, char **argv)
                 computedResult.score = solverResult.second.getScore();
                 computedResult.allocation = solverResult.first.getAllocation();
                 computedResult.timeUs = std::chrono::duration_cast<std::chrono::microseconds>(solverEnd - solverStart).count();
+                computedResult.prefs = solver.getPreferences();
             }
             catch (const std::exception &)
             {
@@ -520,7 +582,7 @@ int main(int argc, char **argv)
             out << "          \"timeUs\": " << cacheIt->second.timeUs << ",\n";
             // out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
             out << "          \"allocation\": ";
-            write_int_array(out, cacheIt->second.allocation);
+            write_array(out, cacheIt->second.allocation);
             out << "\n";
         }
         else
@@ -529,6 +591,8 @@ int main(int argc, char **argv)
             out << "          \"score\": 0,\n";
             out << "          \"allocation\": []\n";
         }
+
+        add_metrics(out, config.enableMetrics, cacheIt->second.prefs, cacheIt->second.allocation, 10);
 
         out << "        },\n";
 
@@ -548,6 +612,7 @@ int main(int argc, char **argv)
             auto lastStepTime = tryStart;
             {
                 MCTS<int> mcts(runConfig);
+                Preferences<int> pref = mcts.getPreferences();
                 int executedBudget = 0;
 
                 for (std::size_t stepIdx = 0; stepIdx < stepTargets.size(); ++stepIdx)
@@ -600,8 +665,9 @@ int main(int argc, char **argv)
                     out << "                  \"cumulativeTimeUs\": " << cumulativeUs << ",\n";
                     out << "                  \"score\": " << format_json_score(finalBest.second.getScore()) << ",\n";
                     out << "                  \"allocation\": ";
-                    write_int_array(out, finalBest.first.getAllocation());
+                    write_array(out, finalBest.first.getAllocation());
                     out << "\n";
+                    add_metrics(out, config.enableMetrics, pref, finalBest.first.getAllocation(), 18);
                     out << "                }";
                     if (stepIdx + 1 < stepTargets.size())
                     {
@@ -622,7 +688,7 @@ int main(int argc, char **argv)
             out << "              ],\n";
             out << "              \"finalScore\": " << format_json_score(finalBest.second.getScore()) << ",\n";
             out << "              \"finalAllocation\": ";
-            write_int_array(out, finalBest.first.getAllocation());
+            write_array(out, finalBest.first.getAllocation());
             out << ",\n";
             out << "              \"tryDurationUs\": " << tryDurationUs << "\n";
             // out << "              \"tryDuration\": \"" << format_duration_us(tryDurationUs) << "\"\n";

@@ -26,9 +26,9 @@ public:
 
     // Move constructor for efficiency
     Allocation(const int numAgents, std::vector<int> &&alloc, const bool verbose = false) : numObjects(alloc.size()),
-                                                                                             numAgents(numAgents),
-                                                                                             allocation(std::move(alloc)),
-                                                                                             verbose(verbose) {};
+                                                                                            numAgents(numAgents),
+                                                                                            allocation(std::move(alloc)),
+                                                                                            verbose(verbose) {};
 
     /**
      * @brief Get the allocation vector
@@ -36,6 +36,14 @@ public:
      */
     const std::vector<int> &getAllocation() const { return allocation; };
 
+    const int getAgentForObject(int objectIndex) const
+    {
+        if (objectIndex < 0 || objectIndex >= numObjects)
+        {
+            throw std::out_of_range("Object index out of range");
+        }
+        return allocation[objectIndex];
+    }
     /**
      * @brief Set the allocation vector
      * @param newAllocation The new allocation vector to set

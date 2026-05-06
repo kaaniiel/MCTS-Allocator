@@ -23,6 +23,13 @@ Passage de maximisation de produit a un max de somme de Log()
 
 ============================================================================================================
 
-Savoir si une alloc est pareto optimal (comment faire +> dans these au cas ou)
-Corriger le code du solveur au cas ou
-Passer le score en log
+Savoir si une alloc est pareto optimal (comment faire +> dans these au cas ou) => A voir
+Corriger le code du solveur au cas ou =Fait
+Passer le score en log => Fait
+
+============================================================================================================
+
+EF, pareto, etc dans les resultats
+Graphique + idée de graphique
+Reflechir niveau agent pour Pareto-optimal
+Changer le ratio suite a l'execution (a voir)
