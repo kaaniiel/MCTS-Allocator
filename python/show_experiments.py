@@ -1,224 +1,202 @@
-"""Affichage interactif des résultats d'expériences.
-
-Utilise PySimpleGUI + matplotlib pour ouvrir une fenêtre graphique permettant
-de sélectionner dynamiquement les paramètres/mesures à afficher.
-"""
-
 import json
-import glob
 import os
-from pathlib import Path
-import pandas as pd
-import PySimpleGUI as sg
+import time
+import threading
+import customtkinter as ctk
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
+# --- Fonctions utilitaires ---
 
-def find_latest_results(pattern="results/experiments_*.json"):
-	files = glob.glob(pattern)
-	if not files:
-		return None
-	return max(files, key=os.path.getmtime)
+def load_json(path: str) -> dict:
+    with open(path, 'r') as f:
+        data = json.load(f)
+    return data
 
+def list_files_from_path(path: str) -> list:
+    if not os.path.exists(path):
+        return []
+    return [f for f in os.listdir(path) if f.endswith('.json') and os.path.isfile(os.path.join(path, f))]
 
-def load_experiments(path=None):
-	if path is None:
-		path = find_latest_results()
-	if path is None:
-		raise FileNotFoundError("Aucun fichier de résultats trouvé dans results/")
-	with open(path, "r") as f:
-		data = json.load(f)
+# --- Interface Principale ---
 
-	rows = []
-	finals = []
-	for exp in data.get("experiments", []):
-		params = exp.get("parameters", {})
-		mcts = exp.get("results", {}).get("mcts", {})
-		for tr in mcts.get("tries", []):
-			try_index = tr.get("tryIndex")
-			try_duration_us = tr.get("tryDurationUs", tr.get("tryDurationMs"))
-			final = {
-				**params,
-				"tryIndex": try_index,
-				"finalScore": tr.get("finalScore"),
-				"tryDurationUs": try_duration_us,
-				"tryDuration": tr.get("tryDuration"),
-			}
-			finals.append(final)
-			for step in tr.get("steps", []):
-				step_time_us = step.get("stepTimeUs", step.get("stepTimeMs"))
-				cumulative_time_us = step.get("cumulativeTimeUs", step.get("cumulativeTimeMs"))
-				row = {
-					**params,
-					"tryIndex": try_index,
-					"tryDurationUs": try_duration_us,
-					"tryDuration": tr.get("tryDuration"),
-					"stepTimeUs": step_time_us,
-					"cumulativeTimeUs": cumulative_time_us,
-				}
-				row.update(step)
-				rows.append(row)
+class ApplicationFichiers(ctk.CTk):
+    def __init__(self, experiments_path):
+        super().__init__()
+        self.experiments_path = experiments_path
+        
+        self.title("Analyseur d'Expériences MCTS vs Solver")
+        self.geometry("900x700") # Fenêtre plus grande pour les graphes
+        ctk.set_appearance_mode("dark")
+        
+        # --- Conteneur Principal ---
+        # On utilise un système de "pages" (frames) pour passer de la liste aux graphes
+        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_container.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        self.creer_page_selection()
 
-	df_steps = pd.DataFrame(rows)
-	df_finals = pd.DataFrame(finals)
-	return df_steps, df_finals, path
+    def effacer_ecran(self):
+        for widget in self.main_container.winfo_children():
+            widget.destroy()
 
+    # ==========================================
+    # PAGE 1 : SÉLECTION DU FICHIER
+    # ==========================================
+    def creer_page_selection(self):
+        self.effacer_ecran()
+        
+        lbl = ctk.CTkLabel(self.main_container, text="Sélectionnez un fichier JSON à analyser :", font=("Roboto", 18, "bold"))
+        lbl.pack(pady=(0, 20))
+        
+        scroll_frame = ctk.CTkScrollableFrame(self.main_container, width=400, height=300)
+        scroll_frame.pack(pady=10)
+        
+        fichiers = list_files_from_path(self.experiments_path)
+        
+        if not fichiers:
+            ctk.CTkLabel(scroll_frame, text="Aucun fichier .json trouvé dans 'results'.", text_color="gray").pack(pady=20)
+            return
 
-def draw_figure(canvas, figure):
-	if canvas.children:
-		for child in canvas.winfo_children():
-			child.destroy()
-	figure_canvas_agg = FigureCanvasTkAgg(figure, master=canvas)
-	figure_canvas_agg.draw()
-	figure_canvas_agg.get_tk_widget().pack(side="top", fill="both", expand=1)
-	return figure_canvas_agg
+        for fichier in fichiers:
+            btn = ctk.CTkButton(
+                scroll_frame, text=fichier, fg_color="#1f538d", hover_color="#14375e",
+                command=lambda f=fichier: self.lancer_chargement(f)
+            )
+            btn.pack(pady=5, padx=10, fill="x")
 
+    # ==========================================
+    # PAGE 2 : CHARGEMENT (THREADING)
+    # ==========================================
+    def lancer_chargement(self, nom_fichier):
+        self.effacer_ecran()
+        chemin_complet = os.path.join(self.experiments_path, nom_fichier)
+        
+        lbl_titre = ctk.CTkLabel(self.main_container, text=f"Chargement de {nom_fichier}...", font=("Roboto", 16))
+        lbl_titre.pack(pady=(100, 20))
+        
+        # Barre de chargement indéterminée (animation qui fait des allers-retours)
+        self.progress_bar = ctk.CTkProgressBar(self.main_container, mode="indeterminate", width=300)
+        self.progress_bar.pack(pady=10)
+        self.progress_bar.start() # Lance l'animation
+        
+        # On lance l'extraction des données dans un thread séparé pour ne pas figer l'UI
+        thread = threading.Thread(target=self.traiter_donnees, args=(chemin_complet,))
+        thread.start()
 
-def make_window(df_steps, df_finals, results_path):
-	param_keys = [k for k in df_steps.columns if k not in ("currentBudget", "percentBudgetUsed", "score", "allocation", "stepTimeUs", "stepTimeMs", "cumulativeTimeUs", "cumulativeTimeMs", "tryDurationUs", "tryDurationMs", "tryDuration") and k != "tryIndex"]
-	numeric_cols = [c for c in df_steps.select_dtypes(include="number").columns.tolist() if c != "tryIndex"]
-	if "finalScore" in df_finals.columns:
-		numeric_cols.append("finalScore")
-	for metric in ("stepTimeUs", "stepTimeMs", "cumulativeTimeUs", "cumulativeTimeMs", "tryDurationUs", "tryDurationMs"):
-		if metric in df_finals.columns or metric in df_steps.columns:
-			numeric_cols.append(metric)
+    def traiter_donnees(self, chemin):
+        try:
+            # Simulation d'un fichier très lourd (pour voir la barre de chargement)
+            time.sleep(1.5) 
+            
+            donnees_brutes = load_json(chemin)
+            
+            # Extraction des données utiles
+            donnees_extraites = self.extraire_metriques(donnees_brutes)
+            
+            # Une fois fini, on demande à tkinter d'afficher les graphes (doit se faire dans le thread principal)
+            self.after(0, self.creer_page_graphiques, donnees_extraites)
+            
+        except Exception as e:
+            print(f"Erreur lors du traitement : {e}")
+            self.after(0, self.creer_page_selection) # Retour à l'accueil en cas d'erreur
 
-	# Build left column with filters
-	left_col = []
-	for k in param_keys:
-		vals = sorted(df_steps[k].dropna().unique().tolist())
-		left_col.append([sg.Text(k)])
-		left_col.append([sg.Listbox(values=[str(v) for v in vals], select_mode=sg.SELECT_MODE_MULTIPLE, size=(20, 4), key=f"-FILT-{k}-")])
+    def extraire_metriques(self, data: dict) -> dict:
+        """ Extrait les données du JSON pour les préparer pour Matplotlib """
+        extraits = {
+            "ratios": [],
+            "solver_scores": [], "solver_times": [],
+            "mcts_scores": [], "mcts_times": [],
+            "mcts_steps_scores": [] # Pour le suivi d'un essai
+        }
+        
+        for exp in data.get("experiments", []):
+            extraits["ratios"].append(exp["parameters"]["ratioRandom"])
+            
+            # Données Solver
+            solver = exp["results"]["solver"]
+            extraits["solver_scores"].append(solver["score"])
+            extraits["solver_times"].append(solver["timeUs"])
+            
+            # Données MCTS: "tries" est une liste d'essais, on prend le premier essai disponible.
+            tries = exp["results"]["mcts"].get("tries", [])
+            premier_try = tries[0] if tries else None
 
-	left_col += [
-		[sg.Text("Mesures")],
-		[sg.Listbox(values=numeric_cols, select_mode=sg.SELECT_MODE_MULTIPLE, size=(20, 6), key="-METRICS-")],
-		[sg.Text("Grouper par")],
-		[sg.Combo(["none"] + param_keys, default_value="none", key="-GROUP-")],
-		[sg.Text("Type de graphique")],
-		[sg.Combo(["line", "box", "bar"], default_value="line", key="-PLOT-")],
-		[sg.Button("Mettre à jour", key="-UPDATE-")],
-		[sg.Button("Sauvegarder figure", key="-SAVE-")],
-		[sg.Text(f"Fichier: {results_path}", size=(40, 2))]
-	]
+            if premier_try is None:
+                continue
 
-	# Right column for plot
-	plot_col = [[sg.Canvas(key="-CANVAS-", size=(640, 480))]]
+            extraits["mcts_scores"].append(premier_try.get("finalScore", 0))
+            extraits["mcts_times"].append(premier_try.get("tryDurationUs", 0))
 
-	layout = [[sg.Column(left_col), sg.VSeperator(), sg.Column(plot_col)]]
+            # Évolution du score pendant les étapes du MCTS
+            scores_etapes = [step.get("score", 0) for step in premier_try.get("steps", [])]
+            extraits["mcts_steps_scores"].append(scores_etapes)
+            
+        return extraits
 
-	window = sg.Window("Visualiseur d'expériences", layout, finalize=True, resizable=True)
-	return window
+    # ==========================================
+    # PAGE 3 : AFFICHAGE DES GRAPHIQUES
+    # ==========================================
+    def creer_page_graphiques(self, donnees):
+        self.effacer_ecran()
+        
+        # Bouton retour
+        btn_retour = ctk.CTkButton(self.main_container, text="← Retour", width=100, fg_color="#b22222", hover_color="#8b0000", command=self.creer_page_selection)
+        btn_retour.pack(anchor="w", pady=(0, 10))
+        
+        # Conteneur pour les graphes matplotlib
+        graph_frame = ctk.CTkFrame(self.main_container)
+        graph_frame.pack(fill="both", expand=True)
 
+        # Création de la figure Matplotlib (Fond sombre pour s'adapter à CustomTkinter)
+        plt.style.use('dark_background')
+        fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+        ax1, ax2, ax3 = axes
+        fig.patch.set_facecolor('#2b2b2b') # Couleur de fond CustomTkinter
+        
+        # --- Graphique 1 : Score en fonction du Temps (Scatter Plot) ---
+        ax1.set_facecolor('#2b2b2b')
+        ax1.scatter(donnees["mcts_times"], donnees["mcts_scores"], color='red', marker='x', label='MCTS')
+        ax1.scatter(donnees["solver_times"], donnees["solver_scores"], color='#3498db', marker='X', s=100, label='Solver')
+        ax1.set_title("Score vs Temps (µs)")
+        ax1.set_xlabel("Temps (µs)")
+        ax1.set_ylabel("Score")
+        ax1.legend()
 
-def update_plot(window, df_steps, df_finals):
-	# Gather filters
-	df = df_steps.copy()
-	param_keys = [k for k in df.columns if k not in ("currentBudget", "percentBudgetUsed", "score", "allocation", "stepTimeUs", "stepTimeMs", "cumulativeTimeUs", "cumulativeTimeMs", "tryDurationUs", "tryDurationMs", "tryDuration") and k != "tryIndex"]
-	for k in param_keys:
-		sel = window[f"-FILT-{k}-"].get()
-		if sel:
-			# values stored as strings in listbox
-			# try to cast back to numeric if original dtype numeric
-			try:
-				dtype = df[k].dtype
-				if pd.api.types.is_numeric_dtype(dtype):
-					sel_cast = [float(s) for s in sel]
-				else:
-					sel_cast = sel
-			except Exception:
-				sel_cast = sel
-			df = df[df[k].isin(sel_cast)]
+        # --- Graphique 2 : Score vs Ratio (Bar Chart) ---
+        ax2.set_facecolor('#2b2b2b')
+        ax2.bar([str(r) for r in donnees["ratios"]], donnees["mcts_scores"], color='red', alpha=0.7, label='MCTS')
+        # Ligne horizontale pour le solver (on prend la moyenne des scores du solver pour la ligne)
+        moyenne_solver = sum(donnees["solver_scores"]) / len(donnees["solver_scores"]) if donnees["solver_scores"] else 0
+        ax2.axhline(y=moyenne_solver, color='#3498db', linestyle='-', label='Solver (Réf)')
+        ax2.set_title("Score final par Ratio")
+        ax2.set_xlabel("Ratio Random")
+        ax2.set_ylabel("Score")
+        ax2.legend()
 
-	metrics = window["-METRICS-"].get()
-	if not metrics:
-		metrics = ["score"] if "score" in df.columns else df.select_dtypes(include="number").columns.tolist()
-	group_by = window["-GROUP-"].get()
-	plot_type = window["-PLOT-"].get()
+        # --- Graphique 3 : Évolution du MCTS (Ligne) ---
+        ax3.set_facecolor('#2b2b2b')
+        if donnees["mcts_steps_scores"]:
+            scores_etapes = donnees["mcts_steps_scores"][0]
+            etapes = range(len(scores_etapes))
+            ax3.plot(etapes, scores_etapes, color='orange', marker='o')
+            ax3.set_title("Évolution du score MCTS (Exp 1)")
+            ax3.set_xlabel("Étapes")
+            ax3.set_ylabel("Score")
+        else:
+            ax3.text(0.5, 0.5, "Pas de données d'étapes", ha='center', va='center')
 
-	fig, ax = plt.subplots(figsize=(6.4, 4.8))
+        plt.tight_layout()
 
-	if plot_type == "line":
-		x_col = "percentBudgetUsed" if "percentBudgetUsed" in df.columns else "currentBudget"
-		for metric in metrics:
-			if group_by and group_by != "none":
-				for name, group in df.groupby(group_by):
-					pivot = group.groupby(x_col)[metric].mean()
-					ax.plot(pivot.index, pivot.values, label=f"{metric} / {group_by}={name}")
-			else:
-				pivot = df.groupby(x_col)[metrics[0]].mean()
-				ax.plot(pivot.index, pivot.values, label=metrics[0])
-		ax.set_xlabel(x_col)
-		ax.set_ylabel(", ".join(metrics))
-		ax.legend()
-
-	elif plot_type == "box":
-		x_col = group_by if group_by and group_by != "none" else "tryIndex"
-		data = []
-		labels = []
-		for name, group in df.groupby(x_col):
-			data.append(group[metrics[0]].dropna().values)
-			labels.append(str(name))
-		ax.boxplot(data, labels=labels)
-		ax.set_ylabel(metrics[0])
-
-	elif plot_type == "bar":
-		if group_by and group_by != "none":
-			mean = df.groupby(group_by)[metrics[0]].mean()
-			ax.bar(mean.index.astype(str), mean.values)
-			ax.set_ylabel(metrics[0])
-		else:
-			mean = df[metrics[0]].mean()
-			ax.bar([metrics[0]], [mean])
-			ax.set_ylabel(metrics[0])
-
-	fig.tight_layout()
-
-	canvas_elem = window["-CANVAS-"]
-	canvas = canvas_elem.TKCanvas
-	draw_figure(canvas, fig)
-	plt.close(fig)
-
-
-def main(path=None):
-	try:
-		df_steps, df_finals, results_path = load_experiments(path)
-	except Exception as e:
-		sg.popup_error("Erreur lors du chargement des résultats:", str(e))
-		return
-
-	window = make_window(df_steps, df_finals, results_path)
-
-	# Initial plot
-	update_plot(window, df_steps, df_finals)
-
-	while True:
-		event, values = window.read()
-		if event in (sg.WIN_CLOSED, "Exit"):
-			break
-		if event == "-UPDATE-":
-			update_plot(window, df_steps, df_finals)
-		if event == "-SAVE-":
-			save_path = sg.popup_get_file("Enregistrer l'image", save_as=True, file_types=(("PNG Files", "*.png"),))
-			if save_path:
-				# regenerate figure and save
-				# simple approach: re-create and save using same plotting routine
-				fig, ax = plt.subplots(figsize=(6.4, 4.8))
-				# reuse update_plot logic lightly: plot mean score vs percentBudgetUsed
-				x_col = "percentBudgetUsed" if "percentBudgetUsed" in df_steps.columns else "currentBudget"
-				metric = values.get("-METRICS-")
-				metric = metric[0] if metric else ("score" if "score" in df_steps.columns else df_steps.select_dtypes(include="number").columns[0])
-				pivot = df_steps.groupby(x_col)[metric].mean()
-				ax.plot(pivot.index, pivot.values)
-				fig.tight_layout()
-				fig.savefig(save_path)
-				sg.popup("Figure sauvegardée:", save_path)
-
-	window.close()
-
+        # Intégration de la figure Matplotlib dans CustomTkinter
+        canvas = FigureCanvasTkAgg(fig, master=graph_frame)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True)
 
 if __name__ == "__main__":
-	import sys
-	path = sys.argv[1] if len(sys.argv) > 1 else None
-	main(path)
-
+    dossier_cible = "results"
+    if not os.path.exists(dossier_cible):
+        os.makedirs(dossier_cible)
+        
+    app = ApplicationFichiers(dossier_cible)
+    app.mainloop()
