@@ -44,7 +44,8 @@ public:
             }
         }
 
-        // Sum the logarithms of agent utilities to optimize the product in log-space.
+        // Keep scoring consistent with the solver objective: sum(log(eps + u_i)).
+        const double eps = 1e-6;
         double totalUtility = 0.0;
         for (int agent = 0; agent < numAgents; ++agent)
         {
@@ -52,7 +53,7 @@ public:
             {
                 std::cout << "Agent " << agent << " utility: " << agentUtilities[agent] << std::endl;
             }
-            totalUtility += std::log(agentUtilities[agent]);
+            totalUtility += std::log(agentUtilities[agent] + eps);
         }
         return totalUtility;
     }

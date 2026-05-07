@@ -553,6 +553,7 @@ int main(int argc, char **argv)
             try
             {
                 Solver<int> solver(runConfig);
+                computedResult.prefs = solver.getPreferences();
                 const auto solverStart = std::chrono::steady_clock::now();
                 std::pair<Allocation, Score> solverResult = solver.solve(config.verbose);
                 const auto solverEnd = std::chrono::steady_clock::now();
@@ -560,7 +561,6 @@ int main(int argc, char **argv)
                 computedResult.score = solverResult.second.getScore();
                 computedResult.allocation = solverResult.first.getAllocation();
                 computedResult.timeUs = std::chrono::duration_cast<std::chrono::microseconds>(solverEnd - solverStart).count();
-                computedResult.prefs = solver.getPreferences();
             }
             catch (const std::exception &)
             {
