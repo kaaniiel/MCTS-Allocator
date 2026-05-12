@@ -28,6 +28,7 @@ struct Config
     int numAgentsMax = 3;
     int numObjectsMin = 4;
     int numObjectsMax = 4;
+    double budgetMultiplier = 1.0;
     int seedMin = 42;
     int seedMax = 42;
     double ratioRandomMin = 1.0;
@@ -66,6 +67,7 @@ struct Config
                                       {"ratio_random_step", default_config.ratioRandomStep},
                                       {"number_of_trys", default_config.numberOfTrys},
                                       {"numberOfBudgetStep", default_config.numberOfBudgetStep},
+                                      {"budget_multiplier", default_config.budgetMultiplier},
                                       {"verbose", default_config.verbose},
                                       {"enable_metrics", default_config.enableMetrics},
                                       {"output_directory", default_config.outputDirectory},
@@ -121,6 +123,7 @@ struct Config
             config.ratioRandomStep = tbl["experiments"]["ratio_random_step"].value_or(config.ratioRandomStep);
             config.numberOfTrys = tbl["experiments"]["number_of_trys"].value_or(config.numberOfTrys);
             config.numberOfBudgetStep = tbl["experiments"]["numberOfBudgetStep"].value_or(config.numberOfBudgetStep);
+            config.budgetMultiplier = tbl["experiments"]["budget_multiplier"].value_or(config.budgetMultiplier);
             config.enableMetrics = tbl["experiments"]["enable_metrics"].value_or(config.enableMetrics);
             config.outputDirectory = tbl["experiments"]["output_directory"].value_or(config.outputDirectory);
 

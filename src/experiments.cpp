@@ -169,7 +169,6 @@ namespace
             push_error("experiments.num_objects_max must be > 0.");
         if (config.numObjectsMin > config.numObjectsMax)
             push_error("experiments.num_objects_min must be <= experiments.num_objects_max.");
-        int budget = config.numObjectsMax * config.numAgentsMax;
 
         if (config.seedMin > config.seedMax)
             push_error("experiments.seed_min must be <= experiments.seed_max.");
@@ -193,17 +192,12 @@ namespace
         if (!is_near_integer(config.numberOfBudgetStep))
             push_error("experiments.numberOfBudgetStep must be an integer value (0, 1, 2, ...).");
 
-        if (config.numberOfBudgetStep > 0.0)
-        {
-            const int numberOfSteps = static_cast<int>(std::round(config.numberOfBudgetStep));
-            const int minDynamicBudget = config.numAgentsMin * config.numObjectsMin;
-            if (numberOfSteps > minDynamicBudget)
-                push_error("experiments.numberOfBudgetStep cannot be greater than the dynamic budget (numAgents * numObjects) of any experiment.");
-        }
-
         if (config.outputDirectory.empty())
             push_error("experiments.output_directory cannot be empty.");
 
+        if (config.budgetMultiplier <= 0.0)
+            push_error("experiments.budget_multiplier must be > 0.");
+            
         return errors;
     }
 
@@ -240,17 +234,23 @@ namespace
             return {budget};
         }
 
+        if (budget <= 0)
+        {
+            return std::vector<int>(static_cast<std::size_t>(numberOfSteps), 0);
+        }
+
         std::vector<int> targets;
         targets.reserve(static_cast<std::size_t>(numberOfSteps));
 
-        int previous = 0;
+        const int baseIncrement = budget / numberOfSteps;
+        const int remainder = budget % numberOfSteps;
+
+        int cumulative = 0;
         for (int step = 1; step <= numberOfSteps; ++step)
         {
-            int target = static_cast<int>(std::llround((static_cast<double>(step) * static_cast<double>(budget)) / static_cast<double>(numberOfSteps)));
-            target = std::max(target, previous + 1);
-            target = std::min(target, budget);
-            targets.push_back(target);
-            previous = target;
+            const int increment = baseIncrement + (step <= remainder ? 1 : 0);
+            cumulative = std::min(budget, cumulative + increment);
+            targets.push_back(cumulative);
         }
 
         if (!targets.empty())
@@ -481,21 +481,31 @@ int main(int argc, char **argv)
     solverCache.reserve(solverWorkUnits);
 
     std::filesystem::create_directories(config.outputDirectory);
-    const std::filesystem::path outputPath = std::filesystem::path(config.outputDirectory) / build_output_filename();
-
-    std::ofstream out(outputPath);
-    if (!out.is_open())
-    {
-        std::cerr << "[Results] Error: unable to create output file at " << outputPath.string() << "\n";
-        return EXIT_FAILURE;
-    }
-
-    out << "{\n";
-    out << "  \"experiments\": [\n";
+    const std::string runBasename = std::filesystem::path(build_output_filename()).stem().string();
+    const std::filesystem::path runDir = std::filesystem::path(config.outputDirectory) / runBasename;
+    std::filesystem::create_directories(runDir);
 
     for (std::size_t expIndex = 0; expIndex < experimentGrid.size(); ++expIndex)
     {
         const ExperimentParams &params = experimentGrid[expIndex];
+
+        // Build per-experiment output file inside the run directory
+        std::ostringstream fnameStream;
+        fnameStream << "experiment_" << (expIndex + 1)
+                    << "_a" << params.numAgents
+                    << "_o" << params.numObjects
+                    << "_s" << params.seed
+                    << ".json";
+        const std::filesystem::path expPath = runDir / fnameStream.str();
+
+        std::ofstream out(expPath);
+        if (!out.is_open())
+        {
+            std::cerr << "[Results] Error: unable to create output file at " << expPath.string() << "\n";
+            continue;
+        }
+
+        out << "{\n";
 
         Config runConfig = config;
         runConfig.numAgents = params.numAgents;
@@ -506,7 +516,6 @@ int main(int argc, char **argv)
 
         const std::vector<int> stepTargets = build_step_targets(params.budget, numberOfSteps);
 
-        out << "    {\n";
         out << "      \"parameters\": {\n";
         out << "        \"numAgents\": " << params.numAgents << ",\n";
         out << "        \"numObjects\": " << params.numObjects << ",\n";
@@ -651,7 +660,7 @@ int main(int argc, char **argv)
                     }
 
                     finalBest = mcts.getRoot().getBestAllocation();
-                    const double percentBudgetUsed = static_cast<double>(targetBudget) / static_cast<double>(params.budget);
+                    const int remainingBudget = std::max(0, params.budget - targetBudget);
 
                     const auto stepNow = std::chrono::steady_clock::now();
                     const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - lastStepTime).count();
@@ -660,7 +669,7 @@ int main(int argc, char **argv)
 
                     out << "                {\n";
                     out << "                  \"currentBudget\": " << targetBudget << ",\n";
-                    // out << "                  \"percentBudgetUsed\": " << format_double(percentBudgetUsed) << ",\n";
+                    out << "                  \"remainingBudget\": " << remainingBudget << ",\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
                     out << "                  \"cumulativeTimeUs\": " << cumulativeUs << ",\n";
                     out << "                  \"score\": " << format_json_score(finalBest.second.getScore()) << ",\n";
@@ -703,18 +712,11 @@ int main(int argc, char **argv)
         out << "          ]\n";
         out << "        }\n";
         out << "      }\n";
-        out << "    }";
-        if (expIndex + 1 < experimentGrid.size())
-        {
-            out << ",";
-        }
-        out << "\n";
+        out << "}\n";
+        out.close();
     }
 
-    out << "  ]\n";
-    out << "}\n";
-
-    out.close();
+    (void)0; // all outputs written per-experiment in run directory
 
     progressBar.set_option(indicators::option::PostfixText{"Running experiments..."});
 
@@ -722,7 +724,7 @@ int main(int argc, char **argv)
     const auto totalDuration = std::chrono::duration_cast<std::chrono::milliseconds>(programEnd - programStart);
 
     std::cout << "[Experiments] Completed " << experimentGrid.size() << " experiment parameter set(s).\n";
-    std::cout << "[Experiments] Results written to " << outputPath.string() << "\n";
+    std::cout << "[Experiments] Results written to " << runDir.string() << "\n";
     std::cout << "[Experiments] Total runtime: " << format_duration_us(std::chrono::duration_cast<std::chrono::microseconds>(totalDuration).count()) << "\n";
 
     return EXIT_SUCCESS;
