@@ -6,6 +6,7 @@
 #include <fstream>
 #include <filesystem>
 #include <stdexcept>
+#include <vector>
 
 #include "toml.hpp"
 
@@ -26,14 +27,17 @@ struct Config
     // Default values for experiments
     int numAgentsMin = 3;
     int numAgentsMax = 3;
+    std::vector<int> stepAgents = {1};
     int numObjectsMin = 4;
     int numObjectsMax = 4;
+    std::vector<int> stepObjects = {1};
     double budgetMultiplier = 1.0;
     int seedMin = 42;
     int seedMax = 42;
+    std::vector<int> stepSeeds = {1};
     double ratioRandomMin = 1.0;
     double ratioRandomMax = 1.0;
-    int ratioRandomStep = 1;
+    double ratioRandomStep = 1.0;
     int numberOfTrys = 1;
     double numberOfBudgetStep = 0;
     bool enableMetrics = false;
@@ -55,23 +59,46 @@ struct Config
                                {"save_results", default_config.saveResults},
                                {"use_solver", default_config.useSolver},
                            });
-        tbl.insert("experiments", toml::table{
-                                      {"num_agents_min", default_config.numAgentsMin},
-                                      {"num_agents_max", default_config.numAgentsMax},
-                                      {"num_objects_min", default_config.numObjectsMin},
-                                      {"num_objects_max", default_config.numObjectsMax},
-                                      {"seed_min", default_config.seedMin},
-                                      {"seed_max", default_config.seedMax},
-                                      {"ratio_random_min", default_config.ratioRandomMin},
-                                      {"ratio_random_max", default_config.ratioRandomMax},
-                                      {"ratio_random_step", default_config.ratioRandomStep},
-                                      {"number_of_trys", default_config.numberOfTrys},
-                                      {"numberOfBudgetStep", default_config.numberOfBudgetStep},
-                                      {"budget_multiplier", default_config.budgetMultiplier},
-                                      {"verbose", default_config.verbose},
-                                      {"enable_metrics", default_config.enableMetrics},
-                                      {"output_directory", default_config.outputDirectory},
-                                  });
+        {
+            toml::table experiments_tbl;
+            experiments_tbl.insert("num_agents_min", default_config.numAgentsMin);
+            experiments_tbl.insert("num_agents_max", default_config.numAgentsMax);
+            // convert stepAgents to toml::array
+            {
+                toml::array arr;
+                for (int v : default_config.stepAgents)
+                    arr.push_back(v);
+                experiments_tbl.insert("step_agents", std::move(arr));
+            }
+            experiments_tbl.insert("num_objects_min", default_config.numObjectsMin);
+            experiments_tbl.insert("num_objects_max", default_config.numObjectsMax);
+            // convert stepObjects to toml::array
+            {
+                toml::array arr;
+                for (int v : default_config.stepObjects)
+                    arr.push_back(v);
+                experiments_tbl.insert("step_objects", std::move(arr));
+            }
+            experiments_tbl.insert("seed_min", default_config.seedMin);
+            experiments_tbl.insert("seed_max", default_config.seedMax);
+            // convert stepSeeds to toml::array
+            {
+                toml::array arr;
+                for (int v : default_config.stepSeeds)
+                    arr.push_back(v);
+                experiments_tbl.insert("step_seeds", std::move(arr));
+            }
+            experiments_tbl.insert("ratio_random_min", default_config.ratioRandomMin);
+            experiments_tbl.insert("ratio_random_max", default_config.ratioRandomMax);
+            experiments_tbl.insert("ratio_random_step", default_config.ratioRandomStep);
+            experiments_tbl.insert("number_of_trys", default_config.numberOfTrys);
+            experiments_tbl.insert("number_of_budget_step", default_config.numberOfBudgetStep);
+            experiments_tbl.insert("budget_multiplier", default_config.budgetMultiplier);
+            experiments_tbl.insert("verbose", default_config.verbose);
+            experiments_tbl.insert("enable_metrics", default_config.enableMetrics);
+            experiments_tbl.insert("output_directory", default_config.outputDirectory);
+            tbl.insert("experiments", std::move(experiments_tbl));
+        }
 
         std::ofstream file(filepath);
         if (file.is_open())
@@ -101,28 +128,58 @@ struct Config
             toml::table tbl = toml::parse_file(filepath);
 
             config.launch = tbl["mcts"]["launch"].value_or(config.launch);
-            config.numAgents = tbl["mcts"]["num_agents"].value_or(config.numAgents);
-            config.numObjects = tbl["mcts"]["num_objects"].value_or(config.numObjects);
-            config.iterations = tbl["mcts"]["iterations"].value_or(config.iterations);
+            config.numAgents = static_cast<int>(tbl["mcts"]["num_agents"].value_or(static_cast<int64_t>(config.numAgents)));
+            config.numObjects = static_cast<int>(tbl["mcts"]["num_objects"].value_or(static_cast<int64_t>(config.numObjects)));
+            config.iterations = static_cast<int>(tbl["mcts"]["iterations"].value_or(static_cast<int64_t>(config.iterations)));
             config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration);
-            config.seed = tbl["mcts"]["seed"].value_or(config.seed);
+            config.seed = static_cast<int>(tbl["mcts"]["seed"].value_or(static_cast<int64_t>(config.seed)));
             config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose);
             config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom);
             config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults);
             config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver);
 
             // Experiments parameters
-            config.numAgentsMin = tbl["experiments"]["num_agents_min"].value_or(config.numAgentsMin);
-            config.numAgentsMax = tbl["experiments"]["num_agents_max"].value_or(config.numAgentsMax);
-            config.numObjectsMin = tbl["experiments"]["num_objects_min"].value_or(config.numObjectsMin);
-            config.numObjectsMax = tbl["experiments"]["num_objects_max"].value_or(config.numObjectsMax);
-            config.seedMin = tbl["experiments"]["seed_min"].value_or(config.seedMin);
-            config.seedMax = tbl["experiments"]["seed_max"].value_or(config.seedMax);
+            config.numAgentsMin = static_cast<int>(tbl["experiments"]["num_agents_min"].value_or(static_cast<int64_t>(config.numAgentsMin)));
+            config.numAgentsMax = static_cast<int>(tbl["experiments"]["num_agents_max"].value_or(static_cast<int64_t>(config.numAgentsMax)));
+
+            if (auto arr = tbl["experiments"]["step_agents"].as_array())
+            {
+                config.stepAgents.clear();
+                for (const auto &elem : *arr)
+                {
+                    config.stepAgents.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+                }
+            }
+
+            config.numObjectsMin = static_cast<int>(tbl["experiments"]["num_objects_min"].value_or(static_cast<int64_t>(config.numObjectsMin)));
+            config.numObjectsMax = static_cast<int>(tbl["experiments"]["num_objects_max"].value_or(static_cast<int64_t>(config.numObjectsMax)));
+
+            if (auto arr = tbl["experiments"]["step_objects"].as_array())
+            {
+                config.stepObjects.clear();
+                for (const auto &elem : *arr)
+                {
+                    config.stepObjects.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+                }
+            }
+
+            config.seedMin = static_cast<int>(tbl["experiments"]["seed_min"].value_or(static_cast<int64_t>(config.seedMin)));
+            config.seedMax = static_cast<int>(tbl["experiments"]["seed_max"].value_or(static_cast<int64_t>(config.seedMax)));
+
+            if (auto arr = tbl["experiments"]["step_seeds"].as_array())
+            {
+                config.stepSeeds.clear();
+                for (const auto &elem : *arr)
+                {
+                    config.stepSeeds.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+                }
+            }
+
             config.ratioRandomMin = tbl["experiments"]["ratio_random_min"].value_or(config.ratioRandomMin);
             config.ratioRandomMax = tbl["experiments"]["ratio_random_max"].value_or(config.ratioRandomMax);
             config.ratioRandomStep = tbl["experiments"]["ratio_random_step"].value_or(config.ratioRandomStep);
-            config.numberOfTrys = tbl["experiments"]["number_of_trys"].value_or(config.numberOfTrys);
-            config.numberOfBudgetStep = tbl["experiments"]["numberOfBudgetStep"].value_or(config.numberOfBudgetStep);
+            config.numberOfTrys = static_cast<int>(tbl["experiments"]["number_of_trys"].value_or(static_cast<int64_t>(config.numberOfTrys)));
+            config.numberOfBudgetStep = tbl["experiments"]["number_of_budget_step"].value_or(config.numberOfBudgetStep);
             config.budgetMultiplier = tbl["experiments"]["budget_multiplier"].value_or(config.budgetMultiplier);
             config.enableMetrics = tbl["experiments"]["enable_metrics"].value_or(config.enableMetrics);
             config.outputDirectory = tbl["experiments"]["output_directory"].value_or(config.outputDirectory);

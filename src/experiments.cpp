@@ -147,6 +147,65 @@ namespace
         return values;
     }
 
+    // Build a list of integer values between minValue and maxValue using a step sequence.
+    // If `steps` has one element, it's treated as a fixed increment (classic for-loop behaviour).
+    // If `steps` has multiple elements, they are applied sequentially (and repeated cyclically)
+    // until surpassing maxValue.
+    std::vector<int> build_values_with_steps(int minValue, int maxValue, const std::vector<int> &steps)
+    {
+        std::vector<int> values;
+        if (minValue > maxValue)
+            return values;
+
+        if (minValue == maxValue)
+        {
+            values.push_back(minValue);
+            return values;
+        }
+
+        if (steps.empty())
+        {
+            // default to step of 1
+            for (int v = minValue; v <= maxValue; ++v)
+                values.push_back(v);
+            return values;
+        }
+
+        // Validate positive steps
+        for (int s : steps)
+        {
+            if (s <= 0)
+                throw std::runtime_error("Step values must be positive integers.");
+        }
+
+        if (steps.size() == 1)
+        {
+            int step = steps[0];
+            for (int v = minValue; v <= maxValue; v += step)
+                values.push_back(v);
+            // ensure last element equals maxValue
+            if (values.empty() || values.back() != maxValue)
+                values.push_back(maxValue);
+            return values;
+        }
+
+        // Multiple-step sequence: apply cyclically
+        int cur = minValue;
+        values.push_back(cur);
+        std::size_t idx = 0;
+        while (true)
+        {
+            cur += steps[idx];
+            if (cur > maxValue)
+                break;
+            values.push_back(cur);
+            idx = (idx + 1) % steps.size();
+        }
+        if (values.empty() || values.back() != maxValue)
+            values.push_back(maxValue);
+        return values;
+    }
+
     std::vector<std::string> validate_experiment_config(const Config &config)
     {
         std::vector<std::string> errors;
@@ -206,14 +265,18 @@ namespace
         const std::vector<double> ratioValues = build_ratio_values(config.ratioRandomMin, config.ratioRandomMax, config.ratioRandomStep);
         std::vector<ExperimentParams> experiments;
 
-        for (int numAgents = config.numAgentsMin; numAgents <= config.numAgentsMax; ++numAgents)
+        const std::vector<int> agentValues = build_values_with_steps(config.numAgentsMin, config.numAgentsMax, config.stepAgents);
+        const std::vector<int> objectValues = build_values_with_steps(config.numObjectsMin, config.numObjectsMax, config.stepObjects);
+        const std::vector<int> seedValues = build_values_with_steps(config.seedMin, config.seedMax, config.stepSeeds);
+
+        for (int numAgents : agentValues)
         {
-            for (int numObjects = config.numObjectsMin; numObjects <= config.numObjectsMax; ++numObjects)
+            for (int numObjects : objectValues)
             {
                 // Skip configurations where there are fewer objects than agents.
                 if (numObjects < numAgents)
                     continue;
-                for (int seed = config.seedMin; seed <= config.seedMax; ++seed)
+                for (int seed : seedValues)
                 {
                     for (double ratioRandom : ratioValues)
                     {
