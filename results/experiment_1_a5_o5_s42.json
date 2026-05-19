@@ -1,0 +1,3915 @@
+{
+  "parameters": {
+    "numAgents": 5,
+    "numObjects": 5,
+    "seed": 42,
+    "ratioRandom": 0,
+    "budget": 25
+  },
+  "preferences": [
+    [
+      3,
+      5,
+      7,
+      6,
+      4
+    ],
+    [
+      6,
+      7,
+      4,
+      2,
+      6
+    ],
+    [
+      11,
+      1,
+      4,
+      4,
+      5
+    ],
+    [
+      4,
+      8,
+      2,
+      5,
+      6
+    ],
+    [
+      5,
+      5,
+      2,
+      5,
+      8
+    ]
+  ],
+  "results": {
+    "solver": {
+      "name": "Gurobi",
+      "status": "ok",
+      "score": 9.97859572665,
+      "timeUs": 19067,
+      "allocation": [
+        2,
+        1,
+        0,
+        3,
+        4
+      ]
+    },
+    "mcts": {
+      "tries": [
+        {
+          "tryIndex": 1,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 20,
+              "cumulativeTimeUs": 20,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 23,
+              "cumulativeTimeUs": 44,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 21,
+              "cumulativeTimeUs": 66,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 83,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 100,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 116,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 132,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 148,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 19,
+              "cumulativeTimeUs": 168,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 23,
+              "cumulativeTimeUs": 191,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 215
+        },
+        {
+          "tryIndex": 2,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 9,
+              "cumulativeTimeUs": 9,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 136,
+              "cumulativeTimeUs": 146,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 26,
+              "cumulativeTimeUs": 173,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 25,
+              "cumulativeTimeUs": 198,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 223,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 248,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 272,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 296,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 23,
+              "cumulativeTimeUs": 320,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 31,
+              "cumulativeTimeUs": 352,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 377
+        },
+        {
+          "tryIndex": 3,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 9,
+              "cumulativeTimeUs": 9,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 26,
+              "cumulativeTimeUs": 36,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 60,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 85,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 25,
+              "cumulativeTimeUs": 110,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 153,
+              "cumulativeTimeUs": 264,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 26,
+              "cumulativeTimeUs": 291,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 315,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 23,
+              "cumulativeTimeUs": 339,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 23,
+              "cumulativeTimeUs": 363,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 387
+        },
+        {
+          "tryIndex": 4,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 19,
+              "cumulativeTimeUs": 19,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 27,
+              "cumulativeTimeUs": 46,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 71,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 25,
+              "cumulativeTimeUs": 97,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 25,
+              "cumulativeTimeUs": 122,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 138,
+              "cumulativeTimeUs": 261,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 25,
+              "cumulativeTimeUs": 287,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 311,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 335,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 22,
+              "cumulativeTimeUs": 358,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 387
+        },
+        {
+          "tryIndex": 5,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 23,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 39,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 55,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 72,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 88,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 104,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 119,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 135,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 150,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 181
+        },
+        {
+          "tryIndex": 6,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 23,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 1231,
+              "cumulativeTimeUs": 1255,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 1272,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 1289,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 1305,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 1321,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 1337,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 1353,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 1368,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1384
+        },
+        {
+          "tryIndex": 7,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 22,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 24,
+              "cumulativeTimeUs": 47,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 64,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 80,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 97,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 113,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 128,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 144,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 37,
+              "cumulativeTimeUs": 182,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 198
+        },
+        {
+          "tryIndex": 8,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 23,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 39,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 56,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 73,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 90,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 107,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 123,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 139,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 1380,
+              "cumulativeTimeUs": 1520,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1543
+        },
+        {
+          "tryIndex": 9,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 6,
+              "cumulativeTimeUs": 6,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 18,
+              "cumulativeTimeUs": 24,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 41,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 57,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 73,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 89,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 105,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 121,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 137,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 23,
+              "cumulativeTimeUs": 160,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 176
+        },
+        {
+          "tryIndex": 10,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 16,
+              "cumulativeTimeUs": 22,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 54,
+              "cumulativeTimeUs": 76,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 19,
+              "cumulativeTimeUs": 96,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 109,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 120,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 132,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 144,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 155,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 167,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 179
+        },
+        {
+          "tryIndex": 11,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 6,
+              "cumulativeTimeUs": 6,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 13,
+              "cumulativeTimeUs": 19,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 31,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 43,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 55,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 1382,
+              "cumulativeTimeUs": 1437,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1449,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1460,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1471,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1482,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1493
+        },
+        {
+          "tryIndex": 12,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 21,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 32,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 43,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 54,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 66,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 77,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 88,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 99,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 109,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 120
+        },
+        {
+          "tryIndex": 13,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 27,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 39,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 50,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 61,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 72,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 84,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 95,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 105,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 116
+        },
+        {
+          "tryIndex": 14,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 1194,
+              "cumulativeTimeUs": 1211,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1223,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1234,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1245,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1256,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1267,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1278,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1289,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1300
+        },
+        {
+          "tryIndex": 15,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 27,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 39,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 50,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 61,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 72,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 84,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 96,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 107,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 118
+        },
+        {
+          "tryIndex": 16,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 27,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 38,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 50,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 61,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 72,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 83,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 94,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 1113,
+              "cumulativeTimeUs": 1207,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1219
+        },
+        {
+          "tryIndex": 17,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 17,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 29,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 40,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 52,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 63,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 74,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 85,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 95,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 107,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 117
+        },
+        {
+          "tryIndex": 18,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 22,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 34,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 45,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 56,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 68,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 79,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 90,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 101,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 111,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 122
+        },
+        {
+          "tryIndex": 19,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 28,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 39,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 51,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 1408,
+              "cumulativeTimeUs": 1459,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 14,
+              "cumulativeTimeUs": 1473,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 14,
+              "cumulativeTimeUs": 1487,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 1500,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1511,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1525
+        },
+        {
+          "tryIndex": 20,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 6,
+              "cumulativeTimeUs": 6,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 14,
+              "cumulativeTimeUs": 21,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 13,
+              "cumulativeTimeUs": 34,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 15,
+              "cumulativeTimeUs": 50,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 61,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 72,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 83,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 94,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 105,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 116,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 126
+        },
+        {
+          "tryIndex": 21,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 5,
+              "cumulativeTimeUs": 5,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 17,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 29,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 41,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 53,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 64,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 77,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 88,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 99,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 110,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 120
+        },
+        {
+          "tryIndex": 22,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 994,
+              "cumulativeTimeUs": 999,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1010,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 1023,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 1034,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1045,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1056,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1066,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1077,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1088,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1098
+        },
+        {
+          "tryIndex": 23,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 17,
+              "cumulativeTimeUs": 21,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 32,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 42,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 53,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 64,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 75,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 86,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 96,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 107,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 117
+        },
+        {
+          "tryIndex": 24,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 27,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 38,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 49,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 60,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 71,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 81,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 1227,
+              "cumulativeTimeUs": 1309,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 1320,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 1331
+        },
+        {
+          "tryIndex": 25,
+          "steps": [
+            {
+              "currentBudget": 3,
+              "remainingBudget": 22,
+              "stepTimeUs": 4,
+              "cumulativeTimeUs": 4,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 6,
+              "remainingBudget": 19,
+              "stepTimeUs": 12,
+              "cumulativeTimeUs": 16,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 9,
+              "remainingBudget": 16,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 27,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 12,
+              "remainingBudget": 13,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 38,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 15,
+              "remainingBudget": 10,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 49,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 17,
+              "remainingBudget": 8,
+              "stepTimeUs": 11,
+              "cumulativeTimeUs": 61,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 19,
+              "remainingBudget": 6,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 71,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 21,
+              "remainingBudget": 4,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 82,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 23,
+              "remainingBudget": 2,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 93,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            },
+            {
+              "currentBudget": 25,
+              "remainingBudget": 0,
+              "stepTimeUs": 10,
+              "cumulativeTimeUs": 103,
+              "score": -4.69378242651,
+              "allocation": [
+                2,
+                3,
+                0,
+                0,
+                4
+              ]
+            }
+          ],
+          "finalScore": -4.69378242651,
+          "finalAllocation": [
+            2,
+            3,
+            0,
+            0,
+            4
+          ],
+          "tryDurationUs": 114
+        }
+      ]
+    }
+  }
+}

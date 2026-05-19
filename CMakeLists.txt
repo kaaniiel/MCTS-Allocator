@@ -158,6 +158,9 @@ target_link_libraries(mcts_main PRIVATE mcts_core)
 add_executable(mcts_experiments src/experiments.cpp)
 target_link_libraries(mcts_experiments PRIVATE mcts_core)
 
+add_executable(testAlloc src/testAlloc.cpp)
+target_link_libraries(testAlloc PRIVATE mcts_core)
+
 if(GUROBI_HOME)
     target_include_directories(mcts_main PRIVATE "${GUROBI_INCLUDE_DIR}")
     target_link_libraries(mcts_main PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
