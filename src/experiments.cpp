@@ -65,11 +65,28 @@ namespace
         Preferences<T> prefs;
     };
 
+    /**
+     * @brief Check if a floating-point value is (nearly) an integer.
+     *
+     * Used to validate parameters that must be integer-valued within
+     * a small numerical tolerance.
+     *
+     * @param value The value to test.
+     * @param eps   Tolerance for integer equivalence. Default 1e-9.
+     * @return true if |value - round(value)| <= eps, false otherwise.
+     */
     bool is_near_integer(double value, double eps = 1e-9)
     {
         return std::fabs(value - std::round(value)) <= eps;
     }
 
+    /**
+     * @brief Format a double as a string with sufficient precision for
+     * JSON/TOML output and logging.
+     *
+     * @param value The double to format.
+     * @return A string representation of the value.
+     */
     std::string format_double(double value)
     {
         std::ostringstream oss;
@@ -77,6 +94,15 @@ namespace
         return oss.str();
     }
 
+    /**
+     * @brief Serialize a score value for JSON output.
+     *
+     * Returns the numeric string when finite, or the literal "null"
+     * when the value is infinite or NaN.
+     *
+     * @param value Score to format.
+     * @return String suitable for embedding in JSON.
+     */
     std::string format_json_score(double value)
     {
         if (std::isfinite(value))
@@ -86,6 +112,16 @@ namespace
         return "null";
     }
 
+    /**
+     * @brief Write a flat JSON-style array to the provided stream.
+     *
+     * This helper is used when emitting preference vectors and
+     * allocations into per-experiment JSON output files.
+     *
+     * @tparam T Element type supporting stream output.
+     * @param out    Output stream to write to.
+     * @param values Vector of values to serialize as an array.
+     */
     template <typename T>
     void write_array(std::ostream &out, const std::vector<T> &values)
     {
@@ -101,6 +137,20 @@ namespace
         out << "]";
     }
 
+    /**
+     * @brief Build a sequence of ratio values between min and max.
+     *
+     * Two behaviours are supported:
+     * - If `step` > 1 and is an integer, it is treated as the number of
+     *   evenly-spaced samples to generate between `minValue` and `maxValue`.
+     * - Otherwise, `step` is treated as an increment and values are generated
+     *   by stepping from `minValue` to `maxValue`.
+     *
+     * @param minValue Lower bound of the range.
+     * @param maxValue Upper bound of the range.
+     * @param step     Step increment or sample count.
+     * @return Vector of ratio values.
+     */
     std::vector<double> build_ratio_values(double minValue, double maxValue, double step)
     {
         constexpr double kEps = 1e-9;
@@ -147,10 +197,18 @@ namespace
         return values;
     }
 
-    // Build a list of integer values between minValue and maxValue using a step sequence.
-    // If `steps` has one element, it's treated as a fixed increment (classic for-loop behaviour).
-    // If `steps` has multiple elements, they are applied sequentially (and repeated cyclically)
-    // until surpassing maxValue.
+    /**
+     * @brief Build a list of integer values between two bounds using one or more step sizes.
+     *
+     * If `steps` contains a single element it is used as a fixed increment.
+     * If multiple steps are provided they are applied cyclically until the
+     * `maxValue` is reached or surpassed.
+     *
+     * @param minValue Inclusive lower bound.
+     * @param maxValue Inclusive upper bound.
+     * @param steps    Sequence of positive step sizes.
+     * @return Vector of integer sample points covering the range.
+     */
     std::vector<int> build_values_with_steps(int minValue, int maxValue, const std::vector<int> &steps)
     {
         std::vector<int> values;
@@ -206,6 +264,16 @@ namespace
         return values;
     }
 
+    /**
+     * @brief Construct the full grid of experiments from the configuration.
+     *
+     * This expands ranges for agents, objects, seeds and ratioRandom into
+     * an explicit list of `ExperimentParams` describing each experiment
+     * instance to run.
+     *
+     * @param config Parsed configuration containing range parameters.
+     * @return Vector of `ExperimentParams` describing all experiments.
+     */
     std::vector<ExperimentParams> build_experiment_grid(const Config &config)
     {
         const std::vector<double> ratioValues = build_ratio_values(config.ratioRandomMin, config.ratioRandomMax, config.ratioRandomStep);
@@ -236,6 +304,16 @@ namespace
         return experiments;
     }
 
+    /**
+     * @brief Compute cumulative budget targets for each step.
+     *
+     * Distributes `budget` across `numberOfSteps` steps as evenly as
+     * possible, returning a vector of cumulative targets for each step.
+     *
+     * @param budget         Total budget to distribute.
+     * @param numberOfSteps  Number of steps to divide the budget into.
+     * @return Vector of cumulative budget targets per step.
+     */
     std::vector<int> build_step_targets(int budget, int numberOfSteps)
     {
         if (numberOfSteps <= 0)
@@ -270,6 +348,13 @@ namespace
         return targets;
     }
 
+    /**
+     * @brief Build a timestamped filename for the experiment run.
+     *
+     * The produced filename has the form `experiments_DD-MM-YYYY_HH-MM-SS.json`.
+     *
+     * @return Filename string (not including output directory).
+     */
     std::string build_output_filename()
     {
         auto t = std::time(nullptr);
@@ -284,6 +369,14 @@ namespace
         return oss.str();
     }
 
+    /**
+     * @brief Create and configure a progress bar used during experiment runs.
+     *
+     * The progress bar is preconfigured with visual options used by this
+     * program (width, colors, prefix/postfix text, etc.).
+     *
+     * @return A configured `indicators::ProgressBar` instance.
+     */
     indicators::ProgressBar create_progress_bar()
     {
         return indicators::ProgressBar{
@@ -302,6 +395,15 @@ namespace
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
     }
 
+    /**
+     * @brief Update a progress bar based on work completed and total units.
+     *
+     * Safely handles the case `total == 0`.
+     *
+     * @param bar   Progress bar to update.
+     * @param done  Number of completed work units.
+     * @param total Total work units.
+     */
     void update_progress(indicators::ProgressBar &bar, std::size_t done, std::size_t total)
     {
         if (total == 0)
@@ -313,6 +415,15 @@ namespace
         bar.set_progress(progress);
     }
 
+    /**
+     * @brief Format a duration given in microseconds into a human-readable string.
+     *
+     * The output includes hours, minutes, seconds, milliseconds and microseconds
+     * as appropriate.
+     *
+     * @param totalUs Duration in microseconds.
+     * @return Formatted duration string (e.g. "1h 2m 3s 4ms 500us").
+     */
     std::string format_duration_us(long long totalUs)
     {
         const auto totalMs = totalUs / 1000;
@@ -335,6 +446,16 @@ namespace
         return oss.str();
     }
 
+    /**
+     * @brief Throttle status updates to a minimum time interval.
+     *
+     * Returns true and updates `lastStatus` when at least `minInterval`
+     * has elapsed since the previous update.
+     *
+     * @param lastStatus  Reference to the previous status timestamp.
+     * @param minInterval Minimum interval between status emissions.
+     * @return true if a status should be emitted now, false otherwise.
+     */
     bool should_emit_status(std::chrono::steady_clock::time_point &lastStatus,
                             std::chrono::milliseconds minInterval = std::chrono::milliseconds(2000))
     {
@@ -347,6 +468,14 @@ namespace
         return false;
     }
 
+    /**
+     * @brief Build a human-readable postfix string displayed in the live progress bar.
+     *
+     * Contains experiment/try/step indices, budget progress and configuration
+     * identifiers (agents, objects, seed, ratioRandom).
+     *
+     * @return Formatted postfix string for display.
+     */
     std::string build_live_postfix(std::size_t expIndex,
                                    std::size_t totalExperiments,
                                    int tryIndex,
@@ -372,6 +501,18 @@ namespace
         return oss.str();
     }
 
+    /**
+     * @brief Append fairness/utility metrics to the experiment JSON output.
+     *
+     * If `enableMetrics` is false the function is a no-op. When enabled the
+     * function writes a JSON object with metric boolean results (Prop, EF, EFX, EF1).
+     *
+     * @param out             Output stream to append to.
+     * @param enableMetrics   Whether to compute and emit metrics.
+     * @param prefs           Preferences used for metric computation.
+     * @param alloc           Allocation vector to evaluate.
+     * @param numberWhiteSpace How many leading spaces to emit for formatting.
+     */
     void add_metrics(std::ostream &out, bool enableMetrics, const Preferences<int> &prefs, const std::vector<int> &alloc, const int numberWhiteSpace)
     {
         if (!enableMetrics)
@@ -544,7 +685,6 @@ int main(int argc, char **argv)
         out << "      \"results\": {\n";
 
         out << "        \"solver\": {\n";
-        out << "          \"name\": \"Gurobi\",\n";
 
         const SolverKey solverKey{params.numAgents, params.numObjects, params.seed};
         auto cacheIt = solverCache.find(solverKey);
@@ -584,7 +724,6 @@ int main(int argc, char **argv)
 
         if (cacheIt->second.ok)
         {
-            out << "          \"status\": \"ok\",\n";
             out << "          \"score\": " << format_json_score(cacheIt->second.score) << ",\n";
             out << "          \"timeUs\": " << cacheIt->second.timeUs << ",\n";
             // out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
@@ -594,7 +733,6 @@ int main(int argc, char **argv)
         }
         else
         {
-            out << "          \"status\": \"error\",\n";
             out << "          \"score\": 0,\n";
             out << "          \"allocation\": []\n";
         }
@@ -611,7 +749,6 @@ int main(int argc, char **argv)
             std::pair<Allocation, Score> finalBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
 
             out << "            {\n";
-            out << "              \"tryIndex\": " << tryIndex << ",\n";
             out << "              \"steps\": [\n";
 
             // Create MCTS in a limited scope to ensure memory is freed after each try
@@ -666,10 +803,7 @@ int main(int argc, char **argv)
                     lastStepTime = stepNow;
 
                     out << "                {\n";
-                    out << "                  \"currentBudget\": " << targetBudget << ",\n";
-                    out << "                  \"remainingBudget\": " << remainingBudget << ",\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
-                    out << "                  \"cumulativeTimeUs\": " << cumulativeUs << ",\n";
                     out << "                  \"score\": " << format_json_score(finalBest.second.getScore()) << ",\n";
                     out << "                  \"allocation\": ";
                     write_array(out, finalBest.first.getAllocation());
@@ -693,12 +827,9 @@ int main(int argc, char **argv)
             const auto tryDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(tryEnd - tryStart).count();
 
             out << "              ],\n";
-            out << "              \"finalScore\": " << format_json_score(finalBest.second.getScore()) << ",\n";
-            out << "              \"finalAllocation\": ";
+
             write_array(out, finalBest.first.getAllocation());
-            out << ",\n";
-            out << "              \"tryDurationUs\": " << tryDurationUs << "\n";
-            // out << "              \"tryDuration\": \"" << format_duration_us(tryDurationUs) << "\"\n";
+            out << "\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
             {
