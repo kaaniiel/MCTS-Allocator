@@ -206,60 +206,6 @@ namespace
         return values;
     }
 
-    std::vector<std::string> validate_experiment_config(const Config &config)
-    {
-        std::vector<std::string> errors;
-
-        auto push_error = [&errors](const std::string &message)
-        {
-            errors.push_back(message);
-        };
-
-        if (config.numAgentsMin <= 0)
-            push_error("experiments.num_agents_min must be > 0.");
-        if (config.numAgentsMax <= 0)
-            push_error("experiments.num_agents_max must be > 0.");
-        if (config.numAgentsMin > config.numAgentsMax)
-            push_error("experiments.num_agents_min must be <= experiments.num_agents_max.");
-
-        if (config.numObjectsMin <= 0)
-            push_error("experiments.num_objects_min must be > 0.");
-        if (config.numObjectsMax <= 0)
-            push_error("experiments.num_objects_max must be > 0.");
-        if (config.numObjectsMin > config.numObjectsMax)
-            push_error("experiments.num_objects_min must be <= experiments.num_objects_max.");
-
-        if (config.seedMin > config.seedMax)
-            push_error("experiments.seed_min must be <= experiments.seed_max.");
-
-        if (config.ratioRandomMin < 0.0 || config.ratioRandomMin > 1.0)
-            push_error("experiments.ratio_random_min must be in [0, 1].");
-        if (config.ratioRandomMax < 0.0 || config.ratioRandomMax > 1.0)
-            push_error("experiments.ratio_random_max must be in [0, 1].");
-        if (config.ratioRandomMin > config.ratioRandomMax)
-            push_error("experiments.ratio_random_min must be <= experiments.ratio_random_max.");
-        if (config.ratioRandomStep <= 0.0 && std::fabs(config.ratioRandomMin - config.ratioRandomMax) > 1e-9)
-            push_error("experiments.ratio_random_step must be > 0 when ratio_random_min != ratio_random_max.");
-        if (config.ratioRandomStep > 1.0 && !is_near_integer(config.ratioRandomStep))
-            push_error("experiments.ratio_random_step > 1 is interpreted as sample count and must be an integer.");
-
-        if (config.numberOfTrys <= 0)
-            push_error("experiments.number_of_trys must be > 0.");
-
-        if (config.numberOfBudgetStep < 0.0)
-            push_error("experiments.numberOfBudgetStep must be >= 0.");
-        if (!is_near_integer(config.numberOfBudgetStep))
-            push_error("experiments.numberOfBudgetStep must be an integer value (0, 1, 2, ...).");
-
-        if (config.outputDirectory.empty())
-            push_error("experiments.output_directory cannot be empty.");
-
-        if (config.budgetMultiplier <= 0.0)
-            push_error("experiments.budget_multiplier must be > 0.");
-            
-        return errors;
-    }
-
     std::vector<ExperimentParams> build_experiment_grid(const Config &config)
     {
         const std::vector<double> ratioValues = build_ratio_values(config.ratioRandomMin, config.ratioRandomMax, config.ratioRandomStep);
@@ -499,17 +445,6 @@ int main(int argc, char **argv)
     catch (const std::exception &ex)
     {
         std::cerr << ex.what() << "\n";
-        return EXIT_FAILURE;
-    }
-
-    const std::vector<std::string> errors = validate_experiment_config(config);
-    if (!errors.empty())
-    {
-        std::cerr << "[Config] Invalid experiments configuration. Startup cancelled.\n";
-        for (const std::string &error : errors)
-        {
-            std::cerr << " - " << error << "\n";
-        }
         return EXIT_FAILURE;
     }
 

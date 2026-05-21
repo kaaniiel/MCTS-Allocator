@@ -5,8 +5,10 @@
 #include <string>
 #include <fstream>
 #include <filesystem>
+#include <functional>
 #include <stdexcept>
 #include <vector>
+#include <type_traits>
 
 #include "toml.hpp"
 
@@ -25,86 +27,622 @@ struct Config
     bool useSolver = false;
 
     // Default values for experiments
+    // GLOBAL
     int numAgentsMin = 3;
     int numAgentsMax = 3;
     std::vector<int> stepAgents = {1};
     int numObjectsMin = 4;
     int numObjectsMax = 4;
     std::vector<int> stepObjects = {1};
-    double budgetMultiplier = 1.0;
     int seedMin = 42;
     int seedMax = 42;
     std::vector<int> stepSeeds = {1};
+    bool enableMetrics = false;
+    std::string outputDirectory = "results";
+    // MCTS
+    double budgetMultiplier = 1.0;
     double ratioRandomMin = 1.0;
     double ratioRandomMax = 1.0;
     double ratioRandomStep = 1.0;
     int numberOfTrys = 1;
     double numberOfBudgetStep = 0;
-    bool enableMetrics = false;
-    std::string outputDirectory = "results";
+    bool agentHaveMinimumOneObject = false;
+    bool uniformizeNegativeValues = false;
 
-    // 2. Function to generate the default configuration file
-    static void generate_default(const std::string &filepath, const Config &default_config)
-    {
-        toml::table tbl;
-        tbl.insert("mcts", toml::table{
-                               {"launch", default_config.launch},
-                               {"num_agents", default_config.numAgents},
-                               {"num_objects", default_config.numObjects},
-                               {"iterations", default_config.iterations},
-                               {"exploration_constant", default_config.exploration},
-                               {"seed", default_config.seed},
-                               {"verbose", default_config.verbose},
-                               {"ratio_random", default_config.ratioRandom},
-                               {"save_results", default_config.saveResults},
-                               {"use_solver", default_config.useSolver},
-                           });
+private:
+    /**
+     * Converts a string so it can be safely written to a TOML file.
+     * Special characters are escaped to avoid generating invalid TOML.
+     *
+     * @param value The input string to convert.
+     * @return The escaped string, ready to be written.
+     */
+    static std::string escape_toml_string(const std::string &value)
         {
-            toml::table experiments_tbl;
-            experiments_tbl.insert("num_agents_min", default_config.numAgentsMin);
-            experiments_tbl.insert("num_agents_max", default_config.numAgentsMax);
-            // convert stepAgents to toml::array
+        std::string escaped;
+        escaped.reserve(value.size());
+
+        for (char ch : value)
+        {
+            switch (ch)
             {
-                toml::array arr;
-                for (int v : default_config.stepAgents)
-                    arr.push_back(v);
-                experiments_tbl.insert("step_agents", std::move(arr));
+            case '\\':
+                escaped += "\\\\";
+                break;
+            case '"':
+                escaped += "\\\"";
+                break;
+            case '\n':
+                escaped += "\\n";
+                break;
+            case '\r':
+                escaped += "\\r";
+                break;
+            case '\t':
+                escaped += "\\t";
+                break;
+            default:
+                escaped += ch;
+                break;
             }
-            experiments_tbl.insert("num_objects_min", default_config.numObjectsMin);
-            experiments_tbl.insert("num_objects_max", default_config.numObjectsMax);
-            // convert stepObjects to toml::array
-            {
-                toml::array arr;
-                for (int v : default_config.stepObjects)
-                    arr.push_back(v);
-                experiments_tbl.insert("step_objects", std::move(arr));
-            }
-            experiments_tbl.insert("seed_min", default_config.seedMin);
-            experiments_tbl.insert("seed_max", default_config.seedMax);
-            // convert stepSeeds to toml::array
-            {
-                toml::array arr;
-                for (int v : default_config.stepSeeds)
-                    arr.push_back(v);
-                experiments_tbl.insert("step_seeds", std::move(arr));
-            }
-            experiments_tbl.insert("ratio_random_min", default_config.ratioRandomMin);
-            experiments_tbl.insert("ratio_random_max", default_config.ratioRandomMax);
-            experiments_tbl.insert("ratio_random_step", default_config.ratioRandomStep);
-            experiments_tbl.insert("number_of_trys", default_config.numberOfTrys);
-            experiments_tbl.insert("number_of_budget_step", default_config.numberOfBudgetStep);
-            experiments_tbl.insert("budget_multiplier", default_config.budgetMultiplier);
-            experiments_tbl.insert("verbose", default_config.verbose);
-            experiments_tbl.insert("enable_metrics", default_config.enableMetrics);
-            experiments_tbl.insert("output_directory", default_config.outputDirectory);
-            tbl.insert("experiments", std::move(experiments_tbl));
         }
 
+        return escaped;
+    }
+
+    /**
+     * Writes a one-line TOML comment.
+     *
+     * @param os The output stream.
+     * @param comment The comment text.
+     */
+    static void write_comment(std::ostream &os, const std::string &comment)
+    {
+        os << "# " << comment << '\n';
+    }
+
+    /**
+     * Writes a TOML comment with visual indentation.
+     *
+     * @param os The output stream.
+     * @param indent Visual indentation level, in blocks of 4 spaces.
+     * @param comment The comment text.
+     */
+    static void write_comment(std::ostream &os, std::size_t indent, const std::string &comment)
+    {
+        os << std::string(indent * 4, ' ') << "# " << comment << '\n';
+    }
+
+    /**
+     * Writes a TOML table header without indentation.
+     *
+     * @param os The output stream.
+     * @param section The full TOML table name.
+     */
+    static void write_section(std::ostream &os, const std::string &section)
+    {
+        os << '\n'
+           << '[' << section << "]\n";
+    }
+
+    /**
+     * Writes a string value in TOML format using the required escaping.
+     *
+     * @param os The output stream.
+     * @param value The value to write.
+     */
+    static void write_inline_value(std::ostream &os, const std::string &value)
+    {
+        os << '"' << escape_toml_string(value) << '"';
+    }
+
+    /**
+     * Convenience overload for C string literals.
+     *
+     * @param os The output stream.
+     * @param value The C-string value to write.
+     */
+    static void write_inline_value(std::ostream &os, const char *value)
+    {
+        write_inline_value(os, std::string(value));
+    }
+
+    /**
+     * Writes a boolean value in TOML format.
+     *
+     * @param os The output stream.
+     * @param value The boolean value to write.
+     */
+    static void write_inline_value(std::ostream &os, bool value)
+    {
+        os << (value ? "true" : "false");
+    }
+
+    /**
+     * Writes a numeric value in TOML format.
+     *
+     * @param os The output stream.
+     * @param value The numeric value to write.
+     */
+    template <typename T>
+    static std::enable_if_t<std::is_arithmetic_v<T> && !std::is_same_v<T, bool>, void> write_inline_value(std::ostream &os, T value)
+    {
+        os << value;
+    }
+
+    /**
+     * Writes a scalar key in the form `key = value`.
+     *
+     * @param os The output stream.
+     * @param key The TOML key name.
+     * @param value The value to write.
+     */
+    template <typename T>
+    static void write_value(std::ostream &os, const std::string &key, const T &value)
+    {
+        os << key << " = ";
+        write_inline_value(os, value);
+        os << '\n';
+    }
+
+    /**
+     * Writes a scalar key with visual indentation.
+     *
+     * @param os The output stream.
+     * @param indent Visual indentation level, in blocks of 4 spaces.
+     * @param key The TOML key name.
+     * @param value The value to write.
+     */
+    template <typename T>
+    static void write_value(std::ostream &os, std::size_t indent, const std::string &key, const T &value)
+    {
+        os << std::string(indent * 4, ' ') << key << " = ";
+        write_inline_value(os, value);
+        os << '\n';
+    }
+
+    /**
+     * Writes a TOML array in the form `key = [a, b, c]`.
+     *
+     * @param os The output stream.
+     * @param key The TOML key name.
+     * @param values The values to write.
+     */
+    template <typename T>
+    static void write_value(std::ostream &os, const std::string &key, const std::vector<T> &values)
+    {
+        os << key << " = [";
+        for (std::size_t index = 0; index < values.size(); ++index)
+        {
+            if (index > 0)
+            {
+                os << ", ";
+            }
+            write_inline_value(os, values[index]);
+        }
+        os << "]\n";
+    }
+
+    /**
+     * Writes a TOML array with visual indentation.
+     *
+     * @param os The output stream.
+     * @param indent Visual indentation level, in blocks of 4 spaces.
+     * @param key The TOML key name.
+     * @param values The values to write.
+     */
+    template <typename T>
+    static void write_value(std::ostream &os, std::size_t indent, const std::string &key, const std::vector<T> &values)
+    {
+        os << std::string(indent * 4, ' ') << key << " = [";
+        for (std::size_t index = 0; index < values.size(); ++index)
+        {
+            if (index > 0)
+            {
+                os << ", ";
+            }
+            write_inline_value(os, values[index]);
+        }
+        os << "]\n";
+    }
+
+    /**
+     * Reads an integer array from a TOML subsection.
+     * If the key does not exist at the expected level, the method tries flatter forms before falling back.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param subscope The nested table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read integer vector, or the fallback value.
+     */
+    static std::vector<int> read_int_vector(const toml::table &tbl, const char *scope, const char *subscope, const char *key, const std::vector<int> &fallback)
+    {
+        if (auto arr = tbl[scope][subscope][key].as_array())
+        {
+            std::vector<int> values;
+            values.reserve(arr->size());
+            for (const auto &elem : *arr)
+            {
+                values.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+            }
+            return values;
+        }
+
+        if (auto arr = tbl[scope][key].as_array())
+        {
+            std::vector<int> values;
+            values.reserve(arr->size());
+            for (const auto &elem : *arr)
+            {
+                values.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+            }
+            return values;
+        }
+
+        if (auto arr = tbl[key].as_array())
+        {
+            std::vector<int> values;
+            values.reserve(arr->size());
+            for (const auto &elem : *arr)
+            {
+                values.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+            }
+            return values;
+        }
+
+        return fallback;
+    }
+
+    /**
+     * Reads an integer from a TOML subsection.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param subscope The nested table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static int read_int(const toml::table &tbl, const char *scope, const char *subscope, const char *key, int fallback)
+    {
+        if (auto value = tbl[scope][subscope][key].value<int64_t>())
+        {
+            return static_cast<int>(*value);
+        }
+        if (auto value = tbl[scope][key].value<int64_t>())
+        {
+            return static_cast<int>(*value);
+        }
+        if (auto value = tbl[key].value<int64_t>())
+        {
+            return static_cast<int>(*value);
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads an integer from a simple TOML table.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static int read_int(const toml::table &tbl, const char *scope, const char *key, int fallback)
+    {
+        if (auto value = tbl[scope][key].value<int64_t>())
+        {
+            return static_cast<int>(*value);
+        }
+        if (auto value = tbl[key].value<int64_t>())
+        {
+            return static_cast<int>(*value);
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads a floating-point value from a TOML subsection.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param subscope The nested table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static double read_double(const toml::table &tbl, const char *scope, const char *subscope, const char *key, double fallback)
+    {
+        if (auto value = tbl[scope][subscope][key].value<double>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[scope][key].value<double>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[key].value<double>())
+        {
+            return *value;
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads a floating-point value from a simple TOML table.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static double read_double(const toml::table &tbl, const char *scope, const char *key, double fallback)
+    {
+        if (auto value = tbl[scope][key].value<double>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[key].value<double>())
+        {
+            return *value;
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads a boolean from a TOML subsection.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param subscope The nested table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static bool read_bool(const toml::table &tbl, const char *scope, const char *subscope, const char *key, bool fallback)
+    {
+        if (auto value = tbl[scope][subscope][key].value<bool>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[scope][key].value<bool>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[key].value<bool>())
+        {
+            return *value;
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads a boolean from a simple TOML table.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static bool read_bool(const toml::table &tbl, const char *scope, const char *key, bool fallback)
+    {
+        if (auto value = tbl[scope][key].value<bool>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[key].value<bool>())
+        {
+            return *value;
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads a string from a TOML subsection.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param subscope The nested table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static std::string read_string(const toml::table &tbl, const char *scope, const char *subscope, const char *key, const std::string &fallback)
+    {
+        if (auto value = tbl[scope][subscope][key].value<std::string>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[scope][key].value<std::string>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[key].value<std::string>())
+        {
+            return *value;
+        }
+        return fallback;
+    }
+
+    /**
+     * Reads a string from a simple TOML table.
+     *
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param key The key to read.
+     * @param fallback The fallback value if the key is missing.
+     * @return The read value, or the fallback value.
+     */
+    static std::string read_string(const toml::table &tbl, const char *scope, const char *key, const std::string &fallback)
+    {
+        if (auto value = tbl[scope][key].value<std::string>())
+        {
+            return *value;
+        }
+        if (auto value = tbl[key].value<std::string>())
+        {
+            return *value;
+        }
+        return fallback;
+    }
+
+    /**
+     * Rewrites the configuration file in place using the values already loaded.
+     * Missing fields are filled with the current `Config` default values.
+     *
+     * @param filepath Path to the file to rewrite.
+     * @param config Source instance containing the values to write.
+     */
+    static void rewrite_config_file(const std::string &filepath, const Config &config)
+    {
+        generate_default(filepath, config);
+        std::cout << "[Config] Configuration file rewritten with missing values filled in: " << filepath << "\n";
+    }
+
+    /**
+     * Registers a value as required.
+     * If it is missing, it is added to the error list.
+     *
+     * @param label Human-readable field name.
+     * @param present Indicates whether the field is present.
+     * @param reader Action to run when the field exists.
+     * @param missing List of missing fields.
+     */
+    template <typename Reader>
+    static void require_value(const std::string &label, bool present, const Reader &reader, std::vector<std::string> &missing)
+    {
+        if (present)
+        {
+            reader();
+            return;
+        }
+
+        missing.push_back(label);
+    }
+
+    /**
+     * Checks a required value located in a TOML subsection, for example `experiments.global`.
+     *
+     * @param label Human-readable field name.
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param subscope The nested table name.
+     * @param key The key to check.
+     * @param missing List of missing fields.
+     * @param reader Action to run when the field exists.
+     */
+    template <typename Reader>
+    static void require_nested_value(const std::string &label, const toml::table &tbl, const char *scope, const char *subscope, const char *key, std::vector<std::string> &missing, const Reader &reader)
+    {
+        const bool present = static_cast<bool>(tbl[scope][subscope][key]);
+        require_value(label, present, reader, missing);
+    }
+
+    /**
+     * Checks a required value located in a simple TOML table, for example `mcts`.
+     *
+     * @param label Human-readable field name.
+     * @param tbl The already parsed TOML table.
+     * @param scope The parent table name.
+     * @param key The key to check.
+     * @param missing List of missing fields.
+     * @param reader Action to run when the field exists.
+     */
+    template <typename Reader>
+    static void require_nested_value(const std::string &label, const toml::table &tbl, const char *scope, const char *key, std::vector<std::string> &missing, const Reader &reader)
+    {
+        const bool present = static_cast<bool>(tbl[scope][key]);
+        require_value(label, present, reader, missing);
+    }
+
+    /**
+     * Checks a required value at the root of the TOML file.
+     *
+     * @param label Human-readable field name.
+     * @param tbl The already parsed TOML table.
+     * @param key The key to check.
+     * @param missing List of missing fields.
+     * @param reader Action to run when the field exists.
+     */
+    template <typename Reader>
+    static void require_root_value(const std::string &label, const toml::table &tbl, const char *key, std::vector<std::string> &missing, const Reader &reader)
+    {
+        const bool present = static_cast<bool>(tbl[key]);
+        require_value(label, present, reader, missing);
+    }
+
+public:
+    /**
+     * Generates a full TOML file from a `Config` instance.
+     * This method is used both to create a fresh file and to rewrite a partially valid file.
+     *
+     * @param filepath Path to the TOML file to write.
+     * @param default_config Instance containing the values to serialize.
+     */
+    static void generate_default(const std::string &filepath, const Config &default_config)
+    {
         std::ofstream file(filepath);
         if (file.is_open())
         {
             file << "# Automatically generated configuration file\n";
-            file << tbl << "\n";
+
+            write_section(file, "mcts");
+            write_value(file, "launch", default_config.launch);
+            write_value(file, "num_agents", default_config.numAgents);
+            write_value(file, "num_objects", default_config.numObjects);
+            write_value(file, "iterations", default_config.iterations);
+            write_value(file, "exploration_constant", default_config.exploration);
+            write_value(file, "seed", default_config.seed);
+            write_value(file, "verbose", default_config.verbose);
+            write_value(file, "ratio_random", default_config.ratioRandom);
+            write_value(file, "save_results", default_config.saveResults);
+            write_value(file, "use_solver", default_config.useSolver);
+
+            write_section(file, "experiments");
+            write_section(file, "experiments.global");
+            write_comment(file, 1, "Values shared by every experiment sweep.");
+            write_comment(file, 1, "Set the interval of agents");
+            write_value(file, 1, "num_agents_min", default_config.numAgentsMin);
+            write_value(file, 1, "num_agents_max", default_config.numAgentsMax);
+            write_comment(file, 1, "Set the step of agents (a list of successive increments, e.g., 1, 2, 5), [1] means standard step of 1");
+            write_value(file, 1, "step_agents", default_config.stepAgents);
+            write_comment(file, 1, "Set the interval of objects");
+            write_value(file, 1, "num_objects_min", default_config.numObjectsMin);
+            write_value(file, 1, "num_objects_max", default_config.numObjectsMax);
+            write_comment(file, 1, "Set the step of objects (a list of successive increments, e.g., 1, 2, 5), [1] means standard step of 1");
+            write_value(file, 1, "step_objects", default_config.stepObjects);
+            write_comment(file, 1, "Set the interval of seeds");
+            write_value(file, 1, "seed_min", default_config.seedMin);
+            write_value(file, 1, "seed_max", default_config.seedMax);
+            write_comment(file, 1, "Set the step of seeds (a list of successive increments, e.g., 1, 2, 5), [1] means standard step of 1");
+            write_value(file, 1, "step_seeds", default_config.stepSeeds);
+            write_comment(file,1, "Write or not metrics (EF, EFX, Prop, ...)");
+            write_value(file, 1, "enable_metrics", default_config.enableMetrics);
+            write_comment(file, 1, "Verbose output during experiments");
+            write_value(file, 1, "verbose", default_config.verbose);
+            write_comment(file, 1, "Output directory for experiment results");
+            write_value(file, 1, "output_directory", default_config.outputDirectory);
+
+            write_section(file, "experiments.mcts");
+            write_comment(file, 1, "Values specific to the MCTS experiment sweep.");
+            write_value(file, 1, "ratio_random_min", default_config.ratioRandomMin);
+            write_value(file, 1, "ratio_random_max", default_config.ratioRandomMax);
+            write_value(file, 1, "ratio_random_step", default_config.ratioRandomStep);
+            write_value(file, 1, "number_of_trys", default_config.numberOfTrys);
+            write_value(file, 1, "number_of_budget_step", default_config.numberOfBudgetStep);
+            write_value(file, 1, "budget_multiplier", default_config.budgetMultiplier);
+            write_comment(file, 1, "Whether each agent must have at least one object");
+            write_value(file, 1, "agent_have_minimum_one_object", default_config.agentHaveMinimumOneObject);
+            write_comment(file, 1, "Whether to uniformize negative values." );
+            write_comment(file, 1, "If true, negative values will be transformed to how much agent haven't recieved an object");
+            write_value(file, 1, "uniformize_negative_values", default_config.uniformizeNegativeValues);
+
+            file << '\n';
             std::cout << "[Config] Default file created: " << filepath << "\n";
         }
         else
@@ -113,7 +651,14 @@ struct Config
         }
     }
 
-    // 3. Main load function
+    /**
+     * Loads a configuration from a TOML file.
+     * The method preserves existing values, lists missing keys,
+     * rewrites `config.toml` in place with the completed values, then stops execution so the user can review the file.
+     *
+     * @param filepath Path to the TOML file to load.
+     * @return A `Config` structure populated from the file.
+     */
     static Config load(const std::string &filepath = "config.toml")
     {
         Config config; // Initialized with default values
@@ -126,63 +671,94 @@ struct Config
         try
         {
             toml::table tbl = toml::parse_file(filepath);
+            std::vector<std::string> missingFields;
 
-            config.launch = tbl["mcts"]["launch"].value_or(config.launch);
-            config.numAgents = static_cast<int>(tbl["mcts"]["num_agents"].value_or(static_cast<int64_t>(config.numAgents)));
-            config.numObjects = static_cast<int>(tbl["mcts"]["num_objects"].value_or(static_cast<int64_t>(config.numObjects)));
-            config.iterations = static_cast<int>(tbl["mcts"]["iterations"].value_or(static_cast<int64_t>(config.iterations)));
-            config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration);
-            config.seed = static_cast<int>(tbl["mcts"]["seed"].value_or(static_cast<int64_t>(config.seed)));
-            config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose);
-            config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom);
-            config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults);
-            config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver);
+            if (!tbl["mcts"])
+            {
+                missingFields.push_back("mcts");
+            }
+            if (!tbl["experiments"])
+            {
+                missingFields.push_back("experiments");
+            }
+
+            require_nested_value("mcts.launch", tbl, "mcts", "launch", missingFields, [&]
+                                   { config.launch = tbl["mcts"]["launch"].value_or(config.launch); });
+            require_nested_value("mcts.num_agents", tbl, "mcts", "num_agents", missingFields, [&]
+                                   { config.numAgents = static_cast<int>(tbl["mcts"]["num_agents"].value_or(static_cast<int64_t>(config.numAgents))); });
+            require_nested_value("mcts.num_objects", tbl, "mcts", "num_objects", missingFields, [&]
+                                   { config.numObjects = static_cast<int>(tbl["mcts"]["num_objects"].value_or(static_cast<int64_t>(config.numObjects))); });
+            require_nested_value("mcts.iterations", tbl, "mcts", "iterations", missingFields, [&]
+                                   { config.iterations = static_cast<int>(tbl["mcts"]["iterations"].value_or(static_cast<int64_t>(config.iterations))); });
+            require_nested_value("mcts.exploration_constant", tbl, "mcts", "exploration_constant", missingFields, [&]
+                                   { config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration); });
+            require_nested_value("mcts.seed", tbl, "mcts", "seed", missingFields, [&]
+                                   { config.seed = static_cast<int>(tbl["mcts"]["seed"].value_or(static_cast<int64_t>(config.seed))); });
+            require_nested_value("mcts.verbose", tbl, "mcts", "verbose", missingFields, [&]
+                                   { config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose); });
+            require_nested_value("mcts.ratio_random", tbl, "mcts", "ratio_random", missingFields, [&]
+                                   { config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom); });
+            require_nested_value("mcts.save_results", tbl, "mcts", "save_results", missingFields, [&]
+                                   { config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults); });
+            require_nested_value("mcts.use_solver", tbl, "mcts", "use_solver", missingFields, [&]
+                                   { config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver); });
 
             // Experiments parameters
-            config.numAgentsMin = static_cast<int>(tbl["experiments"]["num_agents_min"].value_or(static_cast<int64_t>(config.numAgentsMin)));
-            config.numAgentsMax = static_cast<int>(tbl["experiments"]["num_agents_max"].value_or(static_cast<int64_t>(config.numAgentsMax)));
+            require_nested_value("experiments.global.num_agents_min", tbl, "experiments", "global", "num_agents_min", missingFields, [&]
+                                 { config.numAgentsMin = read_int(tbl, "experiments", "global", "num_agents_min", config.numAgentsMin); });
+            require_nested_value("experiments.global.num_agents_max", tbl, "experiments", "global", "num_agents_max", missingFields, [&]
+                                 { config.numAgentsMax = read_int(tbl, "experiments", "global", "num_agents_max", config.numAgentsMax); });
+            require_nested_value("experiments.global.step_agents", tbl, "experiments", "global", "step_agents", missingFields, [&]
+                                 { config.stepAgents = read_int_vector(tbl, "experiments", "global", "step_agents", config.stepAgents); });
 
-            if (auto arr = tbl["experiments"]["step_agents"].as_array())
+            require_nested_value("experiments.global.num_objects_min", tbl, "experiments", "global", "num_objects_min", missingFields, [&]
+                                 { config.numObjectsMin = read_int(tbl, "experiments", "global", "num_objects_min", config.numObjectsMin); });
+            require_nested_value("experiments.global.num_objects_max", tbl, "experiments", "global", "num_objects_max", missingFields, [&]
+                                 { config.numObjectsMax = read_int(tbl, "experiments", "global", "num_objects_max", config.numObjectsMax); });
+            require_nested_value("experiments.global.step_objects", tbl, "experiments", "global", "step_objects", missingFields, [&]
+                                 { config.stepObjects = read_int_vector(tbl, "experiments", "global", "step_objects", config.stepObjects); });
+
+            require_nested_value("experiments.global.seed_min", tbl, "experiments", "global", "seed_min", missingFields, [&]
+                                 { config.seedMin = read_int(tbl, "experiments", "global", "seed_min", config.seedMin); });
+            require_nested_value("experiments.global.seed_max", tbl, "experiments", "global", "seed_max", missingFields, [&]
+                                 { config.seedMax = read_int(tbl, "experiments", "global", "seed_max", config.seedMax); });
+            require_nested_value("experiments.global.step_seeds", tbl, "experiments", "global", "step_seeds", missingFields, [&]
+                                 { config.stepSeeds = read_int_vector(tbl, "experiments", "global", "step_seeds", config.stepSeeds); });
+
+            require_nested_value("experiments.global.enable_metrics", tbl, "experiments", "global", "enable_metrics", missingFields, [&]
+                                 { config.enableMetrics = read_bool(tbl, "experiments", "global", "enable_metrics", config.enableMetrics); });
+            require_nested_value("experiments.global.verbose", tbl, "experiments", "global", "verbose", missingFields, [&]
+                                 { config.verbose = read_bool(tbl, "experiments", "global", "verbose", config.verbose); });
+            require_nested_value("experiments.global.output_directory", tbl, "experiments", "global", "output_directory", missingFields, [&]
+                                 { config.outputDirectory = read_string(tbl, "experiments", "global", "output_directory", config.outputDirectory); });
+
+            require_nested_value("experiments.mcts.ratio_random_min", tbl, "experiments", "mcts", "ratio_random_min", missingFields, [&]
+                                 { config.ratioRandomMin = read_double(tbl, "experiments", "mcts", "ratio_random_min", config.ratioRandomMin); });
+            require_nested_value("experiments.mcts.ratio_random_max", tbl, "experiments", "mcts", "ratio_random_max", missingFields, [&]
+                                 { config.ratioRandomMax = read_double(tbl, "experiments", "mcts", "ratio_random_max", config.ratioRandomMax); });
+            require_nested_value("experiments.mcts.ratio_random_step", tbl, "experiments", "mcts", "ratio_random_step", missingFields, [&]
+                                 { config.ratioRandomStep = read_double(tbl, "experiments", "mcts", "ratio_random_step", config.ratioRandomStep); });
+            require_nested_value("experiments.mcts.number_of_trys", tbl, "experiments", "mcts", "number_of_trys", missingFields, [&]
+                                 { config.numberOfTrys = read_int(tbl, "experiments", "mcts", "number_of_trys", config.numberOfTrys); });
+            require_nested_value("experiments.mcts.number_of_budget_step", tbl, "experiments", "mcts", "number_of_budget_step", missingFields, [&]
+                                 { config.numberOfBudgetStep = read_double(tbl, "experiments", "mcts", "number_of_budget_step", config.numberOfBudgetStep); });
+            require_nested_value("experiments.mcts.budget_multiplier", tbl, "experiments", "mcts", "budget_multiplier", missingFields, [&]
+                                 { config.budgetMultiplier = read_double(tbl, "experiments", "mcts", "budget_multiplier", config.budgetMultiplier); });
+            require_nested_value("experiments.mcts.agent_have_minimum_one_object", tbl, "experiments", "mcts", "agent_have_minimum_one_object", missingFields, [&]
+                                 { config.agentHaveMinimumOneObject = read_bool(tbl, "experiments", "mcts", "agent_have_minimum_one_object", config.agentHaveMinimumOneObject); });
+            require_nested_value("experiments.mcts.uniformize_negative_values", tbl, "experiments", "mcts", "uniformize_negative_values", missingFields, [&]
+                                 { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
+
+            if (!missingFields.empty())
             {
-                config.stepAgents.clear();
-                for (const auto &elem : *arr)
+                std::cerr << "[Config] Missing required configuration values in " << filepath << "\n";
+                for (const auto &field : missingFields)
                 {
-                    config.stepAgents.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
+                    std::cerr << "[Config]   - " << field << "\n";
                 }
+                rewrite_config_file(filepath, config);
+                throw std::runtime_error("[Config] Configuration is incomplete. config.toml has been rewritten with the missing values filled in.");
             }
-
-            config.numObjectsMin = static_cast<int>(tbl["experiments"]["num_objects_min"].value_or(static_cast<int64_t>(config.numObjectsMin)));
-            config.numObjectsMax = static_cast<int>(tbl["experiments"]["num_objects_max"].value_or(static_cast<int64_t>(config.numObjectsMax)));
-
-            if (auto arr = tbl["experiments"]["step_objects"].as_array())
-            {
-                config.stepObjects.clear();
-                for (const auto &elem : *arr)
-                {
-                    config.stepObjects.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
-                }
-            }
-
-            config.seedMin = static_cast<int>(tbl["experiments"]["seed_min"].value_or(static_cast<int64_t>(config.seedMin)));
-            config.seedMax = static_cast<int>(tbl["experiments"]["seed_max"].value_or(static_cast<int64_t>(config.seedMax)));
-
-            if (auto arr = tbl["experiments"]["step_seeds"].as_array())
-            {
-                config.stepSeeds.clear();
-                for (const auto &elem : *arr)
-                {
-                    config.stepSeeds.push_back(static_cast<int>(elem.value_or(static_cast<int64_t>(0))));
-                }
-            }
-
-            config.ratioRandomMin = tbl["experiments"]["ratio_random_min"].value_or(config.ratioRandomMin);
-            config.ratioRandomMax = tbl["experiments"]["ratio_random_max"].value_or(config.ratioRandomMax);
-            config.ratioRandomStep = tbl["experiments"]["ratio_random_step"].value_or(config.ratioRandomStep);
-            config.numberOfTrys = static_cast<int>(tbl["experiments"]["number_of_trys"].value_or(static_cast<int64_t>(config.numberOfTrys)));
-            config.numberOfBudgetStep = tbl["experiments"]["number_of_budget_step"].value_or(config.numberOfBudgetStep);
-            config.budgetMultiplier = tbl["experiments"]["budget_multiplier"].value_or(config.budgetMultiplier);
-            config.enableMetrics = tbl["experiments"]["enable_metrics"].value_or(config.enableMetrics);
-            config.outputDirectory = tbl["experiments"]["output_directory"].value_or(config.outputDirectory);
 
             std::cout << "[Config] Configuration loaded from " << filepath << "\n";
         }

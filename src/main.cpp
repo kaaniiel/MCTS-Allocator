@@ -128,8 +128,16 @@ int main(int argc, char **argv)
     catch (const std::exception &ex)
     {
         std::cerr << ex.what() << std::endl;
-        Config::generate_default("config.toml", config);
-        std::cerr << "A default configuration file has been generated. Please review and modify 'config.toml' as needed, then re-run the program." << std::endl;
+        const std::string message = ex.what();
+        if (message.find("Missing configuration file") != std::string::npos)
+        {
+            Config::generate_default("config.toml", config);
+            std::cerr << "A default configuration file has been generated. Please review and modify 'config.toml' as needed, then re-run the program." << std::endl;
+        }
+        else
+        {
+            std::cerr << "'config.toml' has been rewritten with the missing values filled in. Please review the result and re-run the program." << std::endl;
+        }
         return EXIT_FAILURE;
     }
 
