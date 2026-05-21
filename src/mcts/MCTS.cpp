@@ -162,8 +162,12 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         int agent = -1;
         if (randomValue < ratioRandom)
         {
-            // Perform a random simulation: assign a random agent to the current object
+            // TODO: Use new script to use trunckation of the tree search depending on the config (trunckateTreeSearch) 
+            // to avoid allocating all objects to the same agent in the random simulation, which is not realistic and creates 
+            // a lot of ties in the score (especially for OWA with low alpha)
 
+            // Perform a random simulation: assign a random agent to the current object
+            
             // Faster random int generation: use real distribution [0,1) then multiply
             // This avoids the overhead of uniform_int_distribution for every call
             agent = static_cast<int>(dist(rng64) * numAgents);
@@ -172,6 +176,10 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         }
         else
         {
+            // TODO: Use new script to use trunckation of the tree search depending on the config (trunckateTreeSearch) 
+            // to avoid allocating all objects to the same agent in the heuristic simulation, which is not realistic 
+            // and creates a lot of ties in the score
+            
             // Perform a heuristic simulation: assign the agent with the highest preference for the current object
             int objectIndex = currentHeight;
             double bestPref = -std::numeric_limits<double>::infinity();

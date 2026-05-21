@@ -29,6 +29,7 @@ private:
     bool verbose;
     double ratioRandom; // Ratio of random simulations to heuristic simulations
     Config config;  // Store configuration for thread access
+    bool trunckateTreeSearch;
 
 public:
     MCTS() : numberOfAgents(0),
@@ -41,7 +42,8 @@ public:
              evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false),
              ratioRandom(1.0),
-             config(Config()) {};
+             config(Config())
+             trunckateTreeSearch(false) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                       root(root),
@@ -101,7 +103,19 @@ public:
      */
     bool getVerbose() const { return verbose; }
 
+    /**
+     * @brief Get if the tree search is truncated (agents must have at least one object)
+     * @return bool True if the tree search is truncated, false otherwise
+     */
+    bool getTrunckateTreeSearch() const { return trunckateTreeSearch; }
     std::function<double(const Preferences<T> &, const Allocation &, bool)> getEvalFunction() const { return evalFunction; }
+
+    /**
+     * @brief Set the tree search to be truncated (agents must have at least one object)
+     * @param t True to truncate the tree search, false otherwise
+     */
+    void setTrunckateTreeSearch(bool t) { trunckateTreeSearch = t; }
+
     /** @brief Runs the MCTS algorithm for a specified number of iterations
      *  @param budget The number of iterations to run
      * @return void
@@ -146,6 +160,7 @@ public:
         verbose = config.verbose;
         ratioRandom = config.ratioRandom;
         preferences.generateRandomPreferences(numberOfAgents * numberOfObjects, config.seed);
+        trunckateTreeSearch = config.agentHaveMinimumOneObject;
     }
 
     void save_results_json(const std::string &filename)

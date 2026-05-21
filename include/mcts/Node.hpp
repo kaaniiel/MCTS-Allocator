@@ -14,6 +14,7 @@ class Node
 private:
     int numObjects; // Number of objects to allocate, needed for generating children
     int numAgents;  // Number of agents, needed for generating children
+    std::vector<bool> agentHasObject; // To keep track of which agents have been allocated an object, needed for generating children
     int visits;
     int h;             // height of the node in the tree
     int childrenIndex; // index of the next child to expand
@@ -25,6 +26,7 @@ private:
 public:
     Node() : numObjects(0),
              numAgents(0),
+             agentHasObject(0, false),
              visits(0),
              h(0),
              childrenIndex(0),
@@ -33,6 +35,7 @@ public:
              verbose(false) {};
     Node(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
                                                                                   numAgents(numAgents),
+                                                                                  agentHasObject(numAgents, false),
                                                                                   visits(0),
                                                                                   h(0),
                                                                                   childrenIndex(0),
@@ -49,6 +52,7 @@ public:
 
     Node(const Node &other) : numObjects(other.numObjects),
                               numAgents(other.numAgents),
+                              agentHasObject(other.agentHasObject),
                               visits(other.visits),
                               h(other.h),
                               childrenIndex(0),
@@ -62,11 +66,13 @@ public:
                                     h(0),
                                     childrenIndex(0),
                                     currentAllocation(alloc),
+                                    agentHasObject(alloc.getNumAgents(), false),
                                     bestAllocation(alloc, Score(0.0, alloc.getVerbose())),
                                     verbose(alloc.getVerbose()) {};
 
     Node(const Allocation &alloc, int height, const bool verbose = false) : numObjects(alloc.getNumObjects()),
                                                                             numAgents(alloc.getNumAgents()),
+                                                                            agentHasObject(alloc.getNumAgents(), false),
                                                                             visits(0),
                                                                             h(height),
                                                                             childrenIndex(0),
@@ -85,6 +91,33 @@ public:
      * @return int The number of agents
      */
     int getNumAgents() const { return numAgents; };
+
+    /**
+     * @brief Get the agents that have not been allocated an object
+     * @return std::vector<int> The agents that have not been allocated an object
+     */
+    std::vector<int> getAgentWithoutObject() const {
+        std::vector<int> agentsWithoutObject;
+        for (int i = 0; i < numAgents; i++)
+        {
+            if (!agentHasObject[i])
+            {
+                agentsWithoutObject.push_back(i);
+            }
+        }
+        return agentsWithoutObject;
+    }
+    
+    /**
+     * @brief Get the number of objects that have not been allocated
+     * @return int The number of objects that have not been allocated
+     */
+    int getObjectsNotAllocated() const {
+        // the height of the node in the tree corresponds to the number 
+        // of allocated objects, so the number of unallocated objects is 
+        // numObjects - h
+        return numObjects - h; 
+    }
 
     /**
      * @brief Get the current allocation
@@ -177,6 +210,9 @@ public:
      */
     Node *extend()
     {
+        // TODO: Use new script to avoid generating bad allocation (in OWA for example, with one/more agents having no object, 
+        // the score is always 0, so we can avoid generating these allocations)
+        
         // Generate a new child node by creating a new allocation based on the current allocation and modifying it
         int indexToModify = this->getHeight();
         int numAgents = this->getNumAgents();
