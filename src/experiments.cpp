@@ -66,14 +66,21 @@ namespace
     };
 
     /**
-     * @brief Check if a floating-point value is (nearly) an integer.
-     *
-     * Used to validate parameters that must be integer-valued within
-     * a small numerical tolerance.
-     *
-     * @param value The value to test.
-     * @param eps   Tolerance for integer equivalence. Default 1e-9.
-     * @return true if |value - round(value)| <= eps, false otherwise.
+            if (config.enableMetrics)
+            {
+                add_metrics(out, config.enableMetrics, cacheIt->second.prefs, cacheIt->second.allocation, 10);
+            }
+            else
+            {
+                out << "\n";
+            }
+        }
+        else
+        {
+            out << "          \"status\": \"error\",\n";
+            out << "          \"score\": 0,\n";
+            out << "          \"allocation\": []\n";
+        }
      */
     bool is_near_integer(double value, double eps = 1e-9)
     {
@@ -493,11 +500,12 @@ namespace
         oss << "exp " << (expIndex + 1) << "/" << totalExperiments
             << " try " << tryIndex << "/" << totalTries
             << " step " << (stepIndex + 1) << "/" << totalSteps
-            << " budget " << executedBudget << "->" << targetBudget
+            // << " budget " << executedBudget << "->" << targetBudget
             << " a=" << numAgents
             << " o=" << numObjects
-            << " s=" << seed
-            << " r=" << format_double(ratioRandom);
+            // << " s=" << seed
+            // << " r=" << format_double(ratioRandom)
+            ;
         return oss.str();
     }
 
@@ -549,6 +557,43 @@ namespace
             out << "\n";
         }
         out << whiteSpaceStr << "}\n";
+    }
+
+    /**
+     * @brief Uniformize negative score values to a consistent value if configured.
+     * 
+     * When `config.uniformizeNegativeValues` is true, any negative score value is replaced with the negative count of agents that did not receive any object. This provides a more interpretable and
+     * consistent way to handle negative scores, which may arise from certain preference structures or scoring functions. When the configuration option is false, the original score value is returned unchanged.
+     * 
+     * @param alloc The allocation being evaluated, used to count agents without objects.
+     * @param value The original score value to potentially uniformize.
+     * @param config The experiment configuration containing the `uniformizeNegativeValues` option.
+     * @return The uniformized score value if negative and uniformization is enabled, otherwise the original value.
+     */
+    template <typename T>
+    T uniformize_negative_values(const int numAgents, const std::vector<int> &alloc, T value, const Config &config)
+    {
+        if (value < 0 && config.uniformizeNegativeValues)
+        {
+            // Return the number of agents that haven't received an object
+            int agentsWithoutObject = numAgents;
+            std::vector<bool> agentHasObject(alloc.size(), false);
+            for (int object = 0; object < alloc.size(); ++object)
+            {   
+                int allocatedAgent = alloc[object];
+                if (agentHasObject[allocatedAgent]) {
+                    continue;
+                }
+
+                if (allocatedAgent >= 0 && allocatedAgent < alloc.size())
+                {
+                    agentHasObject[allocatedAgent] = true;
+                    agentsWithoutObject--;
+                }
+            }
+            return -static_cast<T>(agentsWithoutObject);
+        }
+        return value;
     }
 }
 int main(int argc, char **argv)
@@ -729,15 +774,32 @@ int main(int argc, char **argv)
             // out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
             out << "          \"allocation\": ";
             write_array(out, cacheIt->second.allocation);
+            if (config.enableMetrics)
+            {
+                add_metrics(out, config.enableMetrics, cacheIt->second.prefs, cacheIt->second.allocation, 10);
+            }
+            else
+            {
+                out << "\n";
+            }
             out << "\n";
         }
         else
         {
             out << "          \"score\": 0,\n";
-            out << "          \"allocation\": []\n";
+            out << "          \"allocation\":[]";
+            if (config.enableMetrics)
+            {
+                add_metrics(out, config.enableMetrics, cacheIt->second.prefs, cacheIt->second.allocation, 10);
+            }
+            else
+            {
+                out << "\n";
+            }
+            out << "\n";
         }
 
-        add_metrics(out, config.enableMetrics, cacheIt->second.prefs, cacheIt->second.allocation, 10);
+        
 
         out << "        },\n";
 
@@ -804,11 +866,17 @@ int main(int argc, char **argv)
 
                     out << "                {\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
-                    out << "                  \"score\": " << format_json_score(finalBest.second.getScore()) << ",\n";
+                    out << "                  \"score\": " << format_json_score(uniformize_negative_values(finalBest.first.getNumAgents(), finalBest.first.getAllocation(), finalBest.second.getScore(), config)) << ",\n";
                     out << "                  \"allocation\": ";
                     write_array(out, finalBest.first.getAllocation());
-                    out << "\n";
-                    add_metrics(out, config.enableMetrics, pref, finalBest.first.getAllocation(), 18);
+                    if (config.enableMetrics)
+                    {
+                        add_metrics(out, config.enableMetrics, pref, finalBest.first.getAllocation(), 18);
+                    }
+                    else
+                    {
+                        out << "\n";
+                    }
                     out << "                }";
                     if (stepIdx + 1 < stepTargets.size())
                     {
@@ -826,9 +894,8 @@ int main(int argc, char **argv)
             const auto tryEnd = std::chrono::steady_clock::now();
             const auto tryDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(tryEnd - tryStart).count();
 
-            out << "              ],\n";
+            out << "              ]\n";
 
-            write_array(out, finalBest.first.getAllocation());
             out << "\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
