@@ -85,9 +85,10 @@ void MCTS<T>::run(const int budget, bool showProgress)
         {
             std::cout << "Budget counter: " << budgetCounter << std::endl;
         }
-        if (childNode != nullptr)
+        Node *simulationNode = (childNode != nullptr) ? childNode : node;
+        if (simulationNode != nullptr)
         {
-            if (this->getVerbose())
+            if (childNode != nullptr && this->getVerbose())
             {
                 for (int object : childNode->getCurrentAllocation().getAllocation())
                 {
@@ -95,9 +96,12 @@ void MCTS<T>::run(const int budget, bool showProgress)
                 }
                 std::cout << std::endl;
             }
-            nodeStack.push(childNode);
+            if (childNode != nullptr)
+            {
+                nodeStack.push(childNode);
+            }
             /*simulation*/
-            std::pair<Allocation, Score> reward = simulate(*childNode);
+            std::pair<Allocation, Score> reward = simulate(*simulationNode);
             /*backpropagation*/
             backpropagate(nodeStack, reward);
         }
@@ -115,7 +119,7 @@ Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
 {
     nodeStack->push(node);
     Node *currentNode = node;
-    while (currentNode->getChildren().size() >= static_cast<std::size_t>(currentNode->getNumAgents()))
+    while (!currentNode->isLeafForExpansion() && currentNode->getChildren().size() >= static_cast<std::size_t>(currentNode->getMaxChildrenCount()))
     {
         currentNode = UCB::selectBestChild(currentNode, std::sqrt(2.0)); // Use an exploration parameter of sqrt(2) for UCB
         if (currentNode == nullptr)
@@ -162,34 +166,66 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         int agent = -1;
         if (randomValue < ratioRandom)
         {
-            // TODO: Use new script to use trunckation of the tree search depending on the config (trunckateTreeSearch) 
-            // to avoid allocating all objects to the same agent in the random simulation, which is not realistic and creates 
-            // a lot of ties in the score (especially for OWA with low alpha)
+            // Random simulation: if truncation is active and the remaining unassigned agents must all
+            // receive one object, restrict the random choice to those agents.
+            const std::vector<int> agentsWithoutObject = node.getAgentWithoutObject();
+            const int remainingObjects = currentAlloc.getNumObjects() - currentHeight;
 
-            // Perform a random simulation: assign a random agent to the current object
-            
-            // Faster random int generation: use real distribution [0,1) then multiply
-            // This avoids the overhead of uniform_int_distribution for every call
-            agent = static_cast<int>(dist(rng64) * numAgents);
-            // Clamp to valid range just in case of floating point edge cases
-            agent = (agent >= numAgents) ? numAgents - 1 : agent;
+            if (node.getTruncateTreeSearch() && !agentsWithoutObject.empty() &&
+                static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
+            {
+                const int selectedIndex = static_cast<int>(dist(rng64) * agentsWithoutObject.size());
+                const int clampedIndex = (selectedIndex >= static_cast<int>(agentsWithoutObject.size()))
+                                             ? static_cast<int>(agentsWithoutObject.size()) - 1
+                                             : selectedIndex;
+                agent = agentsWithoutObject[clampedIndex];
+            }
+            else
+            {
+                // Faster random int generation: use real distribution [0,1) then multiply.
+                // This avoids the overhead of uniform_int_distribution for every call.
+                agent = static_cast<int>(dist(rng64) * numAgents);
+                // Clamp to valid range just in case of floating point edge cases.
+                agent = (agent >= numAgents) ? numAgents - 1 : agent;
+            }
         }
         else
         {
-            // TODO: Use new script to use trunckation of the tree search depending on the config (trunckateTreeSearch) 
-            // to avoid allocating all objects to the same agent in the heuristic simulation, which is not realistic 
-            // and creates a lot of ties in the score
-            
-            // Perform a heuristic simulation: assign the agent with the highest preference for the current object
+            // Heuristic simulation: when truncation is enabled, restrict the candidate agents when the
+            // remaining unassigned agents must all receive one object.
+            const std::vector<int> agentsWithoutObject = node.getAgentWithoutObject();
+            const int remainingObjects = currentAlloc.getNumObjects() - currentHeight;
+            const std::vector<int> &candidateAgents =
+                (node.getTruncateTreeSearch() && !agentsWithoutObject.empty() &&
+                 static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
+                    ? agentsWithoutObject
+                    : std::vector<int>{};
+
+            // Perform a heuristic simulation: assign the agent with the highest preference for the current object.
             int objectIndex = currentHeight;
             double bestPref = -std::numeric_limits<double>::infinity();
-            for (int a = 0; a < numAgents; a++)
+            if (!candidateAgents.empty())
             {
-                double pref = preferences.getPreference(a, objectIndex);
-                if (pref > bestPref)
+                for (int a : candidateAgents)
                 {
-                    bestPref = pref;
-                    agent = a;
+                    double pref = preferences.getPreference(a, objectIndex);
+                    if (pref > bestPref)
+                    {
+                        bestPref = pref;
+                        agent = a;
+                    }
+                }
+            }
+            else
+            {
+                for (int a = 0; a < numAgents; a++)
+                {
+                    double pref = preferences.getPreference(a, objectIndex);
+                    if (pref > bestPref)
+                    {
+                        bestPref = pref;
+                        agent = a;
+                    }
                 }
             }
         }

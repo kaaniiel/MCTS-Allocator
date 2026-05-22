@@ -31,7 +31,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, const 
         return node; // Return the current node if it is not fully expanded
     }
 
-    if (node->getChildren().size() < static_cast<size_t>(node->getNumAgents()))
+    if (node->isLeafForExpansion() || node->getChildren().size() < static_cast<size_t>(node->getMaxChildrenCount()))
     {
         return node;
     }

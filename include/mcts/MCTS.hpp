@@ -42,7 +42,7 @@ public:
              evalFunction(Utility<T>::calculateUtilityMul),
              verbose(false),
              ratioRandom(1.0),
-             config(Config())
+             config(Config()),
              trunckateTreeSearch(false) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),

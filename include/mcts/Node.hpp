@@ -22,6 +22,7 @@ private:
     std::pair<Allocation, Score> bestAllocation;
     std::vector<Node> children;
     bool verbose;
+    bool truncateTreeSearch = false;
 
 public:
     Node() : numObjects(0),
@@ -98,9 +99,21 @@ public:
      */
     std::vector<int> getAgentWithoutObject() const {
         std::vector<int> agentsWithoutObject;
+        std::vector<bool> hasObject(numAgents, false);
+        const std::vector<int> &allocVec = currentAllocation.getAllocation();
+
+        for (int object = 0; object < static_cast<int>(allocVec.size()); ++object)
+        {
+            const int agent = allocVec[object];
+            if (agent >= 0 && agent < numAgents)
+            {
+                hasObject[agent] = true;
+            }
+        }
+
         for (int i = 0; i < numAgents; i++)
         {
-            if (!agentHasObject[i])
+            if (!hasObject[i])
             {
                 agentsWithoutObject.push_back(i);
             }
@@ -117,6 +130,78 @@ public:
         // of allocated objects, so the number of unallocated objects is 
         // numObjects - h
         return numObjects - h; 
+    }
+
+    /**
+     * @brief Get the agents that can be selected when truncation is enabled.
+     * @return std::vector<int> The agents that can be expanded from this node.
+     */
+    std::vector<int> getExpandableAgents() const
+    {
+        std::vector<int> allAgents;
+        allAgents.reserve(numAgents);
+        for (int agent = 0; agent < numAgents; ++agent)
+        {
+            allAgents.push_back(agent);
+        }
+
+        if (!truncateTreeSearch)
+        {
+            return allAgents;
+        }
+
+        const std::vector<int> agentsWithoutObject = getAgentWithoutObject();
+        const int remainingObjects = getObjectsNotAllocated();
+
+        if (remainingObjects <= 0)
+        {
+            return {};
+        }
+
+        if (agentsWithoutObject.empty())
+        {
+            return allAgents;
+        }
+
+        if (static_cast<int>(agentsWithoutObject.size()) > remainingObjects)
+        {
+            return {};
+        }
+
+        if (static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
+        {
+            return agentsWithoutObject;
+        }
+
+        return allAgents;
+    }
+
+    /**
+     * @brief Get the number of children that can still be generated from this node.
+     * @return int The number of expandable children.
+     */
+    int getMaxChildrenCount() const
+    {
+        return static_cast<int>(getExpandableAgents().size());
+    }
+
+    /**
+     * @brief Check whether the node should be treated as a leaf for expansion.
+     * @return bool True if the node should not be expanded.
+     */
+    bool isLeafForExpansion() const
+    {
+        if (getObjectsNotAllocated() <= 0)
+        {
+            return true;
+        }
+
+        if (!truncateTreeSearch)
+        {
+            return false;
+        }
+
+        return static_cast<int>(getAgentWithoutObject().size()) > getObjectsNotAllocated();
     }
 
     /**
@@ -204,20 +289,33 @@ public:
      */
     bool getVerbose() const { return verbose; }
 
+    /**
+     * @brief Check if the node is fully expanded (i.e., all children have been generated)
+     * @return bool True if the node is fully expanded, false otherwise
+     */
+    bool getTruncateTreeSearch() const { return truncateTreeSearch; }
+    
+    /**
+     * @brief Set the tree search to be truncated (agents must have at least one object)
+     * @return void
+     */
+    void setTruncateTreeSearch(bool t) { truncateTreeSearch = t; }
     /** @brief Expands a node by generating one of its unvisited children
      *  @param node The node to expand
      *  @return The expanded node
      */
     Node *extend()
     {
-        // TODO: Use new script to avoid generating bad allocation (in OWA for example, with one/more agents having no object, 
-        // the score is always 0, so we can avoid generating these allocations)
-        
         // Generate a new child node by creating a new allocation based on the current allocation and modifying it
         int indexToModify = this->getHeight();
-        int numAgents = this->getNumAgents();
 
         if (indexToModify < 0 || indexToModify >= static_cast<int>(numObjects))
+        {
+            return nullptr;
+        }
+
+        const std::vector<int> expandableAgents = getExpandableAgents();
+        if (expandableAgents.empty() || getChildrenIndex() >= static_cast<int>(expandableAgents.size()))
         {
             return nullptr;
         }
@@ -225,17 +323,11 @@ public:
         // Get allocation and modify in-place to avoid copies
         std::vector<int> allocVec = this->getCurrentAllocation().getAllocation();
 
-        if (allocVec[indexToModify] + (this->getChildrenIndex() + 1) >= numAgents)
-        {
-            // If the modified allocation exceeds the number of agents, we cannot create a new child node
-            return nullptr;
-        }
-
-        allocVec[indexToModify] = (allocVec[indexToModify] + (this->getChildrenIndex() + 1));
+        allocVec[indexToModify] = expandableAgents[this->getChildrenIndex()];
         this->incrementChildrenIndex();
 
         // Use move semantics to avoid copying the allocation vector
-        children.emplace_back(Allocation(numAgents, std::move(allocVec), verbose), this->getHeight() + 1, this->getVerbose());
+        children.emplace_back(Allocation(this->getNumAgents(), std::move(allocVec), verbose), this->getHeight() + 1, this->getVerbose());
         return &children.back();
     };
 
