@@ -537,6 +537,7 @@ namespace
         };
 
         static const std::vector<Metric> metrics = {
+            {"ParetoOptimal", isParetoOptimal<int>},
             {"Prop", isProp<int>},
             {"EF", isEF<int>},
             {"EFX", isEFX<int>},
@@ -561,10 +562,10 @@ namespace
 
     /**
      * @brief Uniformize negative score values to a consistent value if configured.
-     * 
+     *
      * When `config.uniformizeNegativeValues` is true, any negative score value is replaced with the negative count of agents that did not receive any object. This provides a more interpretable and
      * consistent way to handle negative scores, which may arise from certain preference structures or scoring functions. When the configuration option is false, the original score value is returned unchanged.
-     * 
+     *
      * @param alloc The allocation being evaluated, used to count agents without objects.
      * @param value The original score value to potentially uniformize.
      * @param config The experiment configuration containing the `uniformizeNegativeValues` option.
@@ -579,9 +580,10 @@ namespace
             int agentsWithoutObject = numAgents;
             std::vector<bool> agentHasObject(alloc.size(), false);
             for (int object = 0; object < alloc.size(); ++object)
-            {   
+            {
                 int allocatedAgent = alloc[object];
-                if (agentHasObject[allocatedAgent]) {
+                if (agentHasObject[allocatedAgent])
+                {
                     continue;
                 }
 
@@ -798,8 +800,6 @@ int main(int argc, char **argv)
             }
             out << "\n";
         }
-
-        
 
         out << "        },\n";
 

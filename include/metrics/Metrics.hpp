@@ -213,4 +213,97 @@ bool isProp(const Preferences<T> &pref, const Allocation &alloc)
     return isProp(pref, alloc.getAllocation());
 }
 
+template <typename T>
+bool isParetoOptimal(const Preferences<T> &pref, const std::vector<int> &alloc)
+{
+    const int numAgents = pref.getNumAgents();
+    const int numObjects = alloc.size();
+
+    GRBEnv env = GRBEnv(true);
+
+    env.set("OutputFlag", "0");
+    env.set("LogToConsole", "0");
+    env.start();
+    GRBModel model = GRBModel(env);
+    // Create decision variables for the allocation
+    std::vector<std::vector<GRBVar>> x(numAgents, std::vector<GRBVar>(numObjects));
+    for (int i = 0; i < numAgents; ++i)
+    {
+        for (int j = 0; j < numObjects; ++j)
+        {
+            x[i][j] = model.addVar(0.0, 1.0, 0.0, GRB_BINARY, "x_" + std::to_string(i) + "_" + std::to_string(j));
+        }
+    }
+
+    // Constraints
+    // Each object must be allocated to exactly one agent
+    for (int j = 0; j < numObjects; ++j)
+    {
+        GRBLinExpr objectConstraint = 0;
+        for (int i = 0; i < numAgents; ++i)
+        {
+            objectConstraint += x[i][j];
+        }
+        model.addConstr(objectConstraint == 1, "Object_" + std::to_string(j) + "_constraint");
+    }
+    // u_i(sum_j x[i][j] * pref[i][j]) >= u_i(sum_j alloc[i][j] * pref[i][j]) for all i (utility of new allocation must be at least as good as current allocation for all agents)
+    std::vector<GRBVar> agentUtility(numAgents);
+    std::vector<T> allocUtilities(numAgents);
+    for (int i = 0; i < numAgents; ++i)
+    {
+        agentUtility[i] = model.addVar(-GRB_INFINITY, GRB_INFINITY, 0.0, GRB_CONTINUOUS, "u_" + std::to_string(i));
+
+        GRBLinExpr utilExpr = 0;
+        for (int j = 0; j < numObjects; ++j)
+        {
+            utilExpr += static_cast<double>(pref.getPreference(i, j)) * x[i][j];
+            if (alloc[j] == i)
+            {
+                allocUtilities[i] += pref.getPreference(i, j);
+            }
+        }
+        model.addConstr(agentUtility[i] == utilExpr, "utility_def_" + std::to_string(i));
+
+        GRBLinExpr currentUtil = 0;
+        for (int j = 0; j < numObjects; ++j)
+        {
+            int owner = alloc[j];
+            if (owner == i)
+            {
+                currentUtil += static_cast<double>(pref.getPreference(i, j));
+            }
+        }
+        model.addConstr(agentUtility[i] >= currentUtil, "pareto_optimality_" + std::to_string(i));
+    }
+
+    // Objective: maximize the sum of utilities
+    GRBLinExpr objective = 0;
+    for (int i = 0; i < numAgents; ++i)
+    {
+        objective += agentUtility[i];
+    }
+    model.setObjective(objective, GRB_MAXIMIZE);
+    model.optimize();
+
+    // if one utility is > from alloc utility, then alloc is not Pareto optimal
+    // else if == for all, then alloc is Pareto optimal
+    if (model.get(GRB_IntAttr_SolCount) > 0)
+    {
+        for (int i = 0; i < numAgents; ++i)
+        {
+            double utilValue = agentUtility[i].get(GRB_DoubleAttr_X);
+            if (utilValue > allocUtilities[i] + 1e-6) // Adding a small tolerance
+            {
+                return false; // Found an allocation that is strictly better for at least one agent
+            }
+        }
+    }
+    return true; // Pareto optimal
+}
+
+template <typename T>
+bool isParetoOptimal(const Preferences<T> &pref, const Allocation &alloc)
+{
+    return isParetoOptimal(pref, alloc.getAllocation());
+}
 #endif // METRICS_HPP
