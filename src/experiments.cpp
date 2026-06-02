@@ -603,9 +603,11 @@ int main(int argc, char **argv)
     const auto programStart = std::chrono::steady_clock::now();
 
     std::string configPath = "config.toml";
+    std::string resumeDir = "";
 
     CLI::App app{"MCTS experiments runner"};
     app.add_option("-c,--config", configPath, "Path to TOML configuration file");
+    app.add_option("-r,--resume", resumeDir, "Chemin vers un dossier d'execution a reprendre (ex: output/experiments_...)");
 
     CLI11_PARSE(app, argc, argv);
 
@@ -665,13 +667,50 @@ int main(int argc, char **argv)
     auto lastLiveStatus = std::chrono::steady_clock::now();
     std::unordered_map<SolverKey, SolverResultCache<int>, SolverKeyHash> solverCache;
     solverCache.reserve(solverWorkUnits);
+    std::filesystem::path runDir;
+    std::size_t startExpIndex = 0;
+    if (!resumeDir.empty())
+    {
+        runDir = resumeDir;
+        if (std::filesystem::exists(runDir))
+        {
+            for (std::size_t i = 0; i < experimentGrid.size(); ++i)
+            {
+                std::ostringstream fnameStream;
+                fnameStream << "experiment_" << (i + 1)
+                            << "_a" << experimentGrid[i].numAgents
+                            << "_o" << experimentGrid[i].numObjects
+                            << "_s" << experimentGrid[i].seed
+                            << ".json";
 
-    std::filesystem::create_directories(config.outputDirectory);
-    const std::string runBasename = std::filesystem::path(build_output_filename()).stem().string();
-    const std::filesystem::path runDir = std::filesystem::path(config.outputDirectory) / runBasename;
-    std::filesystem::create_directories(runDir);
-
-    for (std::size_t expIndex = 0; expIndex < experimentGrid.size(); ++expIndex)
+                if (std::filesystem::exists(runDir / fnameStream.str()))
+                {
+                    // On retient l'index du dernier fichier existant pour l'écraser
+                    startExpIndex = i;
+                }
+                else
+                {
+                    break; // Premier fichier manquant trouvé
+                }
+            }
+            std::cout << "[Checkpoint] Reprise detectee. Ecrasement et reprise a l'experience "
+                      << (startExpIndex + 1) << "/" << experimentGrid.size() << "\n";
+        }
+        else
+        {
+            std::cerr << "[Checkpoint] Erreur : le dossier " << resumeDir << " n'existe pas.\n";
+            return EXIT_FAILURE;
+        }
+    }
+    else
+    {
+        std::filesystem::create_directories(config.outputDirectory);
+        const std::string runBasename = std::filesystem::path(build_output_filename()).stem().string();
+        runDir = std::filesystem::path(config.outputDirectory) / runBasename;
+        std::filesystem::create_directories(runDir);
+    }
+    completedWorkUnits = startExpIndex * static_cast<std::size_t>(config.numberOfTrys) * stepsPerTry;
+    for (std::size_t expIndex = startExpIndex; expIndex < experimentGrid.size(); ++expIndex)
     {
         const ExperimentParams &params = experimentGrid[expIndex];
 
