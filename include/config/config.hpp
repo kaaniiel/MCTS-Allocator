@@ -48,6 +48,8 @@ struct Config
     double numberOfBudgetStep = 0;
     bool agentHaveMinimumOneObject = false;
     bool uniformizeNegativeValues = false;
+    //Solver
+    int solverTimeoutSeconds = 60*2; // 2 minutes
 
 private:
     /**
@@ -633,8 +635,11 @@ public:
             write_value(file, 1, "ratio_random_min", default_config.ratioRandomMin);
             write_value(file, 1, "ratio_random_max", default_config.ratioRandomMax);
             write_value(file, 1, "ratio_random_step", default_config.ratioRandomStep);
+            write_comment(file, 1, "Number of try for each configuration (agents, objects, seed, ratio_random)");
             write_value(file, 1, "number_of_trys", default_config.numberOfTrys);
+            write_comment(file, 1, "Slice the budget into how many steps (1 means no slicing, 2 means half budget in the first step, half in the second, etc.)");
             write_value(file, 1, "number_of_budget_step", default_config.numberOfBudgetStep);
+            write_comment(file, 1, "Budget multiplier to apply at each try. 1 means no change, 2 means double the budget at each try, etc.");
             write_value(file, 1, "budget_multiplier", default_config.budgetMultiplier);
             write_comment(file, 1, "Whether each agent must have at least one object");
             write_value(file, 1, "agent_have_minimum_one_object", default_config.agentHaveMinimumOneObject);
@@ -642,6 +647,10 @@ public:
             write_comment(file, 1, "If true, negative values will be transformed to how much agent haven't recieved an object");
             write_value(file, 1, "uniformize_negative_values", default_config.uniformizeNegativeValues);
 
+            write_section(file, "experiments.solver");
+            write_comment(file, 1, "Values specific to the solver experiment sweep.");
+            write_comment(file, 1, "Time limit for the solver in seconds");
+            write_value(file, 1, "solver_timeout_seconds", default_config.solverTimeoutSeconds);
             file << '\n';
             std::cout << "[Config] Default file created: " << filepath << "\n";
         }

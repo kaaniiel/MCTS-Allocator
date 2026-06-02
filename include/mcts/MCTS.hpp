@@ -161,6 +161,7 @@ public:
         ratioRandom = config.ratioRandom;
         preferences.generateRandomPreferences(numberOfAgents * numberOfObjects, config.seed);
         trunckateTreeSearch = config.agentHaveMinimumOneObject;
+        root.setTruncateTreeSearch(trunckateTreeSearch);
     }
 
     void save_results_json(const std::string &filename)

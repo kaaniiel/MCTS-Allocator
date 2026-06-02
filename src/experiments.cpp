@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -509,6 +510,342 @@ namespace
         return oss.str();
     }
 
+    struct WaypointSnapshot
+    {
+        std::string phase;
+        std::string status;
+        std::size_t experimentIndex{0};
+        std::size_t totalExperiments{0};
+        int tryIndex{0};
+        int totalTries{0};
+        std::size_t stepIndex{0};
+        std::size_t totalSteps{0};
+        int executedBudget{0};
+        int targetBudget{0};
+        int numAgents{0};
+        int numObjects{0};
+        int seed{0};
+        double ratioRandom{0.0};
+        int budget{0};
+        long long stepTimeUs{0};
+        long long cumulativeTimeUs{0};
+        std::string outputFile;
+        std::vector<int> bestAllocation;
+        double bestScore{0.0};
+        std::vector<int> overallBestAllocation;
+        double overallBestScore{0.0};
+    };
+
+    struct ResumeState
+    {
+        std::filesystem::path runDir;
+        WaypointSnapshot snapshot;
+    };
+
+    std::string trim_copy(const std::string &text)
+    {
+        const std::string whitespace = " \t\r\n";
+        const std::size_t begin = text.find_first_not_of(whitespace);
+        if (begin == std::string::npos)
+        {
+            return {};
+        }
+        const std::size_t end = text.find_last_not_of(whitespace);
+        return text.substr(begin, end - begin + 1);
+    }
+
+    std::optional<std::string> read_state_value(const std::unordered_map<std::string, std::string> &values, const std::string &key)
+    {
+        auto it = values.find(key);
+        if (it == values.end())
+        {
+            return std::nullopt;
+        }
+        return it->second;
+    }
+
+    template <typename T>
+    std::optional<T> parse_numeric_value(const std::string &text)
+    {
+        std::istringstream iss(text);
+        T value{};
+        char extra = '\0';
+        if ((iss >> value) && !(iss >> extra))
+        {
+            return value;
+        }
+        return std::nullopt;
+    }
+
+    std::vector<int> parse_int_list(const std::string &text)
+    {
+        std::vector<int> values;
+        const std::size_t open = text.find('[');
+        const std::size_t close = text.find(']', open == std::string::npos ? 0 : open);
+        if (open == std::string::npos || close == std::string::npos || close <= open + 1)
+        {
+            return values;
+        }
+
+        std::stringstream ss(text.substr(open + 1, close - open - 1));
+        std::string token;
+        while (std::getline(ss, token, ','))
+        {
+            const std::string cleaned = trim_copy(token);
+            if (cleaned.empty())
+            {
+                continue;
+            }
+            if (auto parsed = parse_numeric_value<int>(cleaned))
+            {
+                values.push_back(*parsed);
+            }
+        }
+        return values;
+    }
+
+    std::optional<WaypointSnapshot> parse_waypoint_snapshot(const std::filesystem::path &path)
+    {
+        std::ifstream input(path);
+        if (!input.is_open())
+        {
+            return std::nullopt;
+        }
+
+        std::unordered_map<std::string, std::string> values;
+        std::string line;
+        while (std::getline(input, line))
+        {
+            const std::size_t separator = line.find('=');
+            if (separator == std::string::npos)
+            {
+                continue;
+            }
+
+            const std::string key = trim_copy(line.substr(0, separator));
+            const std::string value = trim_copy(line.substr(separator + 1));
+            if (!key.empty())
+            {
+                values[key] = value;
+            }
+        }
+
+        WaypointSnapshot snapshot;
+        if (auto value = read_state_value(values, "phase")) snapshot.phase = *value;
+        if (auto value = read_state_value(values, "status")) snapshot.status = *value;
+        if (auto value = read_state_value(values, "experiment_index"))
+        {
+            if (auto parsed = parse_numeric_value<std::size_t>(*value)) snapshot.experimentIndex = (*parsed > 0) ? (*parsed - 1) : 0;
+        }
+        if (auto value = read_state_value(values, "total_experiments"))
+        {
+            if (auto parsed = parse_numeric_value<std::size_t>(*value)) snapshot.totalExperiments = *parsed;
+        }
+        if (auto value = read_state_value(values, "try_index"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.tryIndex = *parsed;
+        }
+        if (auto value = read_state_value(values, "total_tries"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.totalTries = *parsed;
+        }
+        if (auto value = read_state_value(values, "step_index"))
+        {
+            if (auto parsed = parse_numeric_value<std::size_t>(*value)) snapshot.stepIndex = (*parsed > 0) ? (*parsed - 1) : 0;
+        }
+        if (auto value = read_state_value(values, "total_steps"))
+        {
+            if (auto parsed = parse_numeric_value<std::size_t>(*value)) snapshot.totalSteps = *parsed;
+        }
+        if (auto value = read_state_value(values, "executed_budget"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.executedBudget = *parsed;
+        }
+        if (auto value = read_state_value(values, "target_budget"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.targetBudget = *parsed;
+        }
+        if (auto value = read_state_value(values, "num_agents"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.numAgents = *parsed;
+        }
+        if (auto value = read_state_value(values, "num_objects"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.numObjects = *parsed;
+        }
+        if (auto value = read_state_value(values, "seed"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.seed = *parsed;
+        }
+        if (auto value = read_state_value(values, "ratio_random"))
+        {
+            if (auto parsed = parse_numeric_value<double>(*value)) snapshot.ratioRandom = *parsed;
+        }
+        if (auto value = read_state_value(values, "budget"))
+        {
+            if (auto parsed = parse_numeric_value<int>(*value)) snapshot.budget = *parsed;
+        }
+        if (auto value = read_state_value(values, "step_time_us"))
+        {
+            if (auto parsed = parse_numeric_value<long long>(*value)) snapshot.stepTimeUs = *parsed;
+        }
+        if (auto value = read_state_value(values, "cumulative_time_us"))
+        {
+            if (auto parsed = parse_numeric_value<long long>(*value)) snapshot.cumulativeTimeUs = *parsed;
+        }
+        if (auto value = read_state_value(values, "output_file")) snapshot.outputFile = *value;
+        if (auto value = read_state_value(values, "best_score"))
+        {
+            if (auto parsed = parse_numeric_value<double>(*value)) snapshot.bestScore = *parsed;
+        }
+        if (auto value = read_state_value(values, "best_allocation")) snapshot.bestAllocation = parse_int_list(*value);
+        if (auto value = read_state_value(values, "experiment_best_score"))
+        {
+            if (auto parsed = parse_numeric_value<double>(*value)) snapshot.overallBestScore = *parsed;
+        }
+        if (auto value = read_state_value(values, "experiment_best_allocation")) snapshot.overallBestAllocation = parse_int_list(*value);
+
+        return snapshot;
+    }
+
+    std::optional<ResumeState> find_latest_incomplete_run(const std::filesystem::path &outputRoot)
+    {
+        if (!std::filesystem::exists(outputRoot))
+        {
+            return std::nullopt;
+        }
+
+        std::optional<ResumeState> best;
+        std::filesystem::file_time_type bestTime{};
+
+        std::error_code ec;
+        for (std::filesystem::recursive_directory_iterator it(outputRoot, std::filesystem::directory_options::skip_permission_denied, ec), end; it != end && !ec; ++it)
+        {
+            if (!it->is_regular_file())
+            {
+                continue;
+            }
+
+            if (it->path().filename() != "latest.state")
+            {
+                continue;
+            }
+
+            auto snapshot = parse_waypoint_snapshot(it->path());
+            if (!snapshot)
+            {
+                continue;
+            }
+
+            if (snapshot->status == "completed" && snapshot->phase == "experiment-complete")
+            {
+                continue;
+            }
+
+            const auto modified = std::filesystem::last_write_time(it->path(), ec);
+            if (ec)
+            {
+                ec.clear();
+                continue;
+            }
+
+            if (!best || modified > bestTime)
+            {
+                bestTime = modified;
+                best = ResumeState{it->path().parent_path().parent_path(), *snapshot};
+            }
+        }
+
+        return best;
+    }
+
+    std::string build_waypoint_basename(const WaypointSnapshot &snapshot)
+    {
+        std::ostringstream oss;
+        oss << "exp_" << std::setw(3) << std::setfill('0') << (snapshot.experimentIndex + 1)
+            << "_try_" << std::setw(2) << std::setfill('0') << snapshot.tryIndex
+            << "_step_" << std::setw(4) << std::setfill('0') << snapshot.stepIndex
+            << "_" << snapshot.phase << ".state";
+        return oss.str();
+    }
+
+    std::string build_waypoint_payload(const WaypointSnapshot &snapshot)
+    {
+        std::ostringstream oss;
+        oss << "phase=" << snapshot.phase << '\n';
+        oss << "status=" << snapshot.status << '\n';
+        oss << "experiment_index=" << (snapshot.experimentIndex + 1) << '\n';
+        oss << "total_experiments=" << snapshot.totalExperiments << '\n';
+        oss << "try_index=" << snapshot.tryIndex << '\n';
+        oss << "total_tries=" << snapshot.totalTries << '\n';
+        oss << "step_index=" << (snapshot.stepIndex + 1) << '\n';
+        oss << "total_steps=" << snapshot.totalSteps << '\n';
+        oss << "executed_budget=" << snapshot.executedBudget << '\n';
+        oss << "target_budget=" << snapshot.targetBudget << '\n';
+        oss << "num_agents=" << snapshot.numAgents << '\n';
+        oss << "num_objects=" << snapshot.numObjects << '\n';
+        oss << "seed=" << snapshot.seed << '\n';
+        oss << "ratio_random=" << format_double(snapshot.ratioRandom) << '\n';
+        oss << "budget=" << snapshot.budget << '\n';
+        oss << "step_time_us=" << snapshot.stepTimeUs << '\n';
+        oss << "cumulative_time_us=" << snapshot.cumulativeTimeUs << '\n';
+        oss << "output_file=" << snapshot.outputFile << '\n';
+        oss << "best_score=" << format_json_score(snapshot.bestScore) << '\n';
+        oss << "best_allocation=";
+        write_array(oss, snapshot.bestAllocation);
+        oss << '\n';
+        oss << "experiment_best_score=" << format_json_score(snapshot.overallBestScore) << '\n';
+        oss << "experiment_best_allocation=";
+        write_array(oss, snapshot.overallBestAllocation);
+        oss << '\n';
+        return oss.str();
+    }
+
+    void write_atomic_text_file(const std::filesystem::path &path, const std::string &content)
+    {
+        const std::filesystem::path tempPath = path.string() + ".tmp";
+        {
+            std::ofstream tempFile(tempPath, std::ios::trunc);
+            if (!tempFile.is_open())
+            {
+                throw std::runtime_error("Unable to create waypoint file: " + tempPath.string());
+            }
+
+            tempFile << content;
+            tempFile.flush();
+            if (!tempFile)
+            {
+                throw std::runtime_error("Unable to flush waypoint file: " + tempPath.string());
+            }
+        }
+
+        std::error_code ec;
+        std::filesystem::rename(tempPath, path, ec);
+        if (ec)
+        {
+            std::filesystem::remove(path, ec);
+            ec.clear();
+            std::filesystem::rename(tempPath, path, ec);
+            if (ec)
+            {
+                throw std::runtime_error("Unable to finalize waypoint file: " + path.string());
+            }
+        }
+    }
+
+    void write_waypoint_snapshot(const std::filesystem::path &waypointDir,
+                                 const WaypointSnapshot &snapshot)
+    {
+        const std::filesystem::path latestPath = waypointDir / "latest.state";
+        const std::filesystem::path historyPath = waypointDir / "history" / build_waypoint_basename(snapshot);
+
+        std::filesystem::create_directories(historyPath.parent_path());
+
+        const std::string payload = build_waypoint_payload(snapshot);
+        write_atomic_text_file(latestPath, payload);
+        write_atomic_text_file(historyPath, payload);
+    }
+
     /**
      * @brief Append fairness/utility metrics to the experiment JSON output.
      *
@@ -667,11 +1004,25 @@ int main(int argc, char **argv)
     solverCache.reserve(solverWorkUnits);
 
     std::filesystem::create_directories(config.outputDirectory);
-    const std::string runBasename = std::filesystem::path(build_output_filename()).stem().string();
-    const std::filesystem::path runDir = std::filesystem::path(config.outputDirectory) / runBasename;
+    const std::optional<ResumeState> resumeState = find_latest_incomplete_run(std::filesystem::path(config.outputDirectory));
+    std::filesystem::path runDir;
+    std::size_t startExperimentIndex = 0;
+    if (resumeState && std::filesystem::exists(resumeState->runDir))
+    {
+        runDir = resumeState->runDir;
+        startExperimentIndex = std::min(resumeState->snapshot.experimentIndex, experimentGrid.empty() ? std::size_t{0} : experimentGrid.size() - 1);
+        std::cout << "[Experiments] Resuming incomplete run from " << runDir.string() << "\n";
+    }
+    else
+    {
+        const std::string runBasename = std::filesystem::path(build_output_filename()).stem().string();
+        runDir = std::filesystem::path(config.outputDirectory) / runBasename;
+    }
     std::filesystem::create_directories(runDir);
+    const std::filesystem::path waypointDir = runDir / "waypoints";
+    std::filesystem::create_directories(waypointDir);
 
-    for (std::size_t expIndex = 0; expIndex < experimentGrid.size(); ++expIndex)
+    for (std::size_t expIndex = startExperimentIndex; expIndex < experimentGrid.size(); ++expIndex)
     {
         const ExperimentParams &params = experimentGrid[expIndex];
 
@@ -701,6 +1052,25 @@ int main(int argc, char **argv)
         runConfig.iterations = params.budget;
 
         const std::vector<int> stepTargets = build_step_targets(params.budget, numberOfSteps);
+
+        WaypointSnapshot experimentSnapshot;
+        experimentSnapshot.phase = "experiment-start";
+        experimentSnapshot.status = "running";
+        experimentSnapshot.experimentIndex = expIndex;
+        experimentSnapshot.totalExperiments = experimentGrid.size();
+        experimentSnapshot.numAgents = params.numAgents;
+        experimentSnapshot.numObjects = params.numObjects;
+        experimentSnapshot.seed = params.seed;
+        experimentSnapshot.ratioRandom = params.ratioRandom;
+        experimentSnapshot.budget = params.budget;
+        experimentSnapshot.totalTries = config.numberOfTrys;
+        experimentSnapshot.totalSteps = stepTargets.size();
+        experimentSnapshot.outputFile = expPath.string();
+        experimentSnapshot.bestAllocation.clear();
+        experimentSnapshot.bestScore = 0.0;
+        experimentSnapshot.overallBestAllocation.clear();
+        experimentSnapshot.overallBestScore = 0.0;
+        write_waypoint_snapshot(waypointDir, experimentSnapshot);
 
         out << "      \"parameters\": {\n";
         out << "        \"numAgents\": " << params.numAgents << ",\n";
@@ -806,6 +1176,8 @@ int main(int argc, char **argv)
         out << "        \"mcts\": {\n";
         out << "          \"tries\": [\n";
 
+        std::pair<Allocation, Score> experimentBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
+
         for (int tryIndex = 1; tryIndex <= config.numberOfTrys; ++tryIndex)
         {
             std::pair<Allocation, Score> finalBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
@@ -815,7 +1187,6 @@ int main(int argc, char **argv)
 
             // Create MCTS in a limited scope to ensure memory is freed after each try
             auto tryStart = std::chrono::steady_clock::now();
-            auto lastStepTime = tryStart;
             {
                 MCTS<int> mcts(runConfig);
                 Preferences<int> pref = mcts.getPreferences();
@@ -823,6 +1194,7 @@ int main(int argc, char **argv)
 
                 for (std::size_t stepIdx = 0; stepIdx < stepTargets.size(); ++stepIdx)
                 {
+                    const auto stepStart = std::chrono::steady_clock::now();
                     const int targetBudget = stepTargets[stepIdx];
                     const int delta = targetBudget - executedBudget;
                     if (delta > 0)
@@ -859,10 +1231,34 @@ int main(int argc, char **argv)
                     finalBest = mcts.getRoot().getBestAllocation();
                     const int remainingBudget = std::max(0, params.budget - targetBudget);
 
-                    const auto stepNow = std::chrono::steady_clock::now();
-                    const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - lastStepTime).count();
-                    const auto cumulativeUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - tryStart).count();
-                    lastStepTime = stepNow;
+                    const auto stepEnd = std::chrono::steady_clock::now();
+                    const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepEnd - stepStart).count();
+                    const auto cumulativeUs = std::chrono::duration_cast<std::chrono::microseconds>(stepEnd - tryStart).count();
+
+                    WaypointSnapshot stepSnapshot;
+                    stepSnapshot.phase = "step";
+                    stepSnapshot.status = "running";
+                    stepSnapshot.experimentIndex = expIndex;
+                    stepSnapshot.totalExperiments = experimentGrid.size();
+                    stepSnapshot.tryIndex = tryIndex;
+                    stepSnapshot.totalTries = config.numberOfTrys;
+                    stepSnapshot.stepIndex = stepIdx;
+                    stepSnapshot.totalSteps = stepTargets.size();
+                    stepSnapshot.executedBudget = executedBudget;
+                    stepSnapshot.targetBudget = targetBudget;
+                    stepSnapshot.numAgents = params.numAgents;
+                    stepSnapshot.numObjects = params.numObjects;
+                    stepSnapshot.seed = params.seed;
+                    stepSnapshot.ratioRandom = params.ratioRandom;
+                    stepSnapshot.budget = params.budget;
+                    stepSnapshot.stepTimeUs = stepDurationUs;
+                    stepSnapshot.cumulativeTimeUs = cumulativeUs;
+                    stepSnapshot.outputFile = expPath.string();
+                    stepSnapshot.bestAllocation = finalBest.first.getAllocation();
+                    stepSnapshot.bestScore = finalBest.second.getScore();
+                    stepSnapshot.overallBestAllocation = experimentBest.first.getAllocation();
+                    stepSnapshot.overallBestScore = experimentBest.second.getScore();
+                    write_waypoint_snapshot(waypointDir, stepSnapshot);
 
                     out << "                {\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
@@ -883,10 +1279,34 @@ int main(int argc, char **argv)
                         out << ",";
                     }
                     out << "\n";
+                    out.flush();
 
                     ++completedWorkUnits;
                     update_progress(progressBar, completedWorkUnits, totalWorkUnits);
                 }
+
+                WaypointSnapshot trySnapshot;
+                trySnapshot.phase = "try-complete";
+                trySnapshot.status = "running";
+                trySnapshot.experimentIndex = expIndex;
+                trySnapshot.totalExperiments = experimentGrid.size();
+                trySnapshot.tryIndex = tryIndex;
+                trySnapshot.totalTries = config.numberOfTrys;
+                trySnapshot.stepIndex = stepTargets.empty() ? 0 : stepTargets.size() - 1;
+                trySnapshot.totalSteps = stepTargets.size();
+                trySnapshot.executedBudget = params.budget;
+                trySnapshot.targetBudget = params.budget;
+                trySnapshot.numAgents = params.numAgents;
+                trySnapshot.numObjects = params.numObjects;
+                trySnapshot.seed = params.seed;
+                trySnapshot.ratioRandom = params.ratioRandom;
+                trySnapshot.budget = params.budget;
+                trySnapshot.outputFile = expPath.string();
+                trySnapshot.bestAllocation = finalBest.first.getAllocation();
+                trySnapshot.bestScore = finalBest.second.getScore();
+                trySnapshot.overallBestAllocation = experimentBest.first.getAllocation();
+                trySnapshot.overallBestScore = experimentBest.second.getScore();
+                write_waypoint_snapshot(waypointDir, trySnapshot);
             } // MCTS object is destroyed here, freeing all memory
             // Force memory cleanup
             std::cout.flush();
@@ -903,6 +1323,31 @@ int main(int argc, char **argv)
                 out << ",";
             }
             out << "\n";
+
+            WaypointSnapshot completedTrySnapshot;
+            completedTrySnapshot.phase = "try-complete";
+            completedTrySnapshot.status = "running";
+            completedTrySnapshot.experimentIndex = expIndex;
+            completedTrySnapshot.totalExperiments = experimentGrid.size();
+            completedTrySnapshot.tryIndex = tryIndex;
+            completedTrySnapshot.totalTries = config.numberOfTrys;
+            completedTrySnapshot.stepIndex = stepTargets.empty() ? 0 : stepTargets.size() - 1;
+            completedTrySnapshot.totalSteps = stepTargets.size();
+            completedTrySnapshot.executedBudget = params.budget;
+            completedTrySnapshot.targetBudget = params.budget;
+            completedTrySnapshot.numAgents = params.numAgents;
+            completedTrySnapshot.numObjects = params.numObjects;
+            completedTrySnapshot.seed = params.seed;
+            completedTrySnapshot.ratioRandom = params.ratioRandom;
+            completedTrySnapshot.budget = params.budget;
+            completedTrySnapshot.outputFile = expPath.string();
+            completedTrySnapshot.bestAllocation = finalBest.first.getAllocation();
+            completedTrySnapshot.bestScore = finalBest.second.getScore();
+            completedTrySnapshot.overallBestAllocation = experimentBest.first.getAllocation();
+            completedTrySnapshot.overallBestScore = experimentBest.second.getScore();
+            write_waypoint_snapshot(waypointDir, completedTrySnapshot);
+
+            experimentBest = finalBest;
         }
 
         out << "          ]\n";
@@ -910,6 +1355,25 @@ int main(int argc, char **argv)
         out << "      }\n";
         out << "}\n";
         out.close();
+
+        WaypointSnapshot finishedExperimentSnapshot;
+        finishedExperimentSnapshot.phase = "experiment-complete";
+        finishedExperimentSnapshot.status = "completed";
+        finishedExperimentSnapshot.experimentIndex = expIndex;
+        finishedExperimentSnapshot.totalExperiments = experimentGrid.size();
+        finishedExperimentSnapshot.numAgents = params.numAgents;
+        finishedExperimentSnapshot.numObjects = params.numObjects;
+        finishedExperimentSnapshot.seed = params.seed;
+        finishedExperimentSnapshot.ratioRandom = params.ratioRandom;
+        finishedExperimentSnapshot.budget = params.budget;
+        finishedExperimentSnapshot.totalTries = config.numberOfTrys;
+        finishedExperimentSnapshot.totalSteps = stepTargets.size();
+        finishedExperimentSnapshot.outputFile = expPath.string();
+        finishedExperimentSnapshot.bestAllocation = experimentBest.first.getAllocation();
+        finishedExperimentSnapshot.bestScore = experimentBest.second.getScore();
+        finishedExperimentSnapshot.overallBestAllocation = experimentBest.first.getAllocation();
+        finishedExperimentSnapshot.overallBestScore = experimentBest.second.getScore();
+        write_waypoint_snapshot(waypointDir, finishedExperimentSnapshot);
     }
 
     (void)0; // all outputs written per-experiment in run directory
