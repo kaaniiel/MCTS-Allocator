@@ -33,7 +33,10 @@ public:
              childrenIndex(0),
              currentAllocation(Allocation()),
              bestAllocation(Allocation(), Score()),
-             verbose(false) {};
+             verbose(false)
+    {
+        children.reserve(numAgents);
+    };
     Node(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
                                                                                   numAgents(numAgents),
                                                                                   agentHasObject(numAgents, false),
@@ -59,7 +62,10 @@ public:
                               childrenIndex(0),
                               currentAllocation(other.currentAllocation),
                               bestAllocation(other.bestAllocation),
-                              verbose(other.verbose) {};
+                              verbose(other.verbose)
+    {
+        children.reserve(numAgents);
+    };
 
     Node(const Allocation &alloc) : numObjects(alloc.getNumObjects()),
                                     numAgents(alloc.getNumAgents()),
@@ -69,7 +75,10 @@ public:
                                     currentAllocation(alloc),
                                     agentHasObject(alloc.getNumAgents(), false),
                                     bestAllocation(alloc, Score(0.0, alloc.getVerbose())),
-                                    verbose(alloc.getVerbose()) {};
+                                    verbose(alloc.getVerbose())
+    {
+        children.reserve(numAgents);
+    };
 
     Node(const Allocation &alloc, int height, const bool verbose = false) : numObjects(alloc.getNumObjects()),
                                                                             numAgents(alloc.getNumAgents()),
@@ -79,7 +88,10 @@ public:
                                                                             childrenIndex(0),
                                                                             currentAllocation(alloc),
                                                                             bestAllocation(alloc, Score(0.0, verbose)),
-                                                                            verbose(verbose) {};
+                                                                            verbose(verbose)
+    {
+        children.reserve(numAgents);
+    };
 
     /**
      * @brief Get the number of objects
@@ -328,6 +340,7 @@ public:
 
         // Use move semantics to avoid copying the allocation vector
         children.emplace_back(Allocation(this->getNumAgents(), std::move(allocVec), verbose), this->getHeight() + 1, this->getVerbose());
+        children.back().setTruncateTreeSearch(this->getTruncateTreeSearch());
         return &children.back();
     };
 

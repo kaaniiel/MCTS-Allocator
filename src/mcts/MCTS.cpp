@@ -160,6 +160,35 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
     while (currentHeight < currentAlloc.getNumObjects())
     {
         std::vector<int> nextAllocVec = currentAlloc.getAllocation();
+        const bool truncateTree = node.getTruncateTreeSearch();
+
+        std::vector<bool> hasObject(numAgents, false);
+        for (int object = 0; object < currentHeight; ++object)
+        {
+            const int assignedAgent = nextAllocVec[object];
+            if (assignedAgent >= 0 && assignedAgent < numAgents)
+            {
+                hasObject[assignedAgent] = true;
+            }
+        }
+
+        std::vector<int> agentsWithoutObject;
+        agentsWithoutObject.reserve(numAgents);
+        for (int a = 0; a < numAgents; ++a)
+        {
+            if (!hasObject[a])
+            {
+                agentsWithoutObject.push_back(a);
+            }
+        }
+
+        const int remainingObjects = currentAlloc.getNumObjects() - currentHeight;
+
+        if (truncateTree && static_cast<int>(agentsWithoutObject.size()) > remainingObjects)
+        {
+            // Branch is impossible to complete while giving at least one object to each agent.
+            return std::make_pair(currentAlloc, Score(-std::numeric_limits<double>::infinity()));
+        }
 
         // Decide randomly whether to do a random simulation or a heuristic simulation based on the ratioRandomSimulation
         double randomValue = dist(rng64);
@@ -168,10 +197,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         {
             // Random simulation: if truncation is active and the remaining unassigned agents must all
             // receive one object, restrict the random choice to those agents.
-            const std::vector<int> agentsWithoutObject = node.getAgentWithoutObject();
-            const int remainingObjects = currentAlloc.getNumObjects() - currentHeight;
-
-            if (node.getTruncateTreeSearch() && !agentsWithoutObject.empty() &&
+            if (truncateTree && !agentsWithoutObject.empty() &&
                 static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
             {
                 const int selectedIndex = static_cast<int>(dist(rng64) * agentsWithoutObject.size());
@@ -193,10 +219,8 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         {
             // Heuristic simulation: when truncation is enabled, restrict the candidate agents when the
             // remaining unassigned agents must all receive one object.
-            const std::vector<int> agentsWithoutObject = node.getAgentWithoutObject();
-            const int remainingObjects = currentAlloc.getNumObjects() - currentHeight;
             const std::vector<int> &candidateAgents =
-                (node.getTruncateTreeSearch() && !agentsWithoutObject.empty() &&
+                (truncateTree && !agentsWithoutObject.empty() &&
                  static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
                     ? agentsWithoutObject
                     : std::vector<int>{};

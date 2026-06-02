@@ -20,23 +20,25 @@ private:
     int seed;
     Preferences<T> prefs;
     std::pair<Allocation, Score> optimalAllocation;
+    int timeoutSeconds;
 
     void load_config(const Config &config)
     {
         seed = config.seed;
         prefs = Preferences<T>(config.numAgents, config.numObjects, config.verbose);
         prefs.generateRandomPreferences(config.numAgents * config.numObjects, config.seed);
+        timeoutSeconds = config.solverTimeoutSeconds;
     }
 
 public:
-    Solver(const int numAgents, const int numObjects, const int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())) : seed(seed), prefs(numAgents, numObjects, false)
+    Solver(const int numAgents, const int numObjects, const int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())) : seed(seed), prefs(numAgents, numObjects, false), timeoutSeconds(60) // Default timeout of 1 minute
     {
         prefs.generateRandomPreferences(numAgents * numObjects, seed);
     };
 
-    Solver(const Preferences<T> &preferences) : seed(static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())), prefs(preferences) {};
-    Solver(const Preferences<T> &preferences, const int seed) : seed(seed), prefs(preferences) {};
-    Solver(const Config &config) : seed(config.seed), prefs(config.numAgents, config.numObjects, config.verbose)
+    Solver(const Preferences<T> &preferences) : seed(static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())), prefs(preferences), timeoutSeconds(60) {};
+    Solver(const Preferences<T> &preferences, const int seed) : seed(seed), prefs(preferences), timeoutSeconds(60) {};
+    Solver(const Config &config) : seed(), prefs(), timeoutSeconds()
     {
         load_config(config);
     };
@@ -121,6 +123,7 @@ public:
         }
         model.setObjective(objective, GRB_MAXIMIZE);
 
+        model.set(GRB_DoubleParam_TimeLimit, timeoutSeconds);
         // Optimize the model
         model.optimize();
 
