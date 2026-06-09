@@ -578,19 +578,17 @@ namespace
         {
             // Return the number of agents that haven't received an object
             int agentsWithoutObject = numAgents;
-            std::vector<bool> agentHasObject(alloc.size(), false);
-            for (int object = 0; object < alloc.size(); ++object)
+            std::vector<bool> agentHasObject(static_cast<std::size_t>(numAgents), false);
+            for (int object = 0; object < static_cast<int>(alloc.size()); ++object)
             {
                 int allocatedAgent = alloc[object];
-                if (agentHasObject[allocatedAgent])
+                if (allocatedAgent >= 0 && allocatedAgent < numAgents)
                 {
-                    continue;
-                }
-
-                if (allocatedAgent >= 0 && allocatedAgent < alloc.size())
-                {
-                    agentHasObject[allocatedAgent] = true;
-                    agentsWithoutObject--;
+                    if (!agentHasObject[allocatedAgent])
+                    {
+                        agentHasObject[allocatedAgent] = true;
+                        agentsWithoutObject--;
+                    }
                 }
             }
             return -static_cast<T>(agentsWithoutObject);
