@@ -24,7 +24,10 @@ bool isEF(const Preferences<T> &pref, const std::vector<int> &alloc)
         for (int obj = 0; obj < numObjects; ++obj)
         {
             int owner = alloc[obj];
-            bundle_utilities[owner] += pref_i[obj];
+            if (owner >= 0 && owner < numAgents)
+            {
+                bundle_utilities[owner] += pref_i[obj];
+            }
         }
 
         // Check if agent i envies any other agent's bundle before him
@@ -75,12 +78,14 @@ bool isEFX(const Preferences<T> &pref, const std::vector<int> &alloc)
         {
             int owner = alloc[obj];
             T val = pref_i[obj];
-
-            bundle_utilities[owner] += val;
-
-            if (val > 0 && val < min_positive_val[owner])
+            if (owner >= 0 && owner < numAgents)
             {
-                min_positive_val[owner] = val;
+                bundle_utilities[owner] += val;
+
+                if (val > 0 && val < min_positive_val[owner])
+                {
+                    min_positive_val[owner] = val;
+                }
             }
         }
 
@@ -137,12 +142,14 @@ bool isEF1(const Preferences<T> &pref, const std::vector<int> &alloc)
         {
             int owner = alloc[obj];
             T val = pref_i[obj];
-
-            bundle_utilities[owner] += val;
-
-            if (val > max_val_in_bundle[owner])
+            if (owner >= 0 && owner < numAgents)
             {
-                max_val_in_bundle[owner] = val;
+                bundle_utilities[owner] += val;
+
+                if (val > max_val_in_bundle[owner])
+                {
+                    max_val_in_bundle[owner] = val;
+                }
             }
         }
 
@@ -190,8 +197,10 @@ bool isProp(const Preferences<T> &pref, const std::vector<int> &alloc)
         {
             int owner = alloc[obj];
             T val = pref_i[obj];
-
-            bundle_utilities[owner] += val;
+            if (owner >= 0 && owner < numAgents)
+            {
+                bundle_utilities[owner] += val;
+            }
             total_utility += val;
         }
     }

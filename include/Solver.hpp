@@ -7,6 +7,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <memory>
 #include "mcts/Preferences.hpp"
 #include "mcts/Allocation.hpp"
 #include "mcts/Score.hpp"
@@ -50,18 +51,24 @@ public:
 
     std::pair<Allocation, Score> solve(const Preferences<T> &inputPrefs, bool verbose = false)
     {
-        GRBEnv env = GRBEnv(true);
+        static std::unique_ptr<GRBEnv> sharedEnv;
+        if (!sharedEnv)
+        {
+            sharedEnv = std::make_unique<GRBEnv>(true);
+            sharedEnv->start();
+        }
+
         if (!verbose)
         {
-            env.set("OutputFlag", "0");
-            env.set("LogToConsole", "0");
+            sharedEnv->set("OutputFlag", "0");
+            sharedEnv->set("LogToConsole", "0");
         }
         else
         {
-            env.set("LogFile", "gurobi.log");
+            sharedEnv->set("LogFile", "gurobi.log");
         }
-        env.start();
-        GRBModel model = GRBModel(env);
+
+        GRBModel model = GRBModel(*sharedEnv);
 
         const int numAgents = inputPrefs.getNumAgents();
         const int numObjects = inputPrefs.getNumObjects();
@@ -73,7 +80,8 @@ public:
             {
                 std::cerr << "Solver: number of objects (" << numObjects << ") is less than number of agents (" << numAgents << "). Aborting solve.\n";
             }
-            return std::pair<Allocation, Score>(Allocation(numAgents, numObjects), Score(0.0, verbose));
+            optimalAllocation = std::pair<Allocation, Score>(Allocation(numAgents, numObjects), Score(0.0, verbose));
+            return optimalAllocation;
         }
 
         // Create Boolean Variables
@@ -138,7 +146,8 @@ public:
             {
                 std::cout << "No optimal solution found. Gurobi status = " << status << std::endl;
             }
-            return std::pair<Allocation, Score>(Allocation(numAgents, numObjects), Score(0.0, verbose)); // Return an empty allocation and zero score if no solution is found
+            optimalAllocation = std::pair<Allocation, Score>(Allocation(numAgents, numObjects), Score(0.0, verbose));
+            return optimalAllocation; // Return an empty allocation and zero score if no solution is found
         }
 
         // Print the optimal assignment only in verbose mode
@@ -166,13 +175,7 @@ public:
         Allocation alloc(numAgents, allocVec);
 
         std::pair<Allocation, Score> result = std::pair<Allocation, Score>(alloc, Score(model.get(GRB_DoubleAttr_ObjVal), verbose));
-
-        // Release large in-memory structures to free memory as early as possible.
-        prefs.clear();
-
-        // Clear any previously stored optimalAllocation to avoid retaining data.
-        optimalAllocation.first.clear();
-        optimalAllocation.second = Score();
+        optimalAllocation = result;
 
         return result; // Return the result by value; internal storage is released
     }
