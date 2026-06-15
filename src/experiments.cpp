@@ -856,7 +856,7 @@ int main(int argc, char **argv)
 
             // Create MCTS in a limited scope to ensure memory is freed after each try
             auto tryStart = std::chrono::steady_clock::now();
-            auto lastStepTime = tryStart;
+            long long tryMctsDurationUs = 0;
             {
                 MCTS<int> mcts(runConfig);
                 Preferences<int> pref = mcts.getPreferences();
@@ -866,6 +866,8 @@ int main(int argc, char **argv)
                 {
                     const int targetBudget = stepTargets[stepIdx];
                     const int delta = targetBudget - executedBudget;
+                    
+                    const auto stepStart = std::chrono::steady_clock::now();
                     if (delta > 0)
                     {
                         const int chunkSize = std::max(1, params.budget / 20);
@@ -896,14 +898,12 @@ int main(int argc, char **argv)
                             }
                         }
                     }
+                    const auto stepEnd = std::chrono::steady_clock::now();
+                    const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepEnd - stepStart).count();
+                    tryMctsDurationUs += stepDurationUs;
 
                     finalBest = mcts.getRoot().getBestAllocation();
                     const int remainingBudget = std::max(0, params.budget - targetBudget);
-
-                    const auto stepNow = std::chrono::steady_clock::now();
-                    const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - lastStepTime).count();
-                    const auto cumulativeUs = std::chrono::duration_cast<std::chrono::microseconds>(stepNow - tryStart).count();
-                    lastStepTime = stepNow;
 
                     out << "                {\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
@@ -932,12 +932,9 @@ int main(int argc, char **argv)
             // Force memory cleanup
             std::cout.flush();
 
-            const auto tryEnd = std::chrono::steady_clock::now();
-            const auto tryDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(tryEnd - tryStart).count();
-
-            out << "              ]\n";
-
-            out << "\n";
+            out << "              ],\n";
+            out << "              \"tryDurationUs\": " << tryMctsDurationUs << ",\n";
+            out << "              \"finalScore\": " << format_json_score(uniformize_negative_values(finalBest.first.getNumAgents(), finalBest.first.getAllocation(), finalBest.second.getScore(), config)) << "\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
             {

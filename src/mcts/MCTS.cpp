@@ -5,6 +5,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <numeric>
 #include <atomic>
 #include <random>
 #include <thread>
@@ -15,9 +16,9 @@ namespace
 {
 
     // 1. Setup the beautiful progress bar
-    indicators::ProgressBar createProgressBar(const std::string &postfix_text)
+    std::unique_ptr<indicators::ProgressBar> createProgressBar(const std::string &postfix_text)
     {
-        return indicators::ProgressBar{
+        return std::make_unique<indicators::ProgressBar>(
             indicators::option::BarWidth{50},
             // 1. Remove the brackets
             indicators::option::Start{""},
@@ -25,20 +26,16 @@ namespace
             // 2. Use solid blocks for the filled part
             indicators::option::Fill{"\u2588"},
             indicators::option::Lead{"\u2588"},
-            // indicators::option::Fill{"#"},
-            // indicators::option::Lead{"#"},
-            //  3. Use dotted blocks for the empty part
+            // 3. Use dotted blocks for the empty part
             indicators::option::Remainder{"\u2591"},
-            // indicators::option::Remainder{"-"},
-            //  4. Change color to Cyan
+            // 4. Change color to Cyan
             indicators::option::ForegroundColor{indicators::Color::cyan},
             indicators::option::PostfixText{postfix_text},
             indicators::option::ShowPercentage{true},
             indicators::option::ShowElapsedTime{true},
             indicators::option::ShowRemainingTime{true},
-            indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
+            indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}});
     }
-
     // 2. Thread-safe function to update the bar
     void updateProgress(indicators::ProgressBar &bar, std::atomic<int> &counter, int budget)
     {
@@ -59,10 +56,16 @@ namespace
 
 } // End of anonymous namespace
 
+#include <memory>
+
 template <typename T>
 void MCTS<T>::run(const int budget, bool showProgress)
 {
-    auto bar = createProgressBar("Running MCTS...");
+    std::unique_ptr<indicators::ProgressBar> bar;
+    if (showProgress)
+    {
+        bar = createProgressBar("Running MCTS...");
+    }
     std::atomic<int> completedIterations{0};
 
     int budgetCounter = 0;
@@ -107,9 +110,9 @@ void MCTS<T>::run(const int budget, bool showProgress)
         }
         budgetCounter++; // Always increment to avoid infinite loop
 
-        if (showProgress)
+        if (showProgress && bar)
         {
-            updateProgress(bar, completedIterations, budget);
+            updateProgress(*bar, completedIterations, budget);
         }
     }
 }
@@ -183,22 +186,45 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         }
 
         const int remainingObjects = currentAlloc.getNumObjects() - currentHeight;
+        double totalPossibleSubtreeLeaves = 0;
+        if (config.monitoringCuts)
+        {
+            totalPossibleSubtreeLeaves = std::pow(numAgents, remainingObjects);
+        }
 
         if (truncateTree && static_cast<int>(agentsWithoutObject.size()) > remainingObjects)
         {
-            // Branch is impossible to complete while giving at least one object to each agent.
+            if (config.monitoringCuts)
+            {
+                monitoringCuts += static_cast<unsigned long long>(totalPossibleSubtreeLeaves);
+            }
             return std::make_pair(currentAlloc, Score(-std::numeric_limits<double>::infinity()));
         }
 
-        // Decide randomly whether to do a random simulation or a heuristic simulation based on the ratioRandomSimulation
+        // ---------------------------------------------------------
+        // 2. Coupe d'entonnoir : Évaluation de la contrainte forcée
+        // ---------------------------------------------------------
+        // On stocke le booléen pour s'en servir dans les heuristiques juste après
+        bool isForcedPath = truncateTree && !agentsWithoutObject.empty() &&
+                            static_cast<int>(agentsWithoutObject.size()) == remainingObjects;
+
+        if (isForcedPath && config.monitoringCuts)
+        {
+            unsigned long long keptPaths = factorial(remainingObjects);
+            // On comptabilise l'espace mathématique éliminé
+            monitoringCuts += static_cast<unsigned long long>(totalPossibleSubtreeLeaves) - keptPaths;
+        }
+
+        // ---------------------------------------------------------
+        // 3. Choix de l'agent (Aléatoire ou Heuristique)
+        // ---------------------------------------------------------
         double randomValue = dist(rng64);
         int agent = -1;
+
         if (randomValue < ratioRandom)
         {
-            // Random simulation: if truncation is active and the remaining unassigned agents must all
-            // receive one object, restrict the random choice to those agents.
-            if (truncateTree && !agentsWithoutObject.empty() &&
-                static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
+            // --- Logique Aléatoire ---
+            if (isForcedPath)
             {
                 const int selectedIndex = static_cast<int>(dist(rng64) * agentsWithoutObject.size());
                 const int clampedIndex = (selectedIndex >= static_cast<int>(agentsWithoutObject.size()))
@@ -208,26 +234,19 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
             }
             else
             {
-                // Faster random int generation: use real distribution [0,1) then multiply.
-                // This avoids the overhead of uniform_int_distribution for every call.
                 agent = static_cast<int>(dist(rng64) * numAgents);
-                // Clamp to valid range just in case of floating point edge cases.
                 agent = (agent >= numAgents) ? numAgents - 1 : agent;
             }
         }
         else
         {
-            // Heuristic simulation: when truncation is enabled, restrict the candidate agents when the
-            // remaining unassigned agents must all receive one object.
-            const std::vector<int> &candidateAgents =
-                (truncateTree && !agentsWithoutObject.empty() &&
-                 static_cast<int>(agentsWithoutObject.size()) == remainingObjects)
-                    ? agentsWithoutObject
-                    : std::vector<int>{};
+            // --- Logique Heuristique ---
+            // On utilise notre booléen isForcedPath pour déterminer les candidats !
+            const std::vector<int> &candidateAgents = isForcedPath ? agentsWithoutObject : std::vector<int>{};
 
-            // Perform a heuristic simulation: assign the agent with the highest preference for the current object.
             int objectIndex = currentHeight;
             double bestPref = -std::numeric_limits<double>::infinity();
+
             if (!candidateAgents.empty())
             {
                 for (int a : candidateAgents)
@@ -242,7 +261,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
             }
             else
             {
-                for (int a = 0; a < numAgents; a++)
+                for (int a = 0; a < numAgents; ++a)
                 {
                     double pref = preferences.getPreference(a, objectIndex);
                     if (pref > bestPref)
@@ -285,6 +304,11 @@ std::pair<Allocation, Score> MCTS<T>::backpropagate(std::stack<Node *> &nodeStac
         if (currentNode->getBestAllocation().second.getScore() > bestAlloc.second.getScore())
         {
             bestAlloc = currentNode->getBestAllocation(); // Update the best allocation and score if the current node's best allocation has a better score than the current best allocation
+            iterTrackerBestSolution = 1;                  // Reset the timer if a better solution is found
+        }
+        else
+        {
+            iterTrackerBestSolution++; // Increment the timer if no better solution is found
         }
     }
     return bestAlloc;

@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <stack>
+#include <numeric>
 #include <utility>
 #include <cmath>
 #include <functional>
@@ -28,8 +29,13 @@ private:
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
     bool verbose;
     double ratioRandom; // Ratio of random simulations to heuristic simulations
-    Config config;  // Store configuration for thread access
+    Config config;      // Store configuration for thread access
     bool trunckateTreeSearch;
+
+private:
+    std::vector<unsigned long long> factorialCache = {1};
+    int iterTrackerBestSolution = 0;       // Timer to track how many iterations the best solution hasn't changed
+    unsigned long long monitoringCuts = 0; // Counter for how many times the search has been cut due to no improvement in the best solution
 
 public:
     MCTS() : numberOfAgents(0),
@@ -220,6 +226,47 @@ public:
         {
             std::cerr << "[Results] Error: unable to save results to " << results_dir + "/" + filename << "\n";
         }
+    }
+
+    /** \brief Calculate the factorial of a number
+     * \param n The number to calculate the factorial of
+     * \return The factorial of n
+     */
+    unsigned long long factorial(int n)
+    {
+        if (n < 0 || n > 20)
+            return 0;
+
+        // Initialize the cache with the first factorial value if it's empty
+        if (factorialCache.empty())
+        {
+            factorialCache.push_back(1);
+        }
+
+        // Case 1: The value is already in the cache, return it directly
+        if (n < factorialCache.size())
+        {
+            return factorialCache[n];
+        }
+        // Case 2: The value is not in the cache, compute it and store it in the cache
+        else
+        {
+            unsigned int oldSize = factorialCache.size();
+            factorialCache.resize(n + 1);
+
+            // Compute the factorial values from the last cached value up to n and store them in the cache
+            for (unsigned int i = oldSize; i <= n; ++i)
+            {
+                factorialCache[i] = i * factorialCache[i - 1];
+            }
+
+            return factorialCache[n];
+        }
+    }
+
+    long long getMonitoringCuts() const
+    {
+        return monitoringCuts;
     }
 };
 

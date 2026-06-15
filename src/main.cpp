@@ -158,6 +158,10 @@ int main(int argc, char **argv)
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
     app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
     app.add_flag("-U,--use-solver", config.useSolver, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
+    app.add_flag("-M,--monitoring-cuts", config.monitoringCuts, "Enable monitoring of cuts when the best solution hasn't improved for a certain number of iterations");
+    app.add_flag("-N,--uniformize-negative-values", config.uniformizeNegativeValues, "Uniformize negative values in preferences (transform to how much agent hasn't received an object)");
+    app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
+
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     CLI11_PARSE(app, argc, argv);
@@ -176,6 +180,9 @@ int main(int argc, char **argv)
     std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
     std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
     std::cout << " - Use Solver    : " << (config.useSolver ? "true" : "false") << "\n";
+    std::cout << " - Monitoring Cuts : " << (config.monitoringCuts ? "true" : "false") << "\n";
+    std::cout << " - Uniformize Negative Values : " << (config.uniformizeNegativeValues ? "true" : "false") << "\n";
+    std::cout << " - Agent Have Minimum One Object : " << (config.agentHaveMinimumOneObject ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 
     // Safety: do not attempt to search for a solution when there are fewer objects than agents.
@@ -241,7 +248,10 @@ int main(int argc, char **argv)
         std::cout << object << " ";
     }
     std::cout << "\nBest score: " << bestAlloc.second.getScore() << std::endl;
-
+    if (config.monitoringCuts)
+    {
+        std::cout << "Number of cuts inside the MCTS search: " << mcts.getMonitoringCuts() << std::endl;
+    }
     // mcts.getEvalFunction()(mcts.getPreferences(), bestAlloc.first, true);
 
     if (config.saveResults)

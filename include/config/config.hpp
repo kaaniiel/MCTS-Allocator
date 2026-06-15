@@ -48,8 +48,9 @@ struct Config
     double numberOfBudgetStep = 0;
     bool agentHaveMinimumOneObject = false;
     bool uniformizeNegativeValues = false;
-    //Solver
-    int solverTimeoutSeconds = 60*2; // 2 minutes
+    // Solver
+    int solverTimeoutSeconds = 60 * 2; // 2 minutes
+    bool monitoringCuts = false;
 
 private:
     /**
@@ -60,7 +61,7 @@ private:
      * @return The escaped string, ready to be written.
      */
     static std::string escape_toml_string(const std::string &value)
-        {
+    {
         std::string escaped;
         escaped.reserve(value.size());
 
@@ -623,7 +624,7 @@ public:
             write_value(file, 1, "seed_max", default_config.seedMax);
             write_comment(file, 1, "Set the step of seeds (a list of successive increments, e.g., 1, 2, 5), [1] means standard step of 1");
             write_value(file, 1, "step_seeds", default_config.stepSeeds);
-            write_comment(file,1, "Write or not metrics (EF, EFX, Prop, ...)");
+            write_comment(file, 1, "Write or not metrics (EF, EFX, Prop, ...)");
             write_value(file, 1, "enable_metrics", default_config.enableMetrics);
             write_comment(file, 1, "Verbose output during experiments");
             write_value(file, 1, "verbose", default_config.verbose);
@@ -643,9 +644,11 @@ public:
             write_value(file, 1, "budget_multiplier", default_config.budgetMultiplier);
             write_comment(file, 1, "Whether each agent must have at least one object");
             write_value(file, 1, "agent_have_minimum_one_object", default_config.agentHaveMinimumOneObject);
-            write_comment(file, 1, "Whether to uniformize negative values." );
+            write_comment(file, 1, "Whether to uniformize negative values.");
             write_comment(file, 1, "If true, negative values will be transformed to how much agent haven't recieved an object");
             write_value(file, 1, "uniformize_negative_values", default_config.uniformizeNegativeValues);
+            write_comment(file, 1, "");
+            write_value(file, 1, "monitoring_cuts", default_config.monitoringCuts);
 
             write_section(file, "experiments.solver");
             write_comment(file, 1, "Values specific to the solver experiment sweep.");
@@ -692,25 +695,25 @@ public:
             }
 
             require_nested_value("mcts.launch", tbl, "mcts", "launch", missingFields, [&]
-                                   { config.launch = tbl["mcts"]["launch"].value_or(config.launch); });
+                                 { config.launch = tbl["mcts"]["launch"].value_or(config.launch); });
             require_nested_value("mcts.num_agents", tbl, "mcts", "num_agents", missingFields, [&]
-                                   { config.numAgents = static_cast<int>(tbl["mcts"]["num_agents"].value_or(static_cast<int64_t>(config.numAgents))); });
+                                 { config.numAgents = static_cast<int>(tbl["mcts"]["num_agents"].value_or(static_cast<int64_t>(config.numAgents))); });
             require_nested_value("mcts.num_objects", tbl, "mcts", "num_objects", missingFields, [&]
-                                   { config.numObjects = static_cast<int>(tbl["mcts"]["num_objects"].value_or(static_cast<int64_t>(config.numObjects))); });
+                                 { config.numObjects = static_cast<int>(tbl["mcts"]["num_objects"].value_or(static_cast<int64_t>(config.numObjects))); });
             require_nested_value("mcts.iterations", tbl, "mcts", "iterations", missingFields, [&]
-                                   { config.iterations = static_cast<int>(tbl["mcts"]["iterations"].value_or(static_cast<int64_t>(config.iterations))); });
+                                 { config.iterations = static_cast<int>(tbl["mcts"]["iterations"].value_or(static_cast<int64_t>(config.iterations))); });
             require_nested_value("mcts.exploration_constant", tbl, "mcts", "exploration_constant", missingFields, [&]
-                                   { config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration); });
+                                 { config.exploration = tbl["mcts"]["exploration_constant"].value_or(config.exploration); });
             require_nested_value("mcts.seed", tbl, "mcts", "seed", missingFields, [&]
-                                   { config.seed = static_cast<int>(tbl["mcts"]["seed"].value_or(static_cast<int64_t>(config.seed))); });
+                                 { config.seed = static_cast<int>(tbl["mcts"]["seed"].value_or(static_cast<int64_t>(config.seed))); });
             require_nested_value("mcts.verbose", tbl, "mcts", "verbose", missingFields, [&]
-                                   { config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose); });
+                                 { config.verbose = tbl["mcts"]["verbose"].value_or(config.verbose); });
             require_nested_value("mcts.ratio_random", tbl, "mcts", "ratio_random", missingFields, [&]
-                                   { config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom); });
+                                 { config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom); });
             require_nested_value("mcts.save_results", tbl, "mcts", "save_results", missingFields, [&]
-                                   { config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults); });
+                                 { config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults); });
             require_nested_value("mcts.use_solver", tbl, "mcts", "use_solver", missingFields, [&]
-                                   { config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver); });
+                                 { config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver); });
 
             // Experiments parameters
             require_nested_value("experiments.global.num_agents_min", tbl, "experiments", "global", "num_agents_min", missingFields, [&]
@@ -757,7 +760,8 @@ public:
                                  { config.agentHaveMinimumOneObject = read_bool(tbl, "experiments", "mcts", "agent_have_minimum_one_object", config.agentHaveMinimumOneObject); });
             require_nested_value("experiments.mcts.uniformize_negative_values", tbl, "experiments", "mcts", "uniformize_negative_values", missingFields, [&]
                                  { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
-
+            require_nested_value("experiments.mcts.monitoring_cuts", tbl, "experiments", "mcts", "monitoring_cuts", missingFields, [&]
+                                 { config.monitoringCuts = read_bool(tbl, "experiments", "mcts", "monitoring_cuts", config.monitoringCuts); });
             if (!missingFields.empty())
             {
                 std::cerr << "[Config] Missing required configuration values in " << filepath << "\n";
