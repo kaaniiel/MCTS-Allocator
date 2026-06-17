@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <iostream>
 #include <limits>
+#include <random>
 #include <sstream>
 #include <string>
 #include <unordered_map>
@@ -600,6 +601,12 @@ int main(int argc, char **argv)
 {
     const auto programStart = std::chrono::steady_clock::now();
 
+    // Warm up the system random device to prevent latency peak on first MCTS simulation
+    {
+        std::random_device rd;
+        (void)rd();
+    }
+
     std::string configPath = "config.toml";
     std::string resumeDir = "";
 
@@ -870,37 +877,27 @@ int main(int argc, char **argv)
                     const auto stepStart = std::chrono::steady_clock::now();
                     if (delta > 0)
                     {
-                        const int chunkSize = std::max(1, params.budget / 20);
-                        int remaining = delta;
-                        while (remaining > 0)
-                        {
-                            const int chunk = std::min(chunkSize, remaining);
-                            mcts.run(chunk, false);
-                            executedBudget += chunk;
-                            remaining -= chunk;
-
-                            if (should_emit_status(lastLiveStatus))
-                            {
-                                progressBar.set_option(indicators::option::PostfixText{
-                                    build_live_postfix(
-                                        expIndex,
-                                        experimentGrid.size(),
-                                        tryIndex,
-                                        config.numberOfTrys,
-                                        stepIdx,
-                                        stepTargets.size(),
-                                        executedBudget,
-                                        targetBudget,
-                                        params.numAgents,
-                                        params.numObjects,
-                                        params.seed,
-                                        params.ratioRandom)});
-                            }
-                        }
+                        mcts.run(delta, false);
+                        executedBudget += delta;
                     }
                     const auto stepEnd = std::chrono::steady_clock::now();
                     const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepEnd - stepStart).count();
                     tryMctsDurationUs += stepDurationUs;
+
+                    progressBar.set_option(indicators::option::PostfixText{
+                        build_live_postfix(
+                            expIndex,
+                            experimentGrid.size(),
+                            tryIndex,
+                            config.numberOfTrys,
+                            stepIdx,
+                            stepTargets.size(),
+                            executedBudget,
+                            targetBudget,
+                            params.numAgents,
+                            params.numObjects,
+                            params.seed,
+                            params.ratioRandom)});
 
                     finalBest = mcts.getRoot().getBestAllocation();
                     const int remainingBudget = std::max(0, params.budget - targetBudget);
