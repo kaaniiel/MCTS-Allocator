@@ -1,6 +1,7 @@
 #ifndef METRICS_HPP
 #define METRICS_HPP
 #include <vector>
+#include <gurobi_c++.h>
 
 #include "../mcts/Preferences.hpp"
 #include "../mcts/Allocation.hpp"
@@ -314,5 +315,25 @@ template <typename T>
 bool isParetoOptimal(const Preferences<T> &pref, const Allocation &alloc)
 {
     return isParetoOptimal(pref, alloc.getAllocation());
+}
+
+template <typename T>
+auto getMetricsRegistry()
+{
+    // On crée un vecteur de paires : { "Nom de la métrique", "Fonction à appeler" }
+    std::vector<std::pair<std::string, std::function<bool(const Preferences<T> &, const Allocation &)>>> registry;
+
+    registry.push_back({"isEF", [](const Preferences<T> &p, const Allocation &a)
+                        { return isEF(p, a); }});
+    registry.push_back({"isEFX", [](const Preferences<T> &p, const Allocation &a)
+                        { return isEFX(p, a); }});
+    registry.push_back({"isEF1", [](const Preferences<T> &p, const Allocation &a)
+                        { return isEF1(p, a); }});
+    registry.push_back({"isProp", [](const Preferences<T> &p, const Allocation &a)
+                        { return isProp(p, a); }});
+    registry.push_back({"isParetoOptimal", [](const Preferences<T> &p, const Allocation &a)
+                        { return isParetoOptimal(p, a); }});
+
+    return registry;
 }
 #endif // METRICS_HPP

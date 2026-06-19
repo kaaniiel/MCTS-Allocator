@@ -24,6 +24,8 @@ struct Config
     bool verbose = false;
     double ratioRandom = 1;
     bool saveResults = false;
+    bool add_metrics_to_utility = false;
+    bool show_metrics = false;
     bool useSolver = false;
 
     // Default values for experiments
@@ -604,6 +606,8 @@ public:
             write_value(file, "verbose", default_config.verbose);
             write_value(file, "ratio_random", default_config.ratioRandom);
             write_value(file, "save_results", default_config.saveResults);
+            write_value(file, "add_metrics_to_utility", default_config.add_metrics_to_utility);
+            write_value(file, "show_metrics", default_config.show_metrics);
             write_value(file, "use_solver", default_config.useSolver);
 
             write_section(file, "experiments");
@@ -712,6 +716,10 @@ public:
                                  { config.ratioRandom = tbl["mcts"]["ratio_random"].value_or(config.ratioRandom); });
             require_nested_value("mcts.save_results", tbl, "mcts", "save_results", missingFields, [&]
                                  { config.saveResults = tbl["mcts"]["save_results"].value_or(config.saveResults); });
+            require_nested_value("mcts.add_metrics_to_utility", tbl, "mcts", "add_metrics_to_utility", missingFields, [&]
+                                 { config.add_metrics_to_utility = tbl["mcts"]["add_metrics_to_utility"].value_or(config.add_metrics_to_utility); });
+            require_nested_value("mcts.show_metrics", tbl, "mcts", "show_metrics", missingFields, [&]
+                                 { config.show_metrics = tbl["mcts"]["show_metrics"].value_or(config.show_metrics); });
             require_nested_value("mcts.use_solver", tbl, "mcts", "use_solver", missingFields, [&]
                                  { config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver); });
 

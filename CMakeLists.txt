@@ -162,6 +162,11 @@ add_executable(testAlloc src/testAlloc.cpp)
 target_link_libraries(testAlloc PRIVATE mcts_core)
 
 if(GUROBI_HOME)
+    # 1. On donne l'accès à Gurobi pour le cœur du projet (mcts_core)
+    target_include_directories(mcts_core PUBLIC "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(mcts_core PUBLIC debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
+
+    # 2. Vos cibles existantes
     target_include_directories(mcts_main PRIVATE "${GUROBI_INCLUDE_DIR}")
     target_link_libraries(mcts_main PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
     target_include_directories(mcts_experiments PRIVATE "${GUROBI_INCLUDE_DIR}")

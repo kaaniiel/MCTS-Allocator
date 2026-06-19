@@ -31,6 +31,7 @@ private:
     double ratioRandom; // Ratio of random simulations to heuristic simulations
     Config config;      // Store configuration for thread access
     bool trunckateTreeSearch;
+    bool addMetricsToUtility = false; // Flag to determine if metrics should be added to utility
 
 private:
     std::vector<unsigned long long> factorialCache = {1};
@@ -168,9 +169,10 @@ public:
         preferences.generateRandomPreferences(numberOfAgents * numberOfObjects, config.seed);
         trunckateTreeSearch = config.agentHaveMinimumOneObject;
         root.setTruncateTreeSearch(trunckateTreeSearch);
+        addMetricsToUtility = config.add_metrics_to_utility;
     }
 
-    void save_results_json(const std::string &filename)
+    void save_results_json(const std::string &filename, const bool add_metrics = false)
     {
         std::string results_dir = "results";
         if (!std::filesystem::exists(results_dir))
@@ -217,8 +219,20 @@ public:
                     file << ", ";
             }
             file << "],\n";
-            file << "  \"best_score\": " << bestScore.getScore() << "\n";
-
+            file << "  \"best_score\": " << bestScore.getScore() << ",\n";
+            file << "  \"metrics\": {\n";
+            if (add_metrics)
+            {
+                for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
+                {
+                    double metricValue = metricFunc(getPreferences(), bestAlloc);
+                    file << "    \"" << name << "\": " << metricValue;
+                    if (name != getMetricsRegistry<T>().rbegin()->first)
+                        file << ",";
+                    file << "\n";
+                }
+            }
+            file << "  }\n";
             file << "}\n";
             std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
         }

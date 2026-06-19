@@ -98,7 +98,7 @@ int testMCTS()
 #include <windows.h>
 #endif
 
-int main(int argc, char **argv)
+void setConsoleToUTF8()
 {
     // Force console output to UTF-8
 #ifdef _WIN32
@@ -116,6 +116,19 @@ int main(int argc, char **argv)
         }
     } */
 #endif
+}
+
+template <typename T>
+void show_metrics(const Preferences<T> &prefs, const Allocation &alloc)
+{
+    for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
+    {
+        std::cout << " - " << name << ": " << (metricFunc(prefs, alloc) ? "Yes" : "No") << std::endl;
+    }
+}
+int main(int argc, char **argv)
+{
+    setConsoleToUTF8(); // Set console to UTF-8 for proper character display
 
     // ---------------------------------------------------------
     // STEP 1: Load base configuration (TOML file)
@@ -161,7 +174,8 @@ int main(int argc, char **argv)
     app.add_flag("-M,--monitoring-cuts", config.monitoringCuts, "Enable monitoring of cuts when the best solution hasn't improved for a certain number of iterations");
     app.add_flag("-N,--uniformize-negative-values", config.uniformizeNegativeValues, "Uniformize negative values in preferences (transform to how much agent hasn't received an object)");
     app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
-
+    app.add_flag("-T,--add-metrics-to-utility", config.add_metrics_to_utility, "Add metrics to the utility calculation (EF, EFX, Prop, etc.)");
+    app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     CLI11_PARSE(app, argc, argv);
@@ -183,6 +197,7 @@ int main(int argc, char **argv)
     std::cout << " - Monitoring Cuts : " << (config.monitoringCuts ? "true" : "false") << "\n";
     std::cout << " - Uniformize Negative Values : " << (config.uniformizeNegativeValues ? "true" : "false") << "\n";
     std::cout << " - Agent Have Minimum One Object : " << (config.agentHaveMinimumOneObject ? "true" : "false") << "\n";
+    std::cout << " - Add Metrics to Utility : " << (config.add_metrics_to_utility ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 
     // Safety: do not attempt to search for a solution when there are fewer objects than agents.
@@ -211,7 +226,11 @@ int main(int argc, char **argv)
         Solver<int> solver(config);
         std::pair<Allocation, Score> optimalAlloc = solver.solve(config.verbose);
         std::cout << "Optimal allocation found by solver with score: " << optimalAlloc.second.getScore() << std::endl;
-
+        if (config.show_metrics)
+        {
+            std::cout << "Metrics for the optimal allocation:" << std::endl;
+            show_metrics(solver.getPreferences(), optimalAlloc.first);
+        }
         if (config.saveResults)
         {
             auto t = std::time(nullptr);
@@ -223,7 +242,7 @@ int main(int argc, char **argv)
 #endif
             std::ostringstream oss;
             oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
-            solver.save_results_json("solver_results" + oss.str() + ".json");
+            solver.save_results_json("solver_results" + oss.str() + ".json", config.show_metrics);
         }
         return EXIT_SUCCESS;
     }
@@ -253,7 +272,11 @@ int main(int argc, char **argv)
         std::cout << "Number of cuts inside the MCTS search: " << mcts.getMonitoringCuts() << std::endl;
     }
     // mcts.getEvalFunction()(mcts.getPreferences(), bestAlloc.first, true);
-
+    if (config.show_metrics)
+    {
+        std::cout << "Metrics for the optimal allocation:" << std::endl;
+        show_metrics(mcts.getPreferences(), bestAlloc.first);
+    }
     if (config.saveResults)
     {
         auto t = std::time(nullptr);
@@ -269,7 +292,7 @@ int main(int argc, char **argv)
 
         // Format : YYYY-MM-DD_HH-MM-SS
         oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
-        mcts.save_results_json("mcts_results" + oss.str() + ".json");
+        mcts.save_results_json("mcts_results" + oss.str() + ".json", config.show_metrics);
     }
     return EXIT_SUCCESS;
 }

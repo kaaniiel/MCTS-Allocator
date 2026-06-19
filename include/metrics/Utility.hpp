@@ -4,9 +4,11 @@
 #include <cmath>
 #include <iostream>
 #include <vector>
+#include <functional>
 
 #include "../mcts/Preferences.hpp"
 #include "../mcts/Allocation.hpp"
+#include "Metrics.hpp"
 
 template <typename T>
 class Utility
@@ -56,6 +58,30 @@ public:
             totalUtility += std::log(agentUtilities[agent] + eps);
         }
         return totalUtility;
+    }
+
+    static double addMetrics2Utility(const Preferences<T> &prefs, const Allocation &alloc, std::function<double(const Preferences<T> &, const Allocation &, const bool)> &evalFunction, const bool verbose = false)
+    {
+        double utility = evalFunction(prefs, alloc, verbose);
+
+        bool pareto = isParetoOptimal<T>(prefs, alloc); // 2
+        bool EFX = isEFX<T>(prefs, alloc);              // 3
+        bool EF1 = isEF1<T>(prefs, alloc);              // 1
+
+        if (pareto)
+        {
+            utility += 1.0; // Add a bonus for Pareto optimality
+        }
+        if (EFX)
+        {
+            utility += 0.5; // Add a bonus for EFX
+        }
+        if (EF1)
+        {
+            utility += 1.0; // Add a bonus for EF1
+        }
+
+        return utility;
     }
 };
 #endif // UTILITY_HPP

@@ -198,7 +198,7 @@ public:
         prefs.clear();
     }
 
-    void save_results_json(const std::string &filename)
+    void save_results_json(const std::string &filename, const bool add_metrics = false)
     {
         int numAgents = optimalAllocation.first.getNumAgents();
         int numObjects = optimalAllocation.first.getNumObjects();
@@ -242,8 +242,20 @@ public:
                     file << ", ";
             }
             file << "],\n";
-            file << "  \"best_score\": " << bestScore.getScore() << "\n";
-
+            file << "  \"best_score\": " << bestScore.getScore() << ",\n";
+            file << "  \"metrics\": {\n";
+            if (add_metrics)
+            {
+                for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
+                {
+                    double metricValue = metricFunc(prefs, bestAlloc);
+                    file << "    \"" << name << "\": " << metricValue;
+                    if (name != getMetricsRegistry<T>().rbegin()->first)
+                        file << ",";
+                    file << "\n";
+                }
+            }
+            file << "  }\n";
             file << "}\n";
             std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
         }
