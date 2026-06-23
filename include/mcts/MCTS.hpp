@@ -31,8 +31,10 @@ private:
     double ratioRandom; // Ratio of random simulations to heuristic simulations
     Config config;      // Store configuration for thread access
     bool trunckateTreeSearch;
+    int budgetCounter = 0;            // Counter for the number of iterations completed
     bool addMetricsToUtility = false; // Flag to determine if metrics should be added to utility
-
+    bool workWithTimeBudget = false;  // Flag to determine if the MCTS should work with a time budget
+    int timeBudgetSeconds = 60;       // Time budget in seconds for the MCTS search
 private:
     std::vector<unsigned long long> factorialCache = {1};
     int iterTrackerBestSolution = 0;       // Timer to track how many iterations the best solution hasn't changed
@@ -50,7 +52,9 @@ public:
              verbose(false),
              ratioRandom(1.0),
              config(Config()),
-             trunckateTreeSearch(false) {};
+             trunckateTreeSearch(false),
+             workWithTimeBudget(false),
+             timeBudgetSeconds(60) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                       root(root),
@@ -123,12 +127,28 @@ public:
      */
     void setTrunckateTreeSearch(bool t) { trunckateTreeSearch = t; }
 
-    /** @brief Runs the MCTS algorithm for a specified number of iterations
-     *  @param budget The number of iterations to run
+    /** @brief Runs the MCTS algorithm for a specified number of iterations.
+     *  @param budget The number of iterations to run (classic budget) or the time budget in seconds (if workWithTimeBudget is true)
+     *  @param showProgress Whether to show the progress bar during the run
      * @return void
      */
-    void run(const int budget, bool showProgress = true);
+    void run(const int budget, const int timeBudget = 0, bool showProgress = true);
 
+    /**
+     * @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
+     * @param budget The number of iterations to run
+     * @param showProgress Whether to show the progress bar during the run
+     * @return void
+     */
+    void classicRun(const int budget, bool showProgress = true);
+
+    /**
+     * @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
+     * @param budget The time budget in seconds to run
+     * @param showProgress Whether to show the progress bar during the run
+     * @return void
+     */
+    void runWithTimeBudget(const int timeBudget, bool showProgress = true);
     /** @brief Selects a node to expand based on the UCB1 formula
      *  @param node The current node
      *  @param nodeStack The stack of nodes
@@ -170,6 +190,8 @@ public:
         trunckateTreeSearch = config.agentHaveMinimumOneObject;
         root.setTruncateTreeSearch(trunckateTreeSearch);
         addMetricsToUtility = config.add_metrics_to_utility;
+        workWithTimeBudget = config.useTimeBudget;
+        timeBudgetSeconds = config.timeBudgetSeconds;
     }
 
     void save_results_json(const std::string &filename, const bool add_metrics = false)
@@ -189,7 +211,11 @@ public:
             file << "  \"seed\": " << seed << ",\n";
             file << "  \"verbose\": " << (verbose ? "true" : "false") << ",\n";
             file << "  \"ratio_random\": " << ratioRandom << ",\n";
-            file << "  \"iterations\": " << config.iterations << ",\n";
+            file << "  \"trunckate_tree_search\": " << (trunckateTreeSearch ? "true" : "false") << ",\n";
+            file << "  \"add_metrics_to_utility\": " << (addMetricsToUtility ? "true" : "false") << ",\n";
+            file << "  \"work_with_time_budget\": " << (workWithTimeBudget ? "true" : "false") << ",\n";
+            file << "  \"time_budget_seconds\": " << timeBudgetSeconds << ",\n";
+            file << "  \"iterations\": " << (workWithTimeBudget ? this->budgetCounter : config.iterations) << ",\n";
             // add preferences matrix
             file << "  \"preferences\": [\n";
             for (int i = 0; i < numberOfAgents; ++i)

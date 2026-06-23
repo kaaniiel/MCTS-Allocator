@@ -46,6 +46,8 @@ struct Config
     double ratioRandomMin = 1.0;
     double ratioRandomMax = 1.0;
     double ratioRandomStep = 1.0;
+    bool useTimeBudget = false;
+    int timeBudgetSeconds = 60; // 1 minute
     int numberOfTrys = 1;
     double numberOfBudgetStep = 0;
     bool agentHaveMinimumOneObject = false;
@@ -651,8 +653,12 @@ public:
             write_comment(file, 1, "Whether to uniformize negative values.");
             write_comment(file, 1, "If true, negative values will be transformed to how much agent haven't recieved an object");
             write_value(file, 1, "uniformize_negative_values", default_config.uniformizeNegativeValues);
-            write_comment(file, 1, "");
+            write_comment(file, 1, "Get how many cuts are made by MCTS");
             write_value(file, 1, "monitoring_cuts", default_config.monitoringCuts);
+            write_comment(file, 1, "Whether to use a time budget instead of a number of iterations");
+            write_value(file, 1, "use_time_budget", default_config.useTimeBudget);
+            write_comment(file, 1, "Time budget for the MCTS in seconds");
+            write_value(file, 1, "time_budget_seconds", default_config.timeBudgetSeconds);
 
             write_section(file, "experiments.solver");
             write_comment(file, 1, "Values specific to the solver experiment sweep.");
@@ -770,6 +776,11 @@ public:
                                  { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
             require_nested_value("experiments.mcts.monitoring_cuts", tbl, "experiments", "mcts", "monitoring_cuts", missingFields, [&]
                                  { config.monitoringCuts = read_bool(tbl, "experiments", "mcts", "monitoring_cuts", config.monitoringCuts); });
+            require_nested_value("experiments.mcts.use_time_budget", tbl, "experiments", "mcts", "use_time_budget", missingFields, [&]
+                                 { config.useTimeBudget = read_bool(tbl, "experiments", "mcts", "use_time_budget", config.useTimeBudget); });
+            require_nested_value("experiments.mcts.time_budget_seconds", tbl, "experiments", "mcts", "time_budget_seconds", missingFields, [&]
+                                 { config.timeBudgetSeconds = read_int(tbl, "experiments", "mcts", "time_budget_seconds", config.timeBudgetSeconds); });
+
             if (!missingFields.empty())
             {
                 std::cerr << "[Config] Missing required configuration values in " << filepath << "\n";

@@ -176,6 +176,9 @@ int main(int argc, char **argv)
     app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
     app.add_flag("-T,--add-metrics-to-utility", config.add_metrics_to_utility, "Add metrics to the utility calculation (EF, EFX, Prop, etc.)");
     app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
+    app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
+    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
+
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     CLI11_PARSE(app, argc, argv);
@@ -198,6 +201,8 @@ int main(int argc, char **argv)
     std::cout << " - Uniformize Negative Values : " << (config.uniformizeNegativeValues ? "true" : "false") << "\n";
     std::cout << " - Agent Have Minimum One Object : " << (config.agentHaveMinimumOneObject ? "true" : "false") << "\n";
     std::cout << " - Add Metrics to Utility : " << (config.add_metrics_to_utility ? "true" : "false") << "\n";
+    std::cout << " - Use Time Budget : " << (config.useTimeBudget ? "true" : "false") << "\n";
+    std::cout << " - Time Budget Seconds : " << config.timeBudgetSeconds << "\n";
     std::cout << "================================================\n\n";
 
     // Safety: do not attempt to search for a solution when there are fewer objects than agents.
@@ -255,7 +260,7 @@ int main(int argc, char **argv)
     // Preferences<int> &prefs = mcts.getPreferences();
     // prefs.printPreferences();
 
-    mcts.run(config.iterations);
+    mcts.run(config.iterations, config.timeBudgetSeconds);
 
     // Show best allocation and score after the run
     std::cout << "Best allocation and score after MCTS run:" << std::endl;
