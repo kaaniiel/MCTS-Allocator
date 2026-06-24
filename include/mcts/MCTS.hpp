@@ -128,7 +128,7 @@ public:
     std::pair<Allocation, Score> solve(bool verbose = false) override
     {
         this->setVerbose(verbose);
-        run(config.iterations, config.timeBudgetSeconds, verbose);
+        run(config.iterations, config.timeBudgetSeconds, config.showProgress);
         return root.getBestAllocation();
     }
     /** @brief Runs the MCTS algorithm for a specified number of iterations.

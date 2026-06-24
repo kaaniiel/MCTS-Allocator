@@ -28,6 +28,7 @@ struct Config
     bool show_metrics = false;
     bool useSolver = false;
     bool terminalJSONOutput = false;
+    bool showProgress = false;
 
     // Default values for experiments
     // GLOBAL
@@ -601,18 +602,32 @@ public:
 
             write_section(file, "mcts");
             write_value(file, "launch", default_config.launch);
+            write_comment(file, "Number of agents in the allocation problem");
             write_value(file, "num_agents", default_config.numAgents);
+            write_comment(file, "Number of objects in the allocation problem");
             write_value(file, "num_objects", default_config.numObjects);
+            write_comment(file, "Number of iterations for the MCTS algorithm");
             write_value(file, "iterations", default_config.iterations);
+            write_comment(file, "Exploration constant (C) for the UCB formula");
             write_value(file, "exploration_constant", default_config.exploration);
+            write_comment(file, "Random seed for preference generation");
             write_value(file, "seed", default_config.seed);
+            write_comment(file, "Enable verbose output for debugging");
             write_value(file, "verbose", default_config.verbose);
+            write_comment(file, "Ratio of random simulations");
             write_value(file, "ratio_random", default_config.ratioRandom);
+            write_comment(file, "Save results to a JSON file");
             write_value(file, "save_results", default_config.saveResults);
+            write_comment(file, "Add metrics to the utility calculation");
             write_value(file, "add_metrics_to_utility", default_config.add_metrics_to_utility);
+            write_comment(file, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
             write_value(file, "show_metrics", default_config.show_metrics);
+            write_comment(file, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
             write_value(file, "use_solver", default_config.useSolver);
+            write_comment(file, "Output results in JSON format to the terminal");
             write_value(file, "terminal_json_output", default_config.terminalJSONOutput);
+            write_comment(file, "Show progress information during the MCTS run");
+            write_value(file, "show_progress", default_config.showProgress);
 
             write_section(file, "experiments");
             write_section(file, "experiments.global");
@@ -732,7 +747,8 @@ public:
                                  { config.show_metrics = tbl["mcts"]["show_metrics"].value_or(config.show_metrics); });
             require_nested_value("mcts.use_solver", tbl, "mcts", "use_solver", missingFields, [&]
                                  { config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver); });
-
+            require_nested_value("mcts.terminal_json_output", tbl, "mcts", "terminal_json_output", missingFields, [&]
+                                 { config.terminalJSONOutput = tbl["mcts"]["terminal_json_output"].value_or(config.terminalJSONOutput); });
             // Experiments parameters
             require_nested_value("experiments.global.num_agents_min", tbl, "experiments", "global", "num_agents_min", missingFields, [&]
                                  { config.numAgentsMin = read_int(tbl, "experiments", "global", "num_agents_min", config.numAgentsMin); });

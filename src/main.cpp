@@ -155,6 +155,8 @@ void showOptions(Config config)
     std::cout << " - Use Time Budget : " << (config.useTimeBudget ? "true" : "false") << "\n";
     std::cout << " - Time Budget Seconds : " << config.timeBudgetSeconds << "\n";
     std::cout << " - Terminal JSON Output : " << (config.terminalJSONOutput ? "true" : "false") << "\n";
+    std::cout << " - Show Metrics : " << (config.show_metrics ? "true" : "false") << "\n";
+    std::cout << " - Show Progress : " << (config.showProgress ? "true" : "false") << "\n";
     std::cout << "================================================\n\n";
 }
 
@@ -180,19 +182,20 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
     app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
     app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
-    app.add_flag("-l,--launch", config.launch, "Launch the interface");
-    app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
-    app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
-    app.add_flag("-U,--use-solver", config.useSolver, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
+    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
+    app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
+    app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
+    app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
+    app.add_flag("-J, --terminal-json-output", config.terminalJSONOutput, "Output results in JSON format to the terminal");
+    app.add_flag("-L,--launch", config.launch, "Launch the interface");
     app.add_flag("-M,--monitoring-cuts", config.monitoringCuts, "Enable monitoring of cuts when the best solution hasn't improved for a certain number of iterations");
     app.add_flag("-N,--uniformize-negative-values", config.uniformizeNegativeValues, "Uniformize negative values in preferences (transform to how much agent hasn't received an object)");
-    app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
+    app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
     app.add_flag("-T,--add-metrics-to-utility", config.add_metrics_to_utility, "Add metrics to the utility calculation (EF, EFX, Prop, etc.)");
-    app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
-    app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
-    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
-    app.add_flag("-J, --terminal-json-output", config.terminalJSONOutput, "Output results in JSON format to the terminal");
+    app.add_flag("-U,--use-solver", config.useSolver, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
+    app.add_flag("-V,--verbose", config.verbose, "Enable verbose output for debugging");
+    app.add_flag("-P,--show-progress", config.showProgress, "Show progress information during the MCTS run");
     // Parse the arguments provided at launch
     // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
     try
@@ -291,31 +294,36 @@ int main(int argc, char **argv)
         return EXIT_SUCCESS;
     }
 
+    std::unique_ptr<IAllocator<int>> allocator;
+    std::string filePrefix;
+
     if (config.useSolver)
     {
         std::cout << "Using the Gurobi solver to find the optimal allocation..." << std::endl;
-        Solver<int> solver(config);
-        std::pair<Allocation, Score> optimalAlloc = solver.solve(config.verbose);
-        std::cout << "Optimal allocation found by solver with score: " << optimalAlloc.second.getScore() << std::endl;
-        if (config.show_metrics)
-        {
-            std::cout << "Metrics for the optimal allocation:" << std::endl;
-            show_metrics(solver.getPreferences(), optimalAlloc.first);
-        }
-        if (config.saveResults)
-        {
-            solver.save_results_json(prepare_file_name("solver_results", ".json"), config.show_metrics);
-        }
-        return EXIT_SUCCESS;
+        allocator = std::make_unique<Solver<int>>(config);
+        filePrefix = "solver_results_";
+    }
+    else
+    {
+        std::cout << "Using the MCTS engine to find the allocation..." << std::endl;
+        allocator = std::make_unique<MCTS<int>>(config);
+        filePrefix = "mcts_results_";
+
+        // MCTS affichait les préférences par défaut dans votre ancien code
+        // Vous pouvez le conditionner avec if (config.verbose) si vous préférez
+        allocator->getPreferences().printPreferences();
     }
 
-    MCTS<int> mcts(config);
-    mcts.getPreferences().printPreferences(); // Print the generated preferences for debugging purposes
-    mcts.run(config.iterations, config.timeBudgetSeconds);
+    // =========================================================
+    // ÉTAPE 2 : Appel uniformisé de la résolution
+    // =========================================================
+    // La méthode solve() s'occupera d'appeler Gurobi ou MCTS selon l'objet instancié !
+    std::pair<Allocation, Score> bestAlloc = allocator->solve(config.verbose);
 
-    // Show best allocation and score after the run
-    std::cout << "Best allocation and score after MCTS run:" << std::endl;
-    std::pair<Allocation, Score> bestAlloc = mcts.getRoot().getBestAllocation();
+    // =========================================================
+    // ÉTAPE 3 : Affichage des résultats
+    // =========================================================
+    std::cout << "\n=== [Results] Best allocation and score found ===" << std::endl;
     std::cout << "Best allocation: ";
     const std::vector<int> &allocVec = bestAlloc.first.getAllocation();
     for (int object : allocVec)
@@ -323,19 +331,32 @@ int main(int argc, char **argv)
         std::cout << object << " ";
     }
     std::cout << "\nBest score: " << bestAlloc.second.getScore() << std::endl;
-    if (config.monitoringCuts)
+
+    // Gestion spécifique à MCTS (les "cuts")
+    if (!config.useSolver && config.monitoringCuts)
     {
-        std::cout << "Number of cuts inside the MCTS search: " << mcts.getMonitoringCuts() << std::endl;
+        // On vérifie dynamiquement si l'allocateur est bien un MCTS pour utiliser ses méthodes propres
+        if (auto mctsPtr = dynamic_cast<MCTS<int> *>(allocator.get()))
+        {
+            std::cout << "Number of cuts inside the MCTS search: " << mctsPtr->getMonitoringCuts() << std::endl;
+        }
     }
-    // mcts.getEvalFunction()(mcts.getPreferences(), bestAlloc.first, true);
+
+    // =========================================================
+    // ÉTAPE 4 : Calcul des métriques et Sauvegarde JSON
+    // =========================================================
     if (config.show_metrics)
     {
         std::cout << "Metrics for the optimal allocation:" << std::endl;
-        show_metrics(mcts.getPreferences(), bestAlloc.first);
+        // On récupère les préférences de manière abstraite
+        show_metrics(allocator->getPreferences(), bestAlloc.first);
     }
+
     if (config.saveResults)
     {
-        mcts.save_results_json(prepare_file_name("mcts_results", ".json"), config.show_metrics);
+        // On sauvegarde avec le bon préfixe de fichier
+        allocator->save_results_json(prepare_file_name(filePrefix, ".json"), config.show_metrics);
     }
+
     return EXIT_SUCCESS;
 }
