@@ -126,6 +126,125 @@ void show_metrics(const Preferences<T> &prefs, const Allocation &alloc)
         std::cout << " - " << name << ": " << (metricFunc(prefs, alloc) ? "Yes" : "No") << std::endl;
     }
 }
+
+/**
+ * @brief Display the final configuration settings to the user.
+ * @param config The configuration object containing the settings.
+ */
+void showOptions(Config config)
+{
+    // ---------------------------------------------------------
+    // STEP 3: Algorithm execution
+    // ---------------------------------------------------------
+
+    std::cout << "\n=== [MCTS] Starting with final configuration ===\n";
+    std::cout << " - launch        : " << (config.launch ? "true" : "false") << "\n";
+    std::cout << " - Num Agents    : " << config.numAgents << "\n";
+    std::cout << " - Num Objects   : " << config.numObjects << "\n";
+    std::cout << " - Iterations    : " << config.iterations << "\n";
+    std::cout << " - Exploration C : " << config.exploration << "\n";
+    std::cout << " - Seed          : " << config.seed << "\n";
+    std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
+    std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
+    std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
+    std::cout << " - Use Solver    : " << (config.useSolver ? "true" : "false") << "\n";
+    std::cout << " - Monitoring Cuts : " << (config.monitoringCuts ? "true" : "false") << "\n";
+    std::cout << " - Uniformize Negative Values : " << (config.uniformizeNegativeValues ? "true" : "false") << "\n";
+    std::cout << " - Agent Have Minimum One Object : " << (config.agentHaveMinimumOneObject ? "true" : "false") << "\n";
+    std::cout << " - Add Metrics to Utility : " << (config.add_metrics_to_utility ? "true" : "false") << "\n";
+    std::cout << " - Use Time Budget : " << (config.useTimeBudget ? "true" : "false") << "\n";
+    std::cout << " - Time Budget Seconds : " << config.timeBudgetSeconds << "\n";
+    std::cout << " - Terminal JSON Output : " << (config.terminalJSONOutput ? "true" : "false") << "\n";
+    std::cout << "================================================\n\n";
+}
+
+/**
+ * @brief Parse command-line arguments and override configuration settings.
+ * @param config Reference to the configuration object.
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line arguments.
+ * @param showOptionsOutput Whether to display options output.
+ * @return Exit status.
+ */
+int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = true)
+{
+    // ---------------------------------------------------------
+    // STEP 2: Terminal override (CLI11)
+    // ---------------------------------------------------------
+    CLI::App app{"MCTS Engine for resource allocation"};
+
+    // Bind terminal options directly to the 'config' variables.
+    // If an option is NOT passed in the terminal, the variable keeps its TOML value.
+    app.add_option("-n,--num-agents", config.numAgents, "Override the number of agents");
+    app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
+    app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
+    app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
+    app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
+    app.add_flag("-l,--launch", config.launch, "Launch the interface");
+    app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
+    app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
+    app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
+    app.add_flag("-U,--use-solver", config.useSolver, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
+    app.add_flag("-M,--monitoring-cuts", config.monitoringCuts, "Enable monitoring of cuts when the best solution hasn't improved for a certain number of iterations");
+    app.add_flag("-N,--uniformize-negative-values", config.uniformizeNegativeValues, "Uniformize negative values in preferences (transform to how much agent hasn't received an object)");
+    app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
+    app.add_flag("-T,--add-metrics-to-utility", config.add_metrics_to_utility, "Add metrics to the utility calculation (EF, EFX, Prop, etc.)");
+    app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
+    app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
+    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
+    app.add_flag("-J, --terminal-json-output", config.terminalJSONOutput, "Output results in JSON format to the terminal");
+    // Parse the arguments provided at launch
+    // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
+    try
+    {
+        app.parse(argc, argv);
+        if (showOptionsOutput)
+        {
+            showOptions(config); // Display the final configuration to the user
+        }
+        return EXIT_SUCCESS;
+    }
+    catch (const CLI::ParseError &e)
+    {
+        // Intercepte les erreurs (ou l'affichage de l'aide -h)
+        // et quitte proprement le programme entier sans retourner au main().
+        std::exit(app.exit(e));
+    }
+}
+
+/**
+ * @brief Launch the interface for the MCTS allocation graph visualization.
+ * This function initializes the MCTSAllocationGraph and exports the graph to the default system viewer.
+ */
+void launch_interface()
+{
+    std::cout << "Launching the interface..." << std::endl;
+    // Code to launch your interface would go here
+    MCTSAllocationGraph graph;
+    graph.exportGraph();
+    // For now, we'll just print a message and exit
+}
+
+/**
+ * @brief Prepare a file name with a timestamp.
+ * @param prefix The prefix for the file name.
+ * @param suffix The suffix for the file name.
+ * @return The prepared file name.
+ */
+std::string prepare_file_name(std::string prefix, std::string suffix)
+{
+    auto t = std::time(nullptr);
+    std::tm tm{};
+#if defined(_WIN32) || defined(_WIN64)
+    localtime_s(&tm, &t);
+#else
+    localtime_r(&t, &tm);
+#endif
+    std::ostringstream oss;
+    oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
+    return prefix + oss.str() + suffix;
+}
+
 int main(int argc, char **argv)
 {
     setConsoleToUTF8(); // Set console to UTF-8 for proper character display
@@ -154,56 +273,7 @@ int main(int argc, char **argv)
         return EXIT_FAILURE;
     }
 
-    // ---------------------------------------------------------
-    // STEP 2: Terminal override (CLI11)
-    // ---------------------------------------------------------
-    CLI::App app{"MCTS Engine for resource allocation"};
-
-    // Bind terminal options directly to the 'config' variables.
-    // If an option is NOT passed in the terminal, the variable keeps its TOML value.
-    app.add_option("-n,--num-agents", config.numAgents, "Override the number of agents");
-    app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
-    app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
-    app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
-    app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
-    app.add_flag("-l,--launch", config.launch, "Launch the interface");
-    app.add_flag("-v,--verbose", config.verbose, "Enable verbose output for debugging");
-    app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
-    app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
-    app.add_flag("-U,--use-solver", config.useSolver, "Use the Gurobi solver to find the optimal allocation instead of MCTS");
-    app.add_flag("-M,--monitoring-cuts", config.monitoringCuts, "Enable monitoring of cuts when the best solution hasn't improved for a certain number of iterations");
-    app.add_flag("-N,--uniformize-negative-values", config.uniformizeNegativeValues, "Uniformize negative values in preferences (transform to how much agent hasn't received an object)");
-    app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
-    app.add_flag("-T,--add-metrics-to-utility", config.add_metrics_to_utility, "Add metrics to the utility calculation (EF, EFX, Prop, etc.)");
-    app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
-    app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
-    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
-
-    // Parse the arguments provided at launch
-    // CLI11_PARSE handles errors and the help menu (-h or --help) automatically
-    CLI11_PARSE(app, argc, argv);
-
-    // ---------------------------------------------------------
-    // STEP 3: Algorithm execution
-    // ---------------------------------------------------------
-    std::cout << "\n=== [MCTS] Starting with final configuration ===\n";
-    std::cout << " - launch        : " << (config.launch ? "true" : "false") << "\n";
-    std::cout << " - Num Agents    : " << config.numAgents << "\n";
-    std::cout << " - Num Objects   : " << config.numObjects << "\n";
-    std::cout << " - Iterations    : " << config.iterations << "\n";
-    std::cout << " - Exploration C : " << config.exploration << "\n";
-    std::cout << " - Seed          : " << config.seed << "\n";
-    std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
-    std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
-    std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
-    std::cout << " - Use Solver    : " << (config.useSolver ? "true" : "false") << "\n";
-    std::cout << " - Monitoring Cuts : " << (config.monitoringCuts ? "true" : "false") << "\n";
-    std::cout << " - Uniformize Negative Values : " << (config.uniformizeNegativeValues ? "true" : "false") << "\n";
-    std::cout << " - Agent Have Minimum One Object : " << (config.agentHaveMinimumOneObject ? "true" : "false") << "\n";
-    std::cout << " - Add Metrics to Utility : " << (config.add_metrics_to_utility ? "true" : "false") << "\n";
-    std::cout << " - Use Time Budget : " << (config.useTimeBudget ? "true" : "false") << "\n";
-    std::cout << " - Time Budget Seconds : " << config.timeBudgetSeconds << "\n";
-    std::cout << "================================================\n\n";
+    CLI_conf(config, argc, argv); // Override config values with command-line arguments
 
     // Safety: do not attempt to search for a solution when there are fewer objects than agents.
     if (config.numObjects < config.numAgents)
@@ -217,11 +287,7 @@ int main(int argc, char **argv)
     // mcts_engine.run(config.threads);
     if (config.launch)
     {
-        std::cout << "Launching the interface..." << std::endl;
-        // Code to launch your interface would go here
-        MCTSAllocationGraph graph;
-        graph.exportGraph();
-        // For now, we'll just print a message and exit
+        launch_interface();
         return EXIT_SUCCESS;
     }
 
@@ -238,28 +304,13 @@ int main(int argc, char **argv)
         }
         if (config.saveResults)
         {
-            auto t = std::time(nullptr);
-            std::tm tm{};
-#if defined(_WIN32) || defined(_WIN64)
-            localtime_s(&tm, &t);
-#else
-            localtime_r(&t, &tm);
-#endif
-            std::ostringstream oss;
-            oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
-            solver.save_results_json("solver_results" + oss.str() + ".json", config.show_metrics);
+            solver.save_results_json(prepare_file_name("solver_results", ".json"), config.show_metrics);
         }
         return EXIT_SUCCESS;
     }
 
     MCTS<int> mcts(config);
     mcts.getPreferences().printPreferences(); // Print the generated preferences for debugging purposes
-
-    // Print the generated preferences for debugging purposes
-    // std::cout << "Generated Preferences:" << std::endl;
-    // Preferences<int> &prefs = mcts.getPreferences();
-    // prefs.printPreferences();
-
     mcts.run(config.iterations, config.timeBudgetSeconds);
 
     // Show best allocation and score after the run
@@ -284,20 +335,7 @@ int main(int argc, char **argv)
     }
     if (config.saveResults)
     {
-        auto t = std::time(nullptr);
-        std::tm tm{};
-
-#if defined(_WIN32) || defined(_WIN64)
-        localtime_s(&tm, &t);
-#else
-        localtime_r(&t, &tm);
-#endif
-
-        std::ostringstream oss;
-
-        // Format : YYYY-MM-DD_HH-MM-SS
-        oss << std::put_time(&tm, "%Y-%m-%d_%H-%M-%S");
-        mcts.save_results_json("mcts_results" + oss.str() + ".json", config.show_metrics);
+        mcts.save_results_json(prepare_file_name("mcts_results", ".json"), config.show_metrics);
     }
     return EXIT_SUCCESS;
 }

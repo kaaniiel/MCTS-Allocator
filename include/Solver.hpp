@@ -8,6 +8,7 @@
 #include <fstream>
 #include <vector>
 #include <memory>
+#include "IAllocator.hpp"
 #include "mcts/Preferences.hpp"
 #include "mcts/Allocation.hpp"
 #include "mcts/Score.hpp"
@@ -15,21 +16,13 @@
 #include <gurobi_c++.h>
 
 template <typename T>
-class Solver
+class Solver : public IAllocator<T>
 {
 private:
     int seed;
     Preferences<T> prefs;
     std::pair<Allocation, Score> optimalAllocation;
     int timeoutSeconds;
-
-    void load_config(const Config &config)
-    {
-        seed = config.seed;
-        prefs = Preferences<T>(config.numAgents, config.numObjects, config.verbose);
-        prefs.generateRandomPreferences(config.numAgents * config.numObjects, config.seed);
-        timeoutSeconds = config.solverTimeoutSeconds;
-    }
 
 public:
     Solver(const int numAgents, const int numObjects, const int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())) : seed(seed), prefs(numAgents, numObjects, false), timeoutSeconds(60) // Default timeout of 1 minute
@@ -44,6 +37,7 @@ public:
         load_config(config);
     };
 
+public:
     std::pair<Allocation, Score> solve(bool verbose = false)
     {
         return solve(prefs, verbose);
@@ -180,14 +174,8 @@ public:
         return result; // Return the result by value; internal storage is released
     }
 
-    /**
-     * @brief Get the preferences used by the solver
-     * @return Preferences<T> The preferences used by the solver
-     */
-    Preferences<T> getPreferences() const { return prefs; }
-    /**
-     * @brief Clear stored solver results and release memory held by preferences/allocation.
-     */
+    const Preferences<T> &getPreferences() const { return prefs; }
+
     void clear()
     {
         // Reset stored optimal allocation and score
@@ -196,6 +184,14 @@ public:
 
         // Release preferences memory
         prefs.clear();
+    }
+
+    void load_config(const Config &config)
+    {
+        seed = config.seed;
+        prefs = Preferences<T>(config.numAgents, config.numObjects, config.verbose);
+        prefs.generateRandomPreferences(config.numAgents * config.numObjects, config.seed);
+        timeoutSeconds = config.solverTimeoutSeconds;
     }
 
     void save_results_json(const std::string &filename, const bool add_metrics = false)

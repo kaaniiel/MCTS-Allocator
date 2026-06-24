@@ -8,6 +8,7 @@
 #include <cmath>
 #include <functional>
 
+#include "IAllocator.hpp"
 #include "Node.hpp"
 #include "Allocation.hpp"
 #include "Score.hpp"
@@ -16,7 +17,7 @@
 #include "config/config.hpp"
 
 template <typename T>
-class MCTS
+class MCTS : public IAllocator<T>
 {
 private:
     int numberOfAgents;
@@ -67,7 +68,7 @@ public:
     MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, evalFunction, verbose) {};
     MCTS(const int numAgents, const int numObjects, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
     MCTS(const int numAgents, const int numObjects, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
-    MCTS(Config &config) : MCTS() { loadConfig(config); };
+    MCTS(Config &config) : MCTS() { load_config(config); };
     /**
      * @brief Get the number of objects
      * @return int The number of objects
@@ -91,9 +92,6 @@ public:
      */
     Preferences<T> &getPreferences() { return preferences; }
 
-    /** @brief Get the preferences for the MCTS algorithm
-     * @return const Preferences<T>& The preferences for the MCTS algorithm
-     */
     const Preferences<T> &getPreferences() const { return preferences; }
 
     /**
@@ -127,6 +125,12 @@ public:
      */
     void setTrunckateTreeSearch(bool t) { trunckateTreeSearch = t; }
 
+    std::pair<Allocation, Score> solve(bool verbose = false) override
+    {
+        this->setVerbose(verbose);
+        run(config.iterations, config.timeBudgetSeconds, verbose);
+        return root.getBestAllocation();
+    }
     /** @brief Runs the MCTS algorithm for a specified number of iterations.
      *  @param budget The number of iterations to run (classic budget) or the time budget in seconds (if workWithTimeBudget is true)
      *  @param showProgress Whether to show the progress bar during the run
@@ -169,12 +173,7 @@ public:
      */
     std::pair<Allocation, Score> backpropagate(std::stack<Node *> &nodeStack, const std::pair<Allocation, Score> &reward);
 
-    /**
-     * @brief Load configuration from a Config struct
-     * @param config The configuration to load
-     * @return void
-     */
-    void loadConfig(Config &conf)
+    void load_config(const Config &conf)
     {
         this->config = conf; // Store config for thread access
         numberOfAgents = config.numAgents;
@@ -307,6 +306,14 @@ public:
     long long getMonitoringCuts() const
     {
         return monitoringCuts;
+    }
+
+    void clear()
+    {
+        root = Node(numberOfAgents, numberOfObjects, verbose);
+        nodeStack = std::stack<Node *>();
+        preferences.clear();
+        monitoringCuts = 0;
     }
 };
 

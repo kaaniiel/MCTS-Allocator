@@ -27,6 +27,7 @@ struct Config
     bool add_metrics_to_utility = false;
     bool show_metrics = false;
     bool useSolver = false;
+    bool terminalJSONOutput = false;
 
     // Default values for experiments
     // GLOBAL
@@ -611,6 +612,7 @@ public:
             write_value(file, "add_metrics_to_utility", default_config.add_metrics_to_utility);
             write_value(file, "show_metrics", default_config.show_metrics);
             write_value(file, "use_solver", default_config.useSolver);
+            write_value(file, "terminal_json_output", default_config.terminalJSONOutput);
 
             write_section(file, "experiments");
             write_section(file, "experiments.global");
@@ -659,6 +661,8 @@ public:
             write_value(file, 1, "use_time_budget", default_config.useTimeBudget);
             write_comment(file, 1, "Time budget for the MCTS in seconds");
             write_value(file, 1, "time_budget_seconds", default_config.timeBudgetSeconds);
+            write_comment(file, 1, "Whether to output results in JSON format to the terminal");
+            write_value(file, 1, "terminal_json_output", default_config.terminalJSONOutput);
 
             write_section(file, "experiments.solver");
             write_comment(file, 1, "Values specific to the solver experiment sweep.");

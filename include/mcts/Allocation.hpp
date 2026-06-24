@@ -1,6 +1,7 @@
 #ifndef ALLOCATION_HPP
 #define ALLOCATION_HPP
 #include <vector>
+#include <stdexcept>
 
 class Allocation
 {
