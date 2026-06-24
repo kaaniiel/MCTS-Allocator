@@ -75,7 +75,7 @@ namespace
 #include <memory>
 
 template <typename T>
-void MCTS<T>::run(const int budget, const int timeBudget, bool showProgress)
+void MCTS<T>::run(const int budget, const double timeBudget, bool showProgress)
 {
     if (workWithTimeBudget)
     {
@@ -147,7 +147,7 @@ void MCTS<T>::classicRun(const int budget, bool showProgress)
 }
 
 template <typename T>
-void MCTS<T>::runWithTimeBudget(const int timeBudget, bool showProgress)
+void MCTS<T>::runWithTimeBudget(const double timeBudget, bool showProgress)
 {
     std::unique_ptr<indicators::ProgressBar> bar;
     if (showProgress)
@@ -155,56 +155,44 @@ void MCTS<T>::runWithTimeBudget(const int timeBudget, bool showProgress)
         bar = createProgressBar("Running MCTS with time budget...");
     }
 
+    // 1. Démarrer le chrono au format haute résolution
     auto startTime = std::chrono::steady_clock::now();
+
+    // 2. Convertir le budget en millisecondes (en long long pour éviter l'overflow)
+    const long long budgetMillis = timeBudget * 1000LL;
 
     while (true)
     {
-        nodeStack = std::stack<Node *>(); // Clear the stack at the beginning of each run
-        /*Selection*/
-        if (this->getVerbose())
-        {
-            std::cout << "Selecting node..." << std::endl;
-        }
+        nodeStack = std::stack<Node *>();
+
+        // --- Selection ---
         Node *node = selectNode(&root, &nodeStack);
-        /*expansion*/
-        if (this->getVerbose())
-        {
-            std::cout << "Expanding node..." << std::endl;
-        }
+
+        // --- Expansion ---
         Node *childNode = node->extend();
-        if (this->getVerbose())
-        {
-            std::cout << "Budget counter: " << budgetCounter << std::endl;
-        }
+
         Node *simulationNode = (childNode != nullptr) ? childNode : node;
         if (simulationNode != nullptr)
         {
-            if (childNode != nullptr && this->getVerbose())
-            {
-                for (int object : childNode->getCurrentAllocation().getAllocation())
-                {
-                    std::cout << object << " ";
-                }
-                std::cout << std::endl;
-            }
             if (childNode != nullptr)
             {
                 nodeStack.push(childNode);
             }
-            /*simulation*/
+            // --- Simulation ---
             std::pair<Allocation, Score> reward = simulate(*simulationNode);
-            /*backpropagation*/
+            // --- Backpropagation ---
             backpropagate(nodeStack, reward);
         }
-        this->budgetCounter++; // Always increment to avoid infinite loop
 
+        this->budgetCounter++;
+
+        // 3. Mesurer le temps écoulé en MILLISECONDES
         auto currentTime = std::chrono::steady_clock::now();
-        auto elapsedSeconds = std::chrono::duration_cast<std::chrono::seconds>(currentTime - startTime).count();
+        auto elapsedMillis = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
 
-        // 1. Condition d'arrêt d'origine (inchangée)
-        if (elapsedSeconds >= timeBudget)
+        // 4. Condition d'arrêt précise
+        if (elapsedMillis >= budgetMillis)
         {
-            // On force la barre à 100% proprement juste avant de quitter
             if (showProgress && bar)
             {
                 bar->set_option(indicators::option::PostfixText{
@@ -214,17 +202,19 @@ void MCTS<T>::runWithTimeBudget(const int timeBudget, bool showProgress)
             break;
         }
 
-        // 2. Mise à jour de la barre basée sur le temps réel (millisecondes pour la fluidité)
+        // 5. Mise à jour de la barre basée sur le temps réel
         if (showProgress && bar)
         {
-            auto elapsedMs = std::chrono::duration_cast<std::chrono::milliseconds>(currentTime - startTime).count();
-            double elapsedSecondsDouble = elapsedMs / 1000.0;
-
-            updateTimeProgress(*bar, budgetCounter, elapsedSecondsDouble, timeBudget);
+            // UI Optimization : On rafraîchit seulement toutes les 1000 itérations !
+            // Cela empêche la console de brider la vitesse de ton algorithme.
+            if (this->budgetCounter % 1000 == 0)
+            {
+                double elapsedSecondsDouble = elapsedMillis / 1000.0;
+                updateTimeProgress(*bar, this->budgetCounter, elapsedSecondsDouble, timeBudget);
+            }
         }
     }
 }
-
 template <typename T>
 Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
 {

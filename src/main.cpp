@@ -201,9 +201,10 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
     try
     {
         app.parse(argc, argv);
-        if (showOptionsOutput)
+        // On n'affiche les options que si on ne veut pas une sortie purement JSON
+        if (showOptionsOutput && !config.terminalJSONOutput)
         {
-            showOptions(config); // Display the final configuration to the user
+            showOptions(config);
         }
         return EXIT_SUCCESS;
     }
@@ -299,63 +300,66 @@ int main(int argc, char **argv)
 
     if (config.useSolver)
     {
-        std::cout << "Using the Gurobi solver to find the optimal allocation..." << std::endl;
+        if (!config.terminalJSONOutput)
+            std::cout << "Using the Gurobi solver to find the optimal allocation..." << std::endl;
         allocator = std::make_unique<Solver<int>>(config);
         filePrefix = "solver_results_";
     }
     else
     {
-        std::cout << "Using the MCTS engine to find the allocation..." << std::endl;
+        if (!config.terminalJSONOutput)
+            std::cout << "Using the MCTS engine to find the allocation..." << std::endl;
         allocator = std::make_unique<MCTS<int>>(config);
         filePrefix = "mcts_results_";
 
-        // MCTS affichait les préférences par défaut dans votre ancien code
-        // Vous pouvez le conditionner avec if (config.verbose) si vous préférez
-        allocator->getPreferences().printPreferences();
+        if (!config.terminalJSONOutput && config.verbose)
+        {
+            allocator->getPreferences().printPreferences();
+        }
     }
 
     // =========================================================
     // ÉTAPE 2 : Appel uniformisé de la résolution
     // =========================================================
-    // La méthode solve() s'occupera d'appeler Gurobi ou MCTS selon l'objet instancié !
-    std::pair<Allocation, Score> bestAlloc = allocator->solve(config.verbose);
+    std::pair<Allocation, Score> bestAlloc = allocator->solve(config.verbose && !config.terminalJSONOutput);
 
     // =========================================================
-    // ÉTAPE 3 : Affichage des résultats
+    // ÉTAPE 3 : Affichages classiques (désactivés si -J)
     // =========================================================
-    std::cout << "\n=== [Results] Best allocation and score found ===" << std::endl;
-    std::cout << "Best allocation: ";
-    const std::vector<int> &allocVec = bestAlloc.first.getAllocation();
-    for (int object : allocVec)
+    if (!config.terminalJSONOutput)
     {
-        std::cout << object << " ";
-    }
-    std::cout << "\nBest score: " << bestAlloc.second.getScore() << std::endl;
+        std::cout << "\n=== [Results] Best allocation and score found ===" << std::endl;
+        std::cout << "Best allocation: ";
+        const std::vector<int> &allocVec = bestAlloc.first.getAllocation();
+        for (int object : allocVec)
+            std::cout << object << " ";
+        std::cout << "\nBest score: " << bestAlloc.second.getScore() << std::endl;
 
-    // Gestion spécifique à MCTS (les "cuts")
-    if (!config.useSolver && config.monitoringCuts)
-    {
-        // On vérifie dynamiquement si l'allocateur est bien un MCTS pour utiliser ses méthodes propres
-        if (auto mctsPtr = dynamic_cast<MCTS<int> *>(allocator.get()))
+        if (!config.useSolver && config.monitoringCuts)
         {
-            std::cout << "Number of cuts inside the MCTS search: " << mctsPtr->getMonitoringCuts() << std::endl;
+            if (auto mctsPtr = dynamic_cast<MCTS<int> *>(allocator.get()))
+                std::cout << "Number of cuts inside the MCTS search: " << mctsPtr->getMonitoringCuts() << std::endl;
+        }
+
+        if (config.show_metrics)
+        {
+            std::cout << "Metrics for the optimal allocation:" << std::endl;
+            show_metrics(allocator->getPreferences(), bestAlloc.first);
         }
     }
 
     // =========================================================
-    // ÉTAPE 4 : Calcul des métriques et Sauvegarde JSON
+    // ÉTAPE 4 : Sortie Fichier et/ou Terminal JSON
     // =========================================================
-    if (config.show_metrics)
-    {
-        std::cout << "Metrics for the optimal allocation:" << std::endl;
-        // On récupère les préférences de manière abstraite
-        show_metrics(allocator->getPreferences(), bestAlloc.first);
-    }
-
     if (config.saveResults)
     {
-        // On sauvegarde avec le bon préfixe de fichier
         allocator->save_results_json(prepare_file_name(filePrefix, ".json"), config.show_metrics);
+    }
+
+    if (config.terminalJSONOutput)
+    {
+        // On affiche UNIQUEMENT le JSON généré par l'algorithme
+        std::cout << allocator->to_json(config.show_metrics) << std::endl;
     }
 
     return EXIT_SUCCESS;

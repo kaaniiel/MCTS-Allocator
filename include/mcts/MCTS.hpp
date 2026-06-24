@@ -6,6 +6,7 @@
 #include <numeric>
 #include <utility>
 #include <cmath>
+#include <sstream>
 #include <functional>
 
 #include "IAllocator.hpp"
@@ -35,7 +36,7 @@ private:
     int budgetCounter = 0;            // Counter for the number of iterations completed
     bool addMetricsToUtility = false; // Flag to determine if metrics should be added to utility
     bool workWithTimeBudget = false;  // Flag to determine if the MCTS should work with a time budget
-    int timeBudgetSeconds = 60;       // Time budget in seconds for the MCTS search
+    double timeBudgetSeconds = 60.0;  // Time budget in seconds for the MCTS search
 private:
     std::vector<unsigned long long> factorialCache = {1};
     int iterTrackerBestSolution = 0;       // Timer to track how many iterations the best solution hasn't changed
@@ -55,7 +56,7 @@ public:
              config(Config()),
              trunckateTreeSearch(false),
              workWithTimeBudget(false),
-             timeBudgetSeconds(60) {};
+             timeBudgetSeconds(60.0) {};
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                       root(root),
@@ -136,7 +137,7 @@ public:
      *  @param showProgress Whether to show the progress bar during the run
      * @return void
      */
-    void run(const int budget, const int timeBudget = 0, bool showProgress = true);
+    void run(const int budget, const double timeBudget = 0, bool showProgress = true);
 
     /**
      * @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
@@ -152,7 +153,8 @@ public:
      * @param showProgress Whether to show the progress bar during the run
      * @return void
      */
-    void runWithTimeBudget(const int timeBudget, bool showProgress = true);
+    void runWithTimeBudget(const double timeBudget, bool showProgress = true);
+
     /** @brief Selects a node to expand based on the UCB1 formula
      *  @param node The current node
      *  @param nodeStack The stack of nodes
@@ -193,6 +195,68 @@ public:
         timeBudgetSeconds = config.timeBudgetSeconds;
     }
 
+    std::string to_json(const bool add_metrics = false)
+    {
+        std::ostringstream oss;
+
+        oss << "{\n";
+        oss << "  \"num_agents\": " << numberOfAgents << ",\n";
+        oss << "  \"num_objects\": " << numberOfObjects << ",\n";
+        oss << "  \"exploration_parameter\": " << explorationParameter << ",\n";
+        oss << "  \"seed\": " << seed << ",\n";
+        oss << "  \"verbose\": " << (verbose ? "true" : "false") << ",\n";
+        oss << "  \"ratio_random\": " << ratioRandom << ",\n";
+        oss << "  \"trunckate_tree_search\": " << (trunckateTreeSearch ? "true" : "false") << ",\n";
+        oss << "  \"add_metrics_to_utility\": " << (addMetricsToUtility ? "true" : "false") << ",\n";
+        oss << "  \"work_with_time_budget\": " << (workWithTimeBudget ? "true" : "false") << ",\n";
+        oss << "  \"time_budget_seconds\": " << timeBudgetSeconds << ",\n";
+        oss << "  \"iterations\": " << (workWithTimeBudget ? this->budgetCounter : config.iterations) << ",\n";
+        // add preferences matrix
+        oss << "  \"preferences\": [\n";
+        for (int i = 0; i < numberOfAgents; ++i)
+        {
+            oss << "    [";
+            for (int j = 0; j < numberOfObjects; ++j)
+            {
+                oss << preferences.getPreference(i, j);
+                if (j < numberOfObjects - 1)
+                    oss << ", ";
+            }
+            oss << "]";
+            if (i < numberOfAgents - 1)
+                oss << ",\n";
+        }
+
+        oss << "  ],\n";
+        // add best allocation and score
+        const Allocation &bestAlloc = root.getBestAllocation().first;
+        const Score &bestScore = root.getBestAllocation().second;
+        oss << "  \"best_allocation\": [";
+        const std::vector<int> &allocVec = bestAlloc.getAllocation();
+        for (size_t i = 0; i < allocVec.size(); ++i)
+        {
+            oss << allocVec[i];
+            if (i < allocVec.size() - 1)
+                oss << ", ";
+        }
+        oss << "],\n";
+        oss << "  \"best_score\": " << bestScore.getScore() << ",\n";
+        oss << "  \"metrics\": {\n";
+        if (add_metrics)
+        {
+            for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
+            {
+                double metricValue = metricFunc(getPreferences(), bestAlloc);
+                oss << "    \"" << name << "\": " << metricValue;
+                if (name != getMetricsRegistry<T>().rbegin()->first)
+                    oss << ",";
+                oss << "\n";
+            }
+        }
+        oss << "  }\n";
+        oss << "}\n";
+        return oss.str();
+    }
     void save_results_json(const std::string &filename, const bool add_metrics = false)
     {
         std::string results_dir = "results";
@@ -203,63 +267,14 @@ public:
         std::ofstream file(results_dir + "/" + filename);
         if (file.is_open())
         {
-            file << "{\n";
-            file << "  \"num_agents\": " << numberOfAgents << ",\n";
-            file << "  \"num_objects\": " << numberOfObjects << ",\n";
-            file << "  \"exploration_parameter\": " << explorationParameter << ",\n";
-            file << "  \"seed\": " << seed << ",\n";
-            file << "  \"verbose\": " << (verbose ? "true" : "false") << ",\n";
-            file << "  \"ratio_random\": " << ratioRandom << ",\n";
-            file << "  \"trunckate_tree_search\": " << (trunckateTreeSearch ? "true" : "false") << ",\n";
-            file << "  \"add_metrics_to_utility\": " << (addMetricsToUtility ? "true" : "false") << ",\n";
-            file << "  \"work_with_time_budget\": " << (workWithTimeBudget ? "true" : "false") << ",\n";
-            file << "  \"time_budget_seconds\": " << timeBudgetSeconds << ",\n";
-            file << "  \"iterations\": " << (workWithTimeBudget ? this->budgetCounter : config.iterations) << ",\n";
-            // add preferences matrix
-            file << "  \"preferences\": [\n";
-            for (int i = 0; i < numberOfAgents; ++i)
-            {
-                file << "    [";
-                for (int j = 0; j < numberOfObjects; ++j)
-                {
-                    file << preferences.getPreference(i, j);
-                    if (j < numberOfObjects - 1)
-                        file << ", ";
-                }
-                file << "]";
-                if (i < numberOfAgents - 1)
-                    file << ",\n";
-            }
+            // On appelle notre nouvelle fonction to_json() !
+            file << to_json(add_metrics);
 
-            file << "  ],\n";
-            // add best allocation and score
-            const Allocation &bestAlloc = root.getBestAllocation().first;
-            const Score &bestScore = root.getBestAllocation().second;
-            file << "  \"best_allocation\": [";
-            const std::vector<int> &allocVec = bestAlloc.getAllocation();
-            for (size_t i = 0; i < allocVec.size(); ++i)
+            // Ne pas l'afficher dans le terminal si l'option -J est activée
+            if (!config.terminalJSONOutput)
             {
-                file << allocVec[i];
-                if (i < allocVec.size() - 1)
-                    file << ", ";
+                std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
             }
-            file << "],\n";
-            file << "  \"best_score\": " << bestScore.getScore() << ",\n";
-            file << "  \"metrics\": {\n";
-            if (add_metrics)
-            {
-                for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
-                {
-                    double metricValue = metricFunc(getPreferences(), bestAlloc);
-                    file << "    \"" << name << "\": " << metricValue;
-                    if (name != getMetricsRegistry<T>().rbegin()->first)
-                        file << ",";
-                    file << "\n";
-                }
-            }
-            file << "  }\n";
-            file << "}\n";
-            std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
         }
         else
         {

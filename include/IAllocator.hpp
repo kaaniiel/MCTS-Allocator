@@ -50,6 +50,13 @@ public:
      * @return void
      */
     virtual void save_results_json(const std::string &filename, bool add_metrics = false) = 0;
+
+    /**
+     * @brief Convert the results of the allocation to a JSON string
+     * @param add_metrics Whether to include metrics in the JSON string
+     * @return std::string The JSON string containing the allocation results
+     */
+    virtual std::string to_json(bool add_metrics = false) = 0;
 };
 
 #endif // IALLOCATOR_HPP

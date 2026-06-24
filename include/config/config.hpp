@@ -49,7 +49,7 @@ struct Config
     double ratioRandomMax = 1.0;
     double ratioRandomStep = 1.0;
     bool useTimeBudget = false;
-    int timeBudgetSeconds = 60; // 1 minute
+    double timeBudgetSeconds = 60.0; // 1 minute
     int numberOfTrys = 1;
     double numberOfBudgetStep = 0;
     bool agentHaveMinimumOneObject = false;
@@ -799,7 +799,7 @@ public:
             require_nested_value("experiments.mcts.use_time_budget", tbl, "experiments", "mcts", "use_time_budget", missingFields, [&]
                                  { config.useTimeBudget = read_bool(tbl, "experiments", "mcts", "use_time_budget", config.useTimeBudget); });
             require_nested_value("experiments.mcts.time_budget_seconds", tbl, "experiments", "mcts", "time_budget_seconds", missingFields, [&]
-                                 { config.timeBudgetSeconds = read_int(tbl, "experiments", "mcts", "time_budget_seconds", config.timeBudgetSeconds); });
+                                 { config.timeBudgetSeconds = read_double(tbl, "experiments", "mcts", "time_budget_seconds", config.timeBudgetSeconds); });
 
             if (!missingFields.empty())
             {

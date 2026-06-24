@@ -23,6 +23,8 @@ private:
     Preferences<T> prefs;
     std::pair<Allocation, Score> optimalAllocation;
     int timeoutSeconds;
+    Config config;
+    double executionTimeSeconds = 0.0;
 
 public:
     Solver(const int numAgents, const int numObjects, const int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())) : seed(seed), prefs(numAgents, numObjects, false), timeoutSeconds(60) // Default timeout of 1 minute
@@ -129,6 +131,8 @@ public:
         // Optimize the model
         model.optimize();
 
+        this->executionTimeSeconds = model.get(GRB_DoubleAttr_Runtime);
+
         Allocation allocation(numAgents, numObjects);
         double score = 0.0;
 
@@ -192,68 +196,86 @@ public:
         prefs = Preferences<T>(config.numAgents, config.numObjects, config.verbose);
         prefs.generateRandomPreferences(config.numAgents * config.numObjects, config.seed);
         timeoutSeconds = config.solverTimeoutSeconds;
+        this->config = config;
+    }
+
+    std::string to_json(const bool add_metrics = false)
+    {
+        int numAgents = optimalAllocation.first.getNumAgents();
+        int numObjects = optimalAllocation.first.getNumObjects();
+
+        std::ostringstream oss;
+
+        oss << "{\n";
+        oss << "  \"num_agents\": " << numAgents << ",\n";
+        oss << "  \"num_objects\": " << numObjects << ",\n";
+        // add preferences matrix
+        oss << "  \"preferences\": [\n";
+        oss << "  \"execution_time_seconds\": " << executionTimeSeconds << ",\n"; // <-- Ajoutez cette ligne
+        for (int i = 0; i < numAgents; ++i)
+        {
+            oss << "    [";
+            for (int j = 0; j < numObjects; ++j)
+            {
+                oss << prefs.getPreference(i, j);
+                if (j < numObjects - 1)
+                    oss << ", ";
+            }
+            oss << "]";
+            if (i < numAgents - 1)
+                oss << ",\n";
+        }
+
+        oss << "  ],\n";
+        // add best allocation and score
+        const Allocation &bestAlloc = optimalAllocation.first;
+        const Score &bestScore = optimalAllocation.second;
+        oss << "  \"best_allocation\": [";
+        const std::vector<int> &allocVec = bestAlloc.getAllocation();
+        for (size_t i = 0; i < allocVec.size(); ++i)
+        {
+            oss << allocVec[i];
+            if (i < allocVec.size() - 1)
+                oss << ", ";
+        }
+        oss << "],\n";
+        oss << "  \"best_score\": " << bestScore.getScore() << ",\n";
+        oss << "  \"metrics\": {\n";
+        if (add_metrics)
+        {
+            for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
+            {
+                double metricValue = metricFunc(prefs, bestAlloc);
+                oss << "    \"" << name << "\": " << metricValue;
+                if (name != getMetricsRegistry<T>().rbegin()->first)
+                    oss << ",";
+                oss << "\n";
+            }
+        }
+        oss << "  }\n";
+        oss << "}\n";
+        return oss.str();
     }
 
     void save_results_json(const std::string &filename, const bool add_metrics = false)
     {
-        int numAgents = optimalAllocation.first.getNumAgents();
-        int numObjects = optimalAllocation.first.getNumObjects();
         std::string results_dir = "results";
         if (!std::filesystem::exists(results_dir))
         {
             std::filesystem::create_directory(results_dir);
         }
+
         std::ofstream file(results_dir + "/" + filename);
         if (file.is_open())
         {
-            file << "{\n";
-            file << "  \"num_agents\": " << numAgents << ",\n";
-            file << "  \"num_objects\": " << numObjects << ",\n";
-            // add preferences matrix
-            file << "  \"preferences\": [\n";
-            for (int i = 0; i < numAgents; ++i)
-            {
-                file << "    [";
-                for (int j = 0; j < numObjects; ++j)
-                {
-                    file << prefs.getPreference(i, j);
-                    if (j < numObjects - 1)
-                        file << ", ";
-                }
-                file << "]";
-                if (i < numAgents - 1)
-                    file << ",\n";
-            }
+            // On appelle notre nouvelle fonction to_json() !
+            file << to_json(add_metrics);
 
-            file << "  ],\n";
-            // add best allocation and score
-            const Allocation &bestAlloc = optimalAllocation.first;
-            const Score &bestScore = optimalAllocation.second;
-            file << "  \"best_allocation\": [";
-            const std::vector<int> &allocVec = bestAlloc.getAllocation();
-            for (size_t i = 0; i < allocVec.size(); ++i)
+            // Ne pas l'afficher dans le terminal si l'option -J est activée
+            if (!config.terminalJSONOutput)
             {
-                file << allocVec[i];
-                if (i < allocVec.size() - 1)
-                    file << ", ";
+                std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
             }
-            file << "],\n";
-            file << "  \"best_score\": " << bestScore.getScore() << ",\n";
-            file << "  \"metrics\": {\n";
-            if (add_metrics)
-            {
-                for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
-                {
-                    double metricValue = metricFunc(prefs, bestAlloc);
-                    file << "    \"" << name << "\": " << metricValue;
-                    if (name != getMetricsRegistry<T>().rbegin()->first)
-                        file << ",";
-                    file << "\n";
-                }
-            }
-            file << "  }\n";
-            file << "}\n";
-            std::cout << "[Results] Saved results to: " << results_dir + "/" + filename << "\n";
         }
         else
         {
