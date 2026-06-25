@@ -184,6 +184,7 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
     app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
+    app.add_option("-p, --selected-politic", config.selectedPolitic, "Override the selected politic for determining the ratio of random simulations");
     app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
     app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
     app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");

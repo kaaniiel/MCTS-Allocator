@@ -9,6 +9,7 @@
 #include <stdexcept>
 #include <vector>
 #include <type_traits>
+#include "../politics/PoliticRegistry.hpp"
 
 #include "toml.hpp"
 
@@ -23,6 +24,7 @@ struct Config
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
     double ratioRandom = 1;
+    std::string selectedPolitic = "RandomUniformPolitic";
     bool saveResults = false;
     bool add_metrics_to_utility = false;
     bool show_metrics = false;
@@ -629,6 +631,17 @@ public:
             write_comment(file, "Show progress information during the MCTS run");
             write_value(file, "show_progress", default_config.showProgress);
 
+            std::vector<std::string> availablePolitics = PoliticRegistry::getInstance().getAvailablePolitics();
+            std::string commentPolitic = "Select the politic to use. Available options: ";
+            for (size_t i = 0; i < availablePolitics.size(); ++i)
+            {
+                commentPolitic += availablePolitics[i];
+                if (i < availablePolitics.size() - 1)
+                    commentPolitic += ", ";
+            }
+            write_comment(file, commentPolitic); // <-- Le commentaire s'écrira avec la liste de tes classes !
+            write_value(file, "selected_politic", default_config.selectedPolitic);
+
             write_section(file, "experiments");
             write_section(file, "experiments.global");
             write_comment(file, 1, "Values shared by every experiment sweep.");
@@ -749,6 +762,8 @@ public:
                                  { config.useSolver = tbl["mcts"]["use_solver"].value_or(config.useSolver); });
             require_nested_value("mcts.terminal_json_output", tbl, "mcts", "terminal_json_output", missingFields, [&]
                                  { config.terminalJSONOutput = tbl["mcts"]["terminal_json_output"].value_or(config.terminalJSONOutput); });
+            require_nested_value("mcts.selected_politic", tbl, "mcts", "selected_politic", missingFields, [&]
+                                 { config.selectedPolitic = read_string(tbl, "mcts", "selected_politic", config.selectedPolitic); });
             // Experiments parameters
             require_nested_value("experiments.global.num_agents_min", tbl, "experiments", "global", "num_agents_min", missingFields, [&]
                                  { config.numAgentsMin = read_int(tbl, "experiments", "global", "num_agents_min", config.numAgentsMin); });

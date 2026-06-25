@@ -14,6 +14,8 @@
 #include "Allocation.hpp"
 #include "Score.hpp"
 #include "Preferences.hpp"
+#include "politics/IPolitic.hpp"
+#include "politics/RandomUniformPolitic.hpp"
 #include "metrics/Utility.hpp"
 #include "config/config.hpp"
 
@@ -29,6 +31,7 @@ private:
     double explorationParameter; // Exploration parameter for UCB
     int seed;
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
+    std::unique_ptr<IPolitic> politic;                                                                            // Pointer to a politic object for determining the ratio of random simulations
     bool verbose;
     double ratioRandom; // Ratio of random simulations to heuristic simulations
     Config config;      // Store configuration for thread access
@@ -56,7 +59,9 @@ public:
              config(Config()),
              trunckateTreeSearch(false),
              workWithTimeBudget(false),
-             timeBudgetSeconds(60.0) {};
+             timeBudgetSeconds(60.0),
+             politic(new RandomUniformPolitic()) {};
+
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                       root(root),
@@ -193,6 +198,8 @@ public:
         addMetricsToUtility = config.add_metrics_to_utility;
         workWithTimeBudget = config.useTimeBudget;
         timeBudgetSeconds = config.timeBudgetSeconds;
+        // TODO
+        politic = PoliticRegistry::getInstance().create(config.selectedPolitic);
     }
 
     std::string to_json(const bool add_metrics = false)
