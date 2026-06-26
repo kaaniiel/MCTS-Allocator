@@ -630,6 +630,10 @@ public:
             write_value(file, "terminal_json_output", default_config.terminalJSONOutput);
             write_comment(file, "Show progress information during the MCTS run");
             write_value(file, "show_progress", default_config.showProgress);
+            write_comment(file,  "Whether to use a time budget instead of a number of iterations");
+            write_value(file,  "use_time_budget", default_config.useTimeBudget);
+            write_comment(file,  "Time budget for the MCTS in seconds");
+            write_value(file,"time_budget_seconds", default_config.timeBudgetSeconds);
 
             std::vector<std::string> availablePolitics = PoliticRegistry::getInstance().getAvailablePolitics();
             std::string commentPolitic = "Select the politic to use. Available options: ";
@@ -666,6 +670,7 @@ public:
             write_value(file, 1, "verbose", default_config.verbose);
             write_comment(file, 1, "Output directory for experiment results");
             write_value(file, 1, "output_directory", default_config.outputDirectory);
+            
 
             write_section(file, "experiments.mcts");
             write_comment(file, 1, "Values specific to the MCTS experiment sweep.");
@@ -685,10 +690,6 @@ public:
             write_value(file, 1, "uniformize_negative_values", default_config.uniformizeNegativeValues);
             write_comment(file, 1, "Get how many cuts are made by MCTS");
             write_value(file, 1, "monitoring_cuts", default_config.monitoringCuts);
-            write_comment(file, 1, "Whether to use a time budget instead of a number of iterations");
-            write_value(file, 1, "use_time_budget", default_config.useTimeBudget);
-            write_comment(file, 1, "Time budget for the MCTS in seconds");
-            write_value(file, 1, "time_budget_seconds", default_config.timeBudgetSeconds);
             write_comment(file, 1, "Whether to output results in JSON format to the terminal");
             write_value(file, 1, "terminal_json_output", default_config.terminalJSONOutput);
 
@@ -764,6 +765,11 @@ public:
                                  { config.terminalJSONOutput = tbl["mcts"]["terminal_json_output"].value_or(config.terminalJSONOutput); });
             require_nested_value("mcts.selected_politic", tbl, "mcts", "selected_politic", missingFields, [&]
                                  { config.selectedPolitic = read_string(tbl, "mcts", "selected_politic", config.selectedPolitic); });
+            require_nested_value("mcts.use_time_budget", tbl, "mcts", "use_time_budget", missingFields, [&]
+                                 { config.useTimeBudget = read_bool(tbl, "mcts", "use_time_budget", config.useTimeBudget); });
+            require_nested_value("mcts.time_budget_seconds", tbl, "mcts", "time_budget_seconds", missingFields, [&]
+                                 { config.timeBudgetSeconds = read_double(tbl, "mcts", "time_budget_seconds", config.timeBudgetSeconds); });
+
             // Experiments parameters
             require_nested_value("experiments.global.num_agents_min", tbl, "experiments", "global", "num_agents_min", missingFields, [&]
                                  { config.numAgentsMin = read_int(tbl, "experiments", "global", "num_agents_min", config.numAgentsMin); });
@@ -811,11 +817,7 @@ public:
                                  { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
             require_nested_value("experiments.mcts.monitoring_cuts", tbl, "experiments", "mcts", "monitoring_cuts", missingFields, [&]
                                  { config.monitoringCuts = read_bool(tbl, "experiments", "mcts", "monitoring_cuts", config.monitoringCuts); });
-            require_nested_value("experiments.mcts.use_time_budget", tbl, "experiments", "mcts", "use_time_budget", missingFields, [&]
-                                 { config.useTimeBudget = read_bool(tbl, "experiments", "mcts", "use_time_budget", config.useTimeBudget); });
-            require_nested_value("experiments.mcts.time_budget_seconds", tbl, "experiments", "mcts", "time_budget_seconds", missingFields, [&]
-                                 { config.timeBudgetSeconds = read_double(tbl, "experiments", "mcts", "time_budget_seconds", config.timeBudgetSeconds); });
-
+            
             if (!missingFields.empty())
             {
                 std::cerr << "[Config] Missing required configuration values in " << filepath << "\n";
