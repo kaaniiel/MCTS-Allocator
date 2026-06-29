@@ -255,7 +255,8 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
     // Simulate down the tree with temporary allocations (not adding to tree)
     int currentHeight = node.getHeight();
     int numAgents = currentAlloc.getNumAgents();
-
+    thread_local static std::mt19937_64 rng64(std::random_device{}() ^ (std::hash<std::thread::id>{}(std::this_thread::get_id())));
+    thread_local static std::uniform_real_distribution<double> dist(0.0, 1.0);
     while (currentHeight < currentAlloc.getNumObjects())
     {
         std::vector<int> nextAllocVec = currentAlloc.getAllocation();
@@ -314,15 +315,16 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         // ---------------------------------------------------------
         // 3. Choix de l'agent (Aléatoire ou Heuristique)
         // ---------------------------------------------------------
-        double randomValue = politic->get_ratio(currentHeight);
-        int agent = -1;
 
+        double randomValue = dist(rng64);
+        int agent = -1;
+        ratioRandom = politic->get_ratio_limit(currentAlloc);
         if (randomValue < ratioRandom)
         {
             // --- Logique Aléatoire ---
             if (isForcedPath)
             {
-                const int selectedIndex = static_cast<int>(politic->get_ratio(currentHeight) * agentsWithoutObject.size());
+                const int selectedIndex = static_cast<int>(dist(rng64) * agentsWithoutObject.size());
                 const int clampedIndex = (selectedIndex >= static_cast<int>(agentsWithoutObject.size()))
                                              ? static_cast<int>(agentsWithoutObject.size()) - 1
                                              : selectedIndex;
@@ -330,7 +332,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
             }
             else
             {
-                agent = static_cast<int>(politic->get_ratio(currentHeight) * numAgents);
+                agent = static_cast<int>(dist(rng64) * numAgents);
                 agent = (agent >= numAgents) ? numAgents - 1 : agent;
             }
         }

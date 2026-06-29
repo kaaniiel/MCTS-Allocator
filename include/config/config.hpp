@@ -24,7 +24,7 @@ struct Config
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
     double ratioRandom = 1;
-    std::string selectedPolitic = "RandomUniformPolitic";
+    std::string selectedPolitic = "FixedPolitic";
     bool saveResults = false;
     bool add_metrics_to_utility = false;
     bool show_metrics = false;
@@ -630,10 +630,10 @@ public:
             write_value(file, "terminal_json_output", default_config.terminalJSONOutput);
             write_comment(file, "Show progress information during the MCTS run");
             write_value(file, "show_progress", default_config.showProgress);
-            write_comment(file,  "Whether to use a time budget instead of a number of iterations");
-            write_value(file,  "use_time_budget", default_config.useTimeBudget);
-            write_comment(file,  "Time budget for the MCTS in seconds");
-            write_value(file,"time_budget_seconds", default_config.timeBudgetSeconds);
+            write_comment(file, "Whether to use a time budget instead of a number of iterations");
+            write_value(file, "use_time_budget", default_config.useTimeBudget);
+            write_comment(file, "Time budget for the MCTS in seconds");
+            write_value(file, "time_budget_seconds", default_config.timeBudgetSeconds);
 
             std::vector<std::string> availablePolitics = PoliticRegistry::getInstance().getAvailablePolitics();
             std::string commentPolitic = "Select the politic to use. Available options: ";
@@ -670,7 +670,6 @@ public:
             write_value(file, 1, "verbose", default_config.verbose);
             write_comment(file, 1, "Output directory for experiment results");
             write_value(file, 1, "output_directory", default_config.outputDirectory);
-            
 
             write_section(file, "experiments.mcts");
             write_comment(file, 1, "Values specific to the MCTS experiment sweep.");
@@ -817,7 +816,7 @@ public:
                                  { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
             require_nested_value("experiments.mcts.monitoring_cuts", tbl, "experiments", "mcts", "monitoring_cuts", missingFields, [&]
                                  { config.monitoringCuts = read_bool(tbl, "experiments", "mcts", "monitoring_cuts", config.monitoringCuts); });
-            
+
             if (!missingFields.empty())
             {
                 std::cerr << "[Config] Missing required configuration values in " << filepath << "\n";

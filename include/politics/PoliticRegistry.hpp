@@ -7,11 +7,13 @@
 #include <memory>
 #include "IPolitic.hpp"
 
+struct Config; // Forward declaration to avoid circular dependency
+
 class PoliticRegistry
 {
 public:
     // Signature de la fonction capable de créer une politique
-    using CreatorFunc = std::function<std::unique_ptr<IPolitic>()>;
+    using CreatorFunc = std::function<std::unique_ptr<IPolitic>(const Config &)>;
 
     // Singleton pour avoir un accès global au registre
     static PoliticRegistry &getInstance()
@@ -27,12 +29,12 @@ public:
     }
 
     // Instancie une politique via son nom
-    std::unique_ptr<IPolitic> create(const std::string &name) const
+    std::unique_ptr<IPolitic> create(const std::string &name, const Config &config) const
     {
         auto it = politics_.find(name);
         if (it != politics_.end())
         {
-            return it->second();
+            return it->second(config);
         }
         return nullptr; // Ou lever une exception std::invalid_argument
     }
@@ -60,7 +62,7 @@ class PoliticRegistrar
 public:
     PoliticRegistrar(const std::string &name)
     {
-        PoliticRegistry::getInstance().registerPolitic(name, []()
-                                                       { return std::make_unique<T>(); });
+        PoliticRegistry::getInstance().registerPolitic(name, [](const Config &config)
+                                                       { return std::make_unique<T>(config); });
     }
 };

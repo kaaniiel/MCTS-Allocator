@@ -18,10 +18,11 @@ private:
     inline static thread_local std::uniform_real_distribution<double> dist{0.0, 1.0};
 
 public:
-    RandomUniformPolitic() = default;
+    RandomUniformPolitic(const Config &config) {};
+
     ~RandomUniformPolitic() override = default;
 
-    double get_ratio(const int &height) override
+    double get_ratio_limit(const Allocation currentAllocation) override
     {
         return dist(rng64);
     }

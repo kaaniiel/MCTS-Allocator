@@ -15,6 +15,7 @@
 #include "Score.hpp"
 #include "Preferences.hpp"
 #include "politics/IPolitic.hpp"
+#include "politics/FixedPolitic.hpp"
 #include "politics/RandomUniformPolitic.hpp"
 #include "metrics/Utility.hpp"
 #include "config/config.hpp"
@@ -60,7 +61,7 @@ public:
              trunckateTreeSearch(false),
              workWithTimeBudget(false),
              timeBudgetSeconds(60.0),
-             politic(new RandomUniformPolitic()) {};
+             politic(new FixedPolitic(config)) {};
 
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
@@ -199,7 +200,7 @@ public:
         workWithTimeBudget = config.useTimeBudget;
         timeBudgetSeconds = config.timeBudgetSeconds;
         // TODO
-        politic = PoliticRegistry::getInstance().create(config.selectedPolitic);
+        politic = PoliticRegistry::getInstance().create(config.selectedPolitic, config);
     }
 
     std::string to_json(const bool add_metrics = false)
