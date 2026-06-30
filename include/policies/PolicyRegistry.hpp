@@ -5,31 +5,31 @@
 #include <map>
 #include <functional>
 #include <memory>
-#include "IPolitic.hpp"
+#include "IPolicy.hpp"
 
 struct Config; // Forward declaration to avoid circular dependency
 
-class PoliticRegistry
+class PolicyRegistry
 {
 public:
     // Signature de la fonction capable de créer une politique
-    using CreatorFunc = std::function<std::unique_ptr<IPolitic>(const Config &)>;
+    using CreatorFunc = std::function<std::unique_ptr<IPolicy>(const Config &)>;
 
     // Singleton pour avoir un accès global au registre
-    static PoliticRegistry &getInstance()
+    static PolicyRegistry &getInstance()
     {
-        static PoliticRegistry instance;
+        static PolicyRegistry instance;
         return instance;
     }
 
     // Ajoute une politique au dictionnaire
-    void registerPolitic(const std::string &name, CreatorFunc func)
+    void registerPolicy(const std::string &name, CreatorFunc func)
     {
         politics_[name] = func;
     }
 
     // Instancie une politique via son nom
-    std::unique_ptr<IPolitic> create(const std::string &name, const Config &config) const
+    std::unique_ptr<IPolicy> create(const std::string &name, const Config &config) const
     {
         auto it = politics_.find(name);
         if (it != politics_.end())
@@ -40,7 +40,7 @@ public:
     }
 
     // Récupère la liste de tous les noms enregistrés
-    std::vector<std::string> getAvailablePolitics() const
+    std::vector<std::string> getAvailablePolicys() const
     {
         std::vector<std::string> names;
         for (const auto &pair : politics_)
@@ -51,18 +51,18 @@ public:
     }
 
 private:
-    PoliticRegistry() = default;
+    PolicyRegistry() = default;
     std::map<std::string, CreatorFunc> politics_;
 };
 
 // --- La classe magique pour l'auto-enregistrement ---
 template <typename T>
-class PoliticRegistrar
+class PolicyRegistrar
 {
 public:
-    PoliticRegistrar(const std::string &name)
+    PolicyRegistrar(const std::string &name)
     {
-        PoliticRegistry::getInstance().registerPolitic(name, [](const Config &config)
-                                                       { return std::make_unique<T>(config); });
+        PolicyRegistry::getInstance().registerPolicy(name, [](const Config &config)
+                                                     { return std::make_unique<T>(config); });
     }
 };

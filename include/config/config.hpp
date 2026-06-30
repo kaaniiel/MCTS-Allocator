@@ -9,7 +9,8 @@
 #include <stdexcept>
 #include <vector>
 #include <type_traits>
-#include "../politics/PoliticRegistry.hpp"
+#include <map>
+#include "../policies/PolicyRegistry.hpp"
 
 #include "toml.hpp"
 
@@ -24,7 +25,7 @@ struct Config
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
     double ratioRandom = 1;
-    std::string selectedPolitic = "FixedPolitic";
+    std::string selectedPolicy = "FixedPolicy";
     bool saveResults = false;
     bool add_metrics_to_utility = false;
     bool show_metrics = false;
@@ -56,6 +57,9 @@ struct Config
     double numberOfBudgetStep = 0;
     bool agentHaveMinimumOneObject = false;
     bool uniformizeNegativeValues = false;
+
+    std::map<std::string, bool> experimentPolicys;
+
     // Solver
     int solverTimeoutSeconds = 60 * 2; // 2 minutes
     bool monitoringCuts = false;
@@ -635,16 +639,16 @@ public:
             write_comment(file, "Time budget for the MCTS in seconds");
             write_value(file, "time_budget_seconds", default_config.timeBudgetSeconds);
 
-            std::vector<std::string> availablePolitics = PoliticRegistry::getInstance().getAvailablePolitics();
-            std::string commentPolitic = "Select the politic to use. Available options: ";
-            for (size_t i = 0; i < availablePolitics.size(); ++i)
+            std::vector<std::string> availablePolicysComment = PolicyRegistry::getInstance().getAvailablePolicys();
+            std::string commentPolicy = "Select the politic to use. Available options: ";
+            for (size_t i = 0; i < availablePolicysComment.size(); ++i)
             {
-                commentPolitic += availablePolitics[i];
-                if (i < availablePolitics.size() - 1)
-                    commentPolitic += ", ";
+                commentPolicy += availablePolicysComment[i];
+                if (i < availablePolicysComment.size() - 1)
+                    commentPolicy += ", ";
             }
-            write_comment(file, commentPolitic); // <-- Le commentaire s'écrira avec la liste de tes classes !
-            write_value(file, "selected_politic", default_config.selectedPolitic);
+            write_comment(file, commentPolicy); // <-- Le commentaire s'écrira avec la liste de tes classes !
+            write_value(file, "selected_politic", default_config.selectedPolicy);
 
             write_section(file, "experiments");
             write_section(file, "experiments.global");
@@ -691,6 +695,21 @@ public:
             write_value(file, 1, "monitoring_cuts", default_config.monitoringCuts);
             write_comment(file, 1, "Whether to output results in JSON format to the terminal");
             write_value(file, 1, "terminal_json_output", default_config.terminalJSONOutput);
+
+            write_section(file, "experiments.mcts.politics");
+            write_comment(file, 1, "Set to true to include the politic in the experiment sweep, false to exclude it.");
+            std::vector<std::string> availablePolicys = PolicyRegistry::getInstance().getAvailablePolicys();
+            for (const auto &polName : availablePolicys)
+            {
+                // Par défaut, on active tout (true), ou on regarde si elle possède déjà une valeur
+                bool isEnabled = true;
+                auto it = default_config.experimentPolicys.find(polName);
+                if (it != default_config.experimentPolicys.end())
+                {
+                    isEnabled = it->second;
+                }
+                write_value(file, 1, polName, isEnabled);
+            }
 
             write_section(file, "experiments.solver");
             write_comment(file, 1, "Values specific to the solver experiment sweep.");
@@ -763,7 +782,7 @@ public:
             require_nested_value("mcts.terminal_json_output", tbl, "mcts", "terminal_json_output", missingFields, [&]
                                  { config.terminalJSONOutput = tbl["mcts"]["terminal_json_output"].value_or(config.terminalJSONOutput); });
             require_nested_value("mcts.selected_politic", tbl, "mcts", "selected_politic", missingFields, [&]
-                                 { config.selectedPolitic = read_string(tbl, "mcts", "selected_politic", config.selectedPolitic); });
+                                 { config.selectedPolicy = read_string(tbl, "mcts", "selected_politic", config.selectedPolicy); });
             require_nested_value("mcts.use_time_budget", tbl, "mcts", "use_time_budget", missingFields, [&]
                                  { config.useTimeBudget = read_bool(tbl, "mcts", "use_time_budget", config.useTimeBudget); });
             require_nested_value("mcts.time_budget_seconds", tbl, "mcts", "time_budget_seconds", missingFields, [&]
@@ -816,6 +835,30 @@ public:
                                  { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
             require_nested_value("experiments.mcts.monitoring_cuts", tbl, "experiments", "mcts", "monitoring_cuts", missingFields, [&]
                                  { config.monitoringCuts = read_bool(tbl, "experiments", "mcts", "monitoring_cuts", config.monitoringCuts); });
+
+            std::vector<std::string> availablePolicys = PolicyRegistry::getInstance().getAvailablePolicys();
+
+            bool hasPolicysSection = static_cast<bool>(tbl["experiments"]["mcts"]["politics"]);
+            if (!hasPolicysSection)
+            {
+                missingFields.push_back("experiments.mcts.politics");
+            }
+            else
+            {
+                for (const auto &polName : availablePolicys)
+                {
+                    // On vérifie si la clé de cette politique existe dans le fichier TOML
+                    if (tbl["experiments"]["mcts"]["politics"][polName])
+                    {
+                        config.experimentPolicys[polName] = tbl["experiments"]["mcts"]["politics"][polName].value_or(true);
+                    }
+                    else
+                    {
+                        missingFields.push_back("experiments.mcts.politics." + polName);
+                        config.experimentPolicys[polName] = true; // Valeur de repli
+                    }
+                }
+            }
 
             if (!missingFields.empty())
             {

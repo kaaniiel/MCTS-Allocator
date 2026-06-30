@@ -31,6 +31,7 @@ namespace
         int seed;
         double ratioRandom;
         int budget;
+        std::string selectedPolicy;
     };
 
     struct SolverKey
@@ -302,8 +303,15 @@ namespace
                 {
                     for (double ratioRandom : ratioValues)
                     {
-                        const int dynamicBudget = numAgents * numObjects;
-                        experiments.push_back(ExperimentParams{numAgents, numObjects, seed, ratioRandom, dynamicBudget});
+                        for (const auto &[polName, isEnabled] : config.experimentPolicys)
+                        {
+                            if (!isEnabled)
+                                continue; // On ignore les politiques à false
+
+                            const int dynamicBudget = numAgents * numObjects;
+                            experiments.push_back(ExperimentParams{
+                                numAgents, numObjects, seed, ratioRandom, dynamicBudget, polName});
+                        }
                     }
                 }
             }
@@ -388,7 +396,7 @@ namespace
     indicators::ProgressBar create_progress_bar()
     {
         return indicators::ProgressBar{
-            indicators::option::BarWidth{60},
+            indicators::option::BarWidth{30},
             indicators::option::Start{"|"},
             indicators::option::End{"|"},
             indicators::option::Fill{"="},
@@ -495,7 +503,8 @@ namespace
                                    int numAgents,
                                    int numObjects,
                                    int seed,
-                                   double ratioRandom)
+                                   double ratioRandom,
+                                   const std::string &politic)
     {
         std::ostringstream oss;
         oss << "exp " << (expIndex + 1) << "/" << totalExperiments
@@ -687,6 +696,7 @@ int main(int argc, char **argv)
                             << "_a" << experimentGrid[i].numAgents
                             << "_o" << experimentGrid[i].numObjects
                             << "_s" << experimentGrid[i].seed
+                            << "_" << experimentGrid[i].selectedPolicy
                             << ".json";
 
                 if (std::filesystem::exists(runDir / fnameStream.str()))
@@ -729,6 +739,7 @@ int main(int argc, char **argv)
                     << "_a" << params.numAgents
                     << "_o" << params.numObjects
                     << "_s" << params.seed
+                    << "_" << params.selectedPolicy
                     << ".json";
         const std::filesystem::path expPath = runDir / fnameStream.str();
 
@@ -747,6 +758,7 @@ int main(int argc, char **argv)
         runConfig.seed = params.seed;
         runConfig.ratioRandom = params.ratioRandom;
         runConfig.iterations = params.budget;
+        runConfig.selectedPolicy = params.selectedPolicy;
 
         const std::vector<int> stepTargets = build_step_targets(params.budget, numberOfSteps);
 
@@ -755,6 +767,7 @@ int main(int argc, char **argv)
         out << "        \"numObjects\": " << params.numObjects << ",\n";
         out << "        \"seed\": " << params.seed << ",\n";
         out << "        \"ratioRandom\": " << format_double(params.ratioRandom) << ",\n";
+        out << "        \"selectedPolicy\": \"" << params.selectedPolicy << "\",\n";
         out << "        \"budget\": " << params.budget << "\n";
         out << "      },\n";
         out << "      \"preferences\": [\n";
@@ -873,11 +886,11 @@ int main(int argc, char **argv)
                 {
                     const int targetBudget = stepTargets[stepIdx];
                     const int delta = targetBudget - executedBudget;
-                    
+
                     const auto stepStart = std::chrono::steady_clock::now();
                     if (delta > 0)
                     {
-                        mcts.run(delta, false);
+                        mcts.run(delta, 0.0, false);
                         executedBudget += delta;
                     }
                     const auto stepEnd = std::chrono::steady_clock::now();
@@ -897,9 +910,10 @@ int main(int argc, char **argv)
                             params.numAgents,
                             params.numObjects,
                             params.seed,
-                            params.ratioRandom)});
+                            params.ratioRandom,
+                            params.selectedPolicy)});
 
-                    finalBest = mcts.getRoot().getBestAllocation();
+                    finalBest = mcts.getRootNode()->getBestAllocation();
                     const int remainingBudget = std::max(0, params.budget - targetBudget);
 
                     out << "                {\n";

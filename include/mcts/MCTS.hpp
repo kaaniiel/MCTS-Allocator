@@ -9,19 +9,20 @@
 #include <sstream>
 #include <functional>
 
+#include "IMCTS.hpp"
 #include "IAllocator.hpp"
 #include "Node.hpp"
 #include "Allocation.hpp"
 #include "Score.hpp"
 #include "Preferences.hpp"
-#include "politics/IPolitic.hpp"
-#include "politics/FixedPolitic.hpp"
-#include "politics/RandomUniformPolitic.hpp"
+#include "policies/IPolicy.hpp"
+#include "policies/PolicyRegistry.hpp"
+#include "policies/AllPolicies.hpp"
 #include "metrics/Utility.hpp"
 #include "config/config.hpp"
 
 template <typename T>
-class MCTS : public IAllocator<T>
+class MCTS : public IAllocator<T>, public IMCTS
 {
 private:
     int numberOfAgents;
@@ -32,7 +33,7 @@ private:
     double explorationParameter; // Exploration parameter for UCB
     int seed;
     std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction; // Evaluation function to calculate scores for allocations
-    std::unique_ptr<IPolitic> politic;                                                                            // Pointer to a politic object for determining the ratio of random simulations
+    std::unique_ptr<IPolicy> politic;                                                                             // Pointer to a politic object for determining the ratio of random simulations
     bool verbose;
     double ratioRandom; // Ratio of random simulations to heuristic simulations
     Config config;      // Store configuration for thread access
@@ -61,7 +62,7 @@ public:
              trunckateTreeSearch(false),
              workWithTimeBudget(false),
              timeBudgetSeconds(60.0),
-             politic(new FixedPolitic(config)) {};
+             politic(new FixedPolicy(config)) {};
 
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
@@ -76,23 +77,6 @@ public:
     MCTS(const int numAgents, const int numObjects, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
     MCTS(const int numAgents, const int numObjects, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
     MCTS(Config &config) : MCTS() { load_config(config); };
-    /**
-     * @brief Get the number of objects
-     * @return int The number of objects
-     */
-    int getNumberOfObjects() const { return numberOfObjects; }
-
-    /**
-     * @brief Get the number of agents
-     * @return int The number of agents
-     */
-    int getNumberOfAgents() const { return numberOfAgents; }
-
-    /**
-     * @brief Get the root node of the MCTS tree
-     * @return const Node& The root node of the MCTS tree
-     */
-    const Node &getRoot() const { return root; }
 
     /** @brief Get the preferences for the MCTS algorithm
      * @return Preferences<T>& The preferences for the MCTS algorithm
@@ -100,12 +84,6 @@ public:
     Preferences<T> &getPreferences() { return preferences; }
 
     const Preferences<T> &getPreferences() const { return preferences; }
-
-    /**
-     * @brief Get the exploration parameter for the UCB formula
-     * @return double The exploration parameter for the UCB formula
-     */
-    double getExplorationParameter() const { return explorationParameter; }
 
     /**
      * @brief Set the verbose mode
@@ -131,6 +109,24 @@ public:
      * @param t True to truncate the tree search, false otherwise
      */
     void setTrunckateTreeSearch(bool t) { trunckateTreeSearch = t; }
+
+    /*----------------------------------------------*/
+    /*                   Override                   */
+    /*----------------------------------------------*/
+    Node *getRootNode() override { return &root; }
+
+    int getCurrentIteration() const override { return budgetCounter; }
+    int getTotalIterations() const override { return config.iterations; }
+
+    bool isWorkingWithTimeBudget() const override { return workWithTimeBudget; }
+    double getTimeBudgetSeconds() const override { return timeBudgetSeconds; }
+
+    int getNumberOfAgents() const override { return numberOfAgents; }
+    int getNumberOfObjects() const override { return numberOfObjects; }
+
+    double getExplorationParameter() const override { return explorationParameter; }
+    long long getMonitoringCuts() const override { return monitoringCuts; }
+    /*----------------------------------------------*/
 
     std::pair<Allocation, Score> solve(bool verbose = false) override
     {
@@ -200,7 +196,11 @@ public:
         workWithTimeBudget = config.useTimeBudget;
         timeBudgetSeconds = config.timeBudgetSeconds;
         // TODO
-        politic = PoliticRegistry::getInstance().create(config.selectedPolitic, config);
+        politic = PolicyRegistry::getInstance().create(config.selectedPolicy, config);
+        if (politic)
+        {
+            politic->set_MCTS_adress(this);
+        }
     }
 
     std::string to_json(const bool add_metrics = false)
@@ -324,11 +324,6 @@ public:
 
             return factorialCache[n];
         }
-    }
-
-    long long getMonitoringCuts() const
-    {
-        return monitoringCuts;
     }
 
     void clear()

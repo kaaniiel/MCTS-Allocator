@@ -1,13 +1,13 @@
-#ifndef RANDOMPOLITIC_HPP
-#define RANDOMPOLITIC_HPP
+#ifndef RANDOMPOLICY_HPP
+#define RANDOMPOLICY_HPP
 
-#include "IPolitic.hpp"
-#include "PoliticRegistry.hpp"
+#include "../IPolicy.hpp"
+#include "../PolicyRegistry.hpp"
 #include <random>     // Pour std::mt19937_64, std::random_device, std::uniform_real_distribution
 #include <thread>     // Pour std::this_thread
 #include <functional> // Pour std::hash
 
-class RandomUniformPolitic : public IPolitic
+class RandomUniformPolicy : public IPolicy
 {
 private:
     // L'ajout de 'inline' (C++17) permet d'initialiser ces variables statiques
@@ -18,16 +18,26 @@ private:
     inline static thread_local std::uniform_real_distribution<double> dist{0.0, 1.0};
 
 public:
-    RandomUniformPolitic(const Config &config) {};
+    RandomUniformPolicy(const Config &config) {};
 
-    ~RandomUniformPolitic() override = default;
+    ~RandomUniformPolicy() override = default;
 
     double get_ratio_limit(const Allocation currentAllocation) override
     {
         return dist(rng64);
     }
+
+    void set_config(const Config &config) override
+    {
+        // No configuration needed for this policy
+    }
+
+    void set_MCTS_adress(IMCTS *mcts) override
+    {
+        // No MCTS address needed for this policy
+    }
 };
 
-inline PoliticRegistrar<RandomUniformPolitic> regRandom("RandomUniformPolitic");
+inline PolicyRegistrar<RandomUniformPolicy> regRandom("RandomUniformPolicy");
 
-#endif // RANDOMPOLITIC_HPP
+#endif // RANDOMPOLICY_HPP
