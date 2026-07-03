@@ -2,150 +2,107 @@
 
 MCTS Allocator is a C++17 project that explores resource allocation with a Monte Carlo Tree Search (MCTS) approach. The program builds a search tree of possible allocations, evaluates candidate solutions with a configurable scoring function, and reports the best allocation it finds for a given problem size.
 
-This repository is intentionally focused on the core idea of the algorithm and on how to run it in a portable way with CMake. It does not aim to document advanced tuning or performance workarounds.
+This repository is intentionally focused on the core idea of the algorithm and on how to run it in a portable way with CMake.
 
 ## Quick Start
 
 If you just want to build and run the project for the first time, the shortest path is:
 
 ```bash
+# 1. Configure the project
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+# 2. Build the project
 cmake --build build --config Release
+
+# 3. Run the executable
+# On Linux or macOS:
+./build/mcts_main
+
+# On Windows (PowerShell):
+.\build\Release\mcts_main.exe
 ```
 
-On Windows with Visual Studio, make sure the build tree is x64, for example:
-
-```bash
-cmake -S . -B build -A x64 -DCMAKE_BUILD_TYPE=Release
-```
-
-If you already configured `build/` as Win32, remove that build directory or use a fresh one before reconfiguring.
-
-Then run the executable:
-
-- Linux or macOS: `./build/mcts_main`
-- Windows PowerShell: `.\build\Release\mcts_main.exe`
-
-If your generator places the binary in a different folder, use that path instead. The program will read `config.toml` automatically, or generate a default one if the file is missing.
-
-## Concept
-
-The project models a simple allocation problem:
-
-- there are a fixed number of agents,
-- there are a fixed number of objects,
-- each agent has a preference score for each object,
-- the algorithm searches for an allocation that maximizes the overall score.
-
-Instead of enumerating every possible allocation directly, the application uses Monte Carlo Tree Search:
-
-1. It starts from an empty or partial allocation.
-2. It expands the search tree by exploring candidate decisions.
-3. It simulates completions of the current partial solution.
-4. It propagates the obtained score back through the tree.
-5. After a given number of iterations, it returns the best allocation found.
-
-In practical terms, the project is useful when you want a reproducible way to test how MCTS can be applied to a combinatorial allocation problem.
-
-## Repository Layout
-
-- `src/` contains the application entry point and the implementation files.
-- `include/` contains public headers for the MCTS core, configuration, and utility code.
-- `config.toml` stores the default runtime configuration.
-- `CMakeLists.txt` defines the build targets.
-- `data/` is reserved for generated or example data.
-- `results/` is created at runtime when result export is enabled.
+*Note: The program will read `config.toml` automatically, or generate a default one if the file is missing.*
 
 ## Requirements
 
-You need the following tools installed:
+- **CMake** 3.14 or newer
+- **C++17-capable compiler** (e.g., GCC, Clang, MSVC)
+- **OpenMP** (Optional but recommended): Detected automatically for multi-threading support.
+- **Gurobi** (Optional): Only if you want to build the `testLp` executable. Set the `GUROBI_HOME` environment variable to your Gurobi installation root (e.g., `C:\gurobi1301\win64`).
 
-- CMake 3.14 or newer
-- A C++17-capable compiler
-- A build tool supported by CMake for your platform
+## Usage
 
-Typical compiler choices are:
+### 1. The Main Executable (`mcts_main`)
 
-- Windows: Visual Studio 2022, MSVC, or clang-cl
-- Linux: GCC or Clang
-- macOS: Clang from Xcode Command Line Tools
-
-OpenMP is detected automatically when available. If your compiler supports it, the core library will link against it. If not, the project still configures, but without OpenMP support.
-
-If you want to build the `testLp` executable that uses Gurobi, define `GUROBI_HOME` to the Gurobi installation root. On Windows, that usually looks like `C:\gurobi1301\win64`. The correct variable name is `GUROBI_HOME`; `GUROBU_HOME` will not be picked up.
-
-The build expects the following paths under that root:
-
-- `include/gurobi_c++.h`
-- `lib/` containing the Gurobi `.lib` files
-
-At runtime, the Gurobi `bin/` directory must also be available on `PATH` so the DLL can be loaded.
-
-## Build With CMake
-
-The project is designed to be built the same way on every operating system: configure a build directory, then build the chosen target.
-
-### Step 1: Create a build directory
-
-From the repository root, create a separate build directory. The exact name is up to you.
-
-### Step 2: Configure the project
-
-Run CMake configuration with a build type such as Release.
+You can run the application directly. It will use the settings defined in `config.toml`.
 
 ```bash
-cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+# Example for Linux/macOS
+./build/mcts_main
 ```
 
-Notes:
-
-- On single-config generators such as Ninja, Unix Makefiles, or Makefiles on Linux/macOS, `CMAKE_BUILD_TYPE=Release` selects the Release configuration.
-- On multi-config generators such as Visual Studio or Xcode, the build type is selected at build time instead. In that case, the configure step can stay generic.
-
-### Step 3: Build the project
-
-Use CMake to build the main executable.
+You can easily override configuration parameters using command-line arguments:
 
 ```bash
-# Basic run based purely on what's defined in config.toml
-./mcts_main
-```
-
-### Command-Line Arguments (CLI)
-
-You can easily override your configuration directly from the terminal without mutating your `config.toml`:
-
-```bash
-./mcts_main [OPTIONS]
+./build/mcts_main [OPTIONS]
 
 Options:
-  -h,--help                    Print this help message and exit
-  -n,--num-agents INT          Override the number of agents
-  -o,--num-objects INT         Override the number of objects
-  -i,--iterations INT          Override the number of MCTS iterations to execute
-  -e,--exploration FLOAT       Override the exploration constant (C in UCB1 formula)
-  -t,--threads INT             Override the number of allowed threads (OpenMP)
-  -s,--seed INT                Override the random seed used for generating preferences
-  -v,--verbose                 Enable verbose outputs for step-by-step debugging
-  -r,--ratio-random FLOAT      Determine the distribution ratio of random rollouts vs heuristic ones
+  -h,--help                             Print this help message and exit
+  -n,--num-agents INT                   Override the number of agents
+  -o,--num-objects INT                  Override the number of objects
+  -i,--iterations INT                   Override the number of MCTS iterations
+  -e,--exploration FLOAT                Override the exploration constant (C)
+  -s,--seed INT                         Override the random seed for preference generation
+  -r,--ratio-random FLOAT               Override the ratio of random simulations
+  -t,--time-budget-seconds FLOAT        Override the time budget in seconds for MCTS
+  -p,--selected-politic INT             Override the selected politic for determining the ratio of random simulations
+  -A,--agent-have-minimum-one-object    Ensure each agent has at least one object in the allocation
+  -B,--use-time-budget                  Use a time budget instead of a number of iterations for MCTS
+  -G,--show-metrics                     Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run
+  -J,--terminal-json-output             Output results in JSON format to the terminal
+  -L,--launch                           Launch the interface
+  -M,--monitoring-cuts                  Enable monitoring of cuts to get how many cuts are made inside the tree
+  -N,--uniformize-negative-values       Uniformize negative values in preferences
+  -S,--save-results                     Save results to a JSON file in the results directory
+  -T,--add-metrics-to-utility           Add metrics to the utility calculation (EF, EFX, Prop, etc.)
+  -U,--use-solver                       Use the Gurobi solver to find the optimal allocation instead of MCTS
+  -V,--verbose                          Enable verbose output for debugging
+  -P,--show-progress                    Show progress information during the MCTS run
 ```
 
-The separate `mcts_experiments` executable reads the `[experiments]` section from `config.toml`, runs MCTS in chunks of `num_objects` iterations, and writes timestamped JSON files to the configured output directory.
+### 2. Configuration File (`config.toml`)
+
+At launch, the engine attempts to load configurations from a `config.toml` file located in the current execution directory. If the file does not exist, a default one is automatically generated:
+
+```toml
+[mcts]
+exploration_constant = 1.414  # Corresponds generally to sqrt(2)
+iterations = 100              # Budget or max search loop allowance
+num_agents = 3
+num_objects = 4
+num_threads = -1              # -1 dictates 'Use all physically available core threads'
+parallel_run = false          # Global parallelization toggling
+seed = -1389484284            # Deterministic RNG seed
+verbose = false               # Keep terminal logs sparse
+```
+
+### 3. Experiments Executable (`mcts_experiments`)
+
+The separate `mcts_experiments` executable allows you to run multiple MCTS instances over a range of parameters and export the results as JSON files. It reads the `[experiments]` section from your `config.toml`.
 
 Build it with:
-
 ```bash
 cmake --build build --config Release --target mcts_experiments
 ```
 
-Example run:
-
+Run it:
 ```bash
 ./build/mcts_experiments
 ```
 
-Example `config.toml` fragment:
-
+Example `[experiments]` configuration in `config.toml`:
 ```toml
 [experiments]
 num_agents_min = 3
@@ -162,25 +119,26 @@ verbose = false
 output_directory = "results"
 ```
 
-### Config.toml
+## Concept
 
-At launch, the engine attempts to load configurations from `config.toml` located in the execution directory. If the file does not exist, the engine will safely generate a default one:
+The project models a simple allocation problem:
+- there are a fixed number of agents,
+- there are a fixed number of objects,
+- each agent has a preference score for each object,
+- the algorithm searches for an allocation that maximizes the overall score.
 
-```toml
-[mcts]
-exploration_constant = 1.414  # Corresponds generally to sqrt(2)
-iterations = 100              # Budget or max search loop allowance
-num_agents = 3
-num_objects = 4
-num_threads = -1              # -1 dictates 'Use all physically available core threads'
-parallel_run = false          # Global parallelization toggling
-seed = -1389484284            # Deterministic RNG seed. Change to diversify preferences.
-verbose = false               # Keep terminal logs sparse (better performance)
-```
+Instead of enumerating every possible allocation directly, the application uses Monte Carlo Tree Search:
+1. Starts from an empty or partial allocation.
+2. Expands the search tree by exploring candidate decisions.
+3. Simulates completions of the current partial solution.
+4. Propagates the obtained score back through the tree.
+5. After a given number of iterations, returns the best allocation found.
 
-## Structure OVERVIEW
+## Repository Layout
 
-- `src/main.cpp`: Executable entry point handling CLI configurations and TOML integration.
-- `src/mcts/`: Contains the fundamental implementations (`MCTS.cpp`, `Node.cpp`, `Allocation.cpp`, `UCB.cpp`).
-- `include/`: Holds project-wide headers alongside third-party headers (CLI11).
-- `metrics/Utility.hpp`: Computes the actual "Reward" based upon agent preferences metrics ensuring fairly distributed systems.
+- `src/`: Application entry points (`main.cpp`) and MCTS implementations (`MCTS.cpp`, etc.).
+- `include/`: Public headers, metrics (`Utility.hpp`), and third-party libraries (CLI11).
+- `config.toml`: Default runtime configuration file.
+- `CMakeLists.txt`: Build target definitions.
+- `data/`: Generated or example data.
+- `results/`: Output directory for experiments.
