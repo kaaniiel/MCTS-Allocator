@@ -7,17 +7,24 @@
 #include <thread>     // Pour std::this_thread
 #include <functional> // Pour std::hash
 
+/**
+ * @brief Policy that returns a completely random uniform ratio limit between 0.0 and 1.0.
+ */
 class RandomUniformPolicy : public IPolicy
 {
 private:
-    // L'ajout de 'inline' (C++17) permet d'initialiser ces variables statiques
-    // directement dans le fichier d'en-tête (header) sans erreur de double définition.
+    // Adding 'inline' (C++17) allows initializing these static variables
+    // directly in the header file without double definition errors.
     inline static thread_local std::mt19937_64 rng64{
         std::random_device{}() ^ std::hash<std::thread::id>{}(std::this_thread::get_id())};
 
     inline static thread_local std::uniform_real_distribution<double> dist{0.0, 1.0};
 
 public:
+    /**
+     * @brief Constructor initializing the random policy.
+     * @param config The configuration object (unused for this policy).
+     */
     RandomUniformPolicy(const Config &config) {};
 
     ~RandomUniformPolicy() override = default;

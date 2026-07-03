@@ -83,6 +83,11 @@ namespace
             out << "          \"score\": 0,\n";
             out << "          \"allocation\": []\n";
         }
+    /**
+     * @brief Check if a double value is near an integer within a small epsilon.
+     * @param value The value to check.
+     * @param eps The tolerance epsilon.
+     * @return true if the value is near an integer, false otherwise.
      */
     bool is_near_integer(double value, double eps = 1e-9)
     {

@@ -6,6 +6,9 @@
 #include "../../mcts/IMCTS.hpp"
 #include <algorithm> // Pour std::clamp
 
+/**
+ * @brief Epsilon-greedy policy for MCTS that decays the random ratio over time or iterations.
+ */
 class EpsilonGreedyPolicy : public IPolicy
 {
 private:
@@ -17,7 +20,11 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> start_time;
 
 public:
-    // On initialise le point de départ avec la config, et on finit à 0 (100% heuristique à la fin)
+    /**
+     * @brief Constructor initializing the policy with a configuration.
+     * Starts with the ratio limit from config and decays to 0 (100% heuristic) at the end.
+     * @param config The configuration object containing the initial random ratio.
+     */
     EpsilonGreedyPolicy(const Config &config)
         : epsilon_start(config.ratioRandom), epsilon_end(0.0) {}
 
@@ -30,10 +37,10 @@ public:
 
         double progress = 0.0;
 
-        // 1. COMPORTEMENT SI BUDGET EN TEMPS
+        // 1. BEHAVIOR WITH TIME BUDGET
         if (mcts_ptr->isWorkingWithTimeBudget())
         {
-            // On démarre le chrono au premier appel
+            // Start the timer on the first call
             if (!is_started)
             {
                 start_time = std::chrono::steady_clock::now();
@@ -49,7 +56,7 @@ public:
 
             progress = elapsed.count() / total_time;
         }
-        // 2. COMPORTEMENT SI BUDGET EN ITÉRATIONS (Classique)
+        // 2. BEHAVIOR WITH ITERATION BUDGET (Classic)
         else
         {
             int current = mcts_ptr->getCurrentIteration();
@@ -61,10 +68,10 @@ public:
             progress = static_cast<double>(current) / static_cast<double>(total);
         }
 
-        // --- Application de la décroissance ---
+        // --- Apply the decay ---
         double current_epsilon = epsilon_start - (epsilon_start - epsilon_end) * progress;
 
-        // On bloque entre 0 et 1 (et on empêche epsilon de devenir négatif si le temps dépasse un tout petit peu)
+        // Clamp between 0 and 1 (prevents epsilon from becoming negative if time slightly exceeds budget)
         return std::clamp(current_epsilon, 0.0, 1.0);
     }
 
@@ -79,7 +86,7 @@ public:
     }
 };
 
-// Auto-enregistrement dans le dictionnaire
+// Auto-register the policy in the PolicyRegistry
 inline PolicyRegistrar<EpsilonGreedyPolicy> regEpsilonGreedy("EpsilonGreedyPolicy");
 
 #endif // EPSILONGREEDYPOLICY_HPP

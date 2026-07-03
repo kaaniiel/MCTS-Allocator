@@ -13,6 +13,10 @@
 #include "omp.h"
 #include "Solver.hpp"
 
+/**
+ * @brief Test function to generate and print random preferences, and calculate utility for a sample allocation.
+ * @return Exit status code.
+ */
 int testPreferences()
 {
     int numAgents = 3;
@@ -42,6 +46,10 @@ int testPreferences()
     return EXIT_SUCCESS;
 }
 
+/**
+ * @brief Test function to demonstrate the expansion of a Node in the MCTS tree.
+ * @return Exit status code.
+ */
 int testExtendNode()
 {
     int numAgents = 3;
@@ -69,6 +77,10 @@ int testExtendNode()
 
     return EXIT_SUCCESS;
 }
+/**
+ * @brief Test function to run a simple MCTS simulation and print the best allocation found.
+ * @return Exit status code.
+ */
 int testMCTS()
 {
     auto evalFn = [](const Preferences<int> &prefs, const Allocation &alloc, const bool verbose) -> double
@@ -98,6 +110,9 @@ int testMCTS()
 #include <windows.h>
 #endif
 
+/**
+ * @brief Configure the console to output UTF-8 characters properly (mostly for Windows).
+ */
 void setConsoleToUTF8()
 {
     // Force console output to UTF-8
@@ -118,6 +133,12 @@ void setConsoleToUTF8()
 #endif
 }
 
+/**
+ * @brief Show fairness metrics for the given allocation.
+ * @tparam T Type of preference values.
+ * @param prefs The preferences object.
+ * @param alloc The allocation to evaluate.
+ */
 template <typename T>
 void show_metrics(const Preferences<T> &prefs, const Allocation &alloc)
 {
@@ -250,6 +271,12 @@ std::string prepare_file_name(std::string prefix, std::string suffix)
     return prefix + oss.str() + suffix;
 }
 
+/**
+ * @brief Main entry point of the MCTS-Allocator application.
+ * @param argc Number of command-line arguments.
+ * @param argv Array of command-line arguments.
+ * @return Exit status code.
+ */
 int main(int argc, char **argv)
 {
     setConsoleToUTF8(); // Set console to UTF-8 for proper character display

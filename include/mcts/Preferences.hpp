@@ -9,6 +9,10 @@
 #include <algorithm>
 #include <numeric>
 
+/**
+ * @brief Class representing the preferences of agents for objects.
+ * @tparam T The type used to score preferences (e.g. int, double).
+ */
 template <typename T>
 class Preferences
 {
@@ -19,24 +23,57 @@ private:
     bool verbose;
 
 public:
+    /**
+     * @brief Default constructor
+     */
     Preferences() = default;
+
+    /**
+     * @brief Constructor to initialize preferences with all zeros
+     * @param numAgents Number of agents
+     * @param numObjects Number of objects
+     * @param verbose Enable verbose mode
+     */
     Preferences(const int numAgents, const int numObjects, const bool verbose = false) : numAgents(numAgents),
                                                                                          numObjects(numObjects),
                                                                                          preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))),
                                                                                          verbose(verbose) {}; // Initialize with 0.0 to indicate no preference
+    
+    /**
+     * @brief Constructor to initialize preferences with all zeros, specifically ignoring the seed parameter during construction but setting totalPerAgents for possible later use (though not stored).
+     * @param numAgents Number of agents
+     * @param numObjects Number of objects
+     * @param seed Seed for random generation (ignored here)
+     * @param totalPerAgents Total preference score (ignored here)
+     */
     Preferences(const int numAgents, const int numObjects, const int seed, const int totalPerAgents) : numAgents(numAgents),
                                                                                                        numObjects(numObjects),
                                                                                                        preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))),
                                                                                                        verbose(false) {}; // Initialize with 0 to indicate no preference
+    
+    /**
+     * @brief Constructor from an existing 2D vector of preferences and known agent count
+     * @param numAgents Number of agents
+     * @param prefs The 2D vector of preferences
+     */
     Preferences(const int numAgents, const std::vector<std::vector<T>> &prefs) : numAgents(numAgents),
                                                                                  numObjects(prefs.empty() ? 0 : prefs[0].size()),
                                                                                  preferences(prefs),
                                                                                  verbose(false) {};
+    
+    /**
+     * @brief Constructor from an existing 2D vector of preferences
+     * @param prefs The 2D vector of preferences
+     */
     Preferences(const std::vector<std::vector<T>> &prefs) : numAgents(prefs.size()),
                                                             numObjects(prefs.empty() ? 0 : prefs[0].size()),
                                                             preferences(prefs),
                                                             verbose(false) {};
 
+    /**
+     * @brief Constructor that loads preferences from a file
+     * @param filename Path to the file containing preferences
+     */
     Preferences(const std::string &filename) : numAgents(0),
                                                numObjects(0),
                                                verbose(false) { loadFromFile(filename); };
@@ -63,6 +100,10 @@ public:
      */
     void setPreference(int agentIndex, int objectIndex, T score) { preferences[agentIndex][objectIndex] = score; };
 
+    /**
+     * @brief Get the full matrix of preferences
+     * @return std::vector<std::vector<T>> A 2D vector of all preferences
+     */
     std::vector<std::vector<T>> getAllPreferences() const { return preferences; };
     /**
      * @brief Set the verbose mode

@@ -21,6 +21,10 @@
 #include "metrics/Utility.hpp"
 #include "config/config.hpp"
 
+/**
+ * @brief Main class implementing the Monte Carlo Tree Search for the allocation problem.
+ * @tparam T The type of the elements being allocated (usually int)
+ */
 template <typename T>
 class MCTS : public IAllocator<T>, public IMCTS
 {
@@ -48,6 +52,9 @@ private:
     unsigned long long monitoringCuts = 0; // Counter for how many times the search has been cut due to no improvement in the best solution
 
 public:
+    /**
+     * @brief Default constructor initializing an empty MCTS instance.
+     */
     MCTS() : numberOfAgents(0),
              numberOfObjects(0),
              root(Node()),
@@ -64,6 +71,9 @@ public:
              timeBudgetSeconds(60.0),
              politic(new FixedPolicy(config)) {};
 
+    /**
+     * @brief Constructor for deep initialization of MCTS.
+     */
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                                                                                                       numberOfObjects(numObjects),
                                                                                                                                                                                                                                                                                                                                                       root(root),
@@ -73,9 +83,25 @@ public:
                                                                                                                                                                                                                                                                                                                                                       seed(seed),
                                                                                                                                                                                                                                                                                                                                                       evalFunction(evalFunction),
                                                                                                                                                                                                                                                                                                                                                       verbose(verbose) {};
+
+    /**
+     * @brief Constructor initializing MCTS with given preferences and evaluation function.
+     */
     MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, evalFunction, verbose) {};
+
+    /**
+     * @brief Constructor initializing MCTS with randomly generated preferences.
+     */
     MCTS(const int numAgents, const int numObjects, const double explorationParameter, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
+
+    /**
+     * @brief Constructor initializing MCTS with randomly generated preferences and default exploration parameter.
+     */
     MCTS(const int numAgents, const int numObjects, const std::function<double(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose)> evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
+
+    /**
+     * @brief Constructor initializing MCTS using a configuration object.
+     */
     MCTS(Config &config) : MCTS() { load_config(config); };
 
     /** @brief Get the preferences for the MCTS algorithm
@@ -83,7 +109,7 @@ public:
      */
     Preferences<T> &getPreferences() { return preferences; }
 
-    const Preferences<T> &getPreferences() const { return preferences; }
+    const Preferences<T> &getPreferences() const override { return preferences; }
 
     /**
      * @brief Set the verbose mode
@@ -102,6 +128,10 @@ public:
      * @return bool True if the tree search is truncated, false otherwise
      */
     bool getTrunckateTreeSearch() const { return trunckateTreeSearch; }
+    /**
+     * @brief Get the evaluation function used to calculate scores
+     * @return std::function<double(const Preferences<T> &, const Allocation &, bool)> The evaluation function
+     */
     std::function<double(const Preferences<T> &, const Allocation &, bool)> getEvalFunction() const { return evalFunction; }
 
     /**
@@ -177,7 +207,11 @@ public:
      */
     std::pair<Allocation, Score> backpropagate(std::stack<Node *> &nodeStack, const std::pair<Allocation, Score> &reward);
 
-    void load_config(const Config &conf)
+    /**
+     * @brief Loads the MCTS settings from a Config object
+     * @param conf The configuration object
+     */
+    void load_config(const Config &conf) override
     {
         this->config = conf; // Store config for thread access
         numberOfAgents = config.numAgents;
@@ -203,7 +237,12 @@ public:
         }
     }
 
-    std::string to_json(const bool add_metrics = false)
+    /**
+     * @brief Converts the MCTS state and results to a JSON string
+     * @param add_metrics Whether to include metrics
+     * @return std::string The JSON representation
+     */
+    std::string to_json(const bool add_metrics = false) override
     {
         std::ostringstream oss;
 
@@ -265,7 +304,12 @@ public:
         oss << "}\n";
         return oss.str();
     }
-    void save_results_json(const std::string &filename, const bool add_metrics = false)
+    /**
+     * @brief Saves the JSON results to a file
+     * @param filename The output filename
+     * @param add_metrics Whether to include metrics in the output
+     */
+    void save_results_json(const std::string &filename, const bool add_metrics = false) override
     {
         std::string results_dir = "results";
         if (!std::filesystem::exists(results_dir))
@@ -326,7 +370,10 @@ public:
         }
     }
 
-    void clear()
+    /**
+     * @brief Clears the internal state of the MCTS tree, including the root node and memory.
+     */
+    void clear() override
     {
         root = Node(numberOfAgents, numberOfObjects, verbose);
         nodeStack = std::stack<Node *>();

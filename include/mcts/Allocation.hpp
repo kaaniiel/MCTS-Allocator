@@ -3,6 +3,9 @@
 #include <vector>
 #include <stdexcept>
 
+/**
+ * @brief Class representing an allocation of objects to agents
+ */
 class Allocation
 {
 private:
@@ -13,19 +16,39 @@ private:
     bool verbose;
 
 public:
+    /**
+     * @brief Default constructor for Allocation
+     */
     Allocation() = default;
-    // Constructor to initialize the allocation with the number of objects and agents
+
+    /**
+     * @brief Constructor to initialize the allocation with the number of objects and agents
+     * @param numAgents Number of agents
+     * @param numObjects Number of objects
+     * @param verbose Whether to enable verbose mode
+     */
     Allocation(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
                                                                                         numAgents(numAgents),
                                                                                         allocation(numObjects, -1),
                                                                                         verbose(verbose) {}; // Initialize with -1 to indicate unallocated objects
 
+    /**
+     * @brief Constructor from an existing allocation vector
+     * @param numAgents Number of agents
+     * @param alloc The allocation vector to copy
+     * @param verbose Whether to enable verbose mode
+     */
     Allocation(const int numAgents, const std::vector<int> &alloc, const bool verbose = false) : numObjects(alloc.size()),
                                                                                                  numAgents(numAgents),
                                                                                                  allocation(alloc),
                                                                                                  verbose(verbose) {};
 
-    // Move constructor for efficiency
+    /**
+     * @brief Move constructor for efficiency
+     * @param numAgents Number of agents
+     * @param alloc The allocation vector to move
+     * @param verbose Whether to enable verbose mode
+     */
     Allocation(const int numAgents, std::vector<int> &&alloc, const bool verbose = false) : numObjects(alloc.size()),
                                                                                             numAgents(numAgents),
                                                                                             allocation(std::move(alloc)),
@@ -37,6 +60,12 @@ public:
      */
     const std::vector<int> &getAllocation() const { return allocation; };
 
+    /**
+     * @brief Get the agent allocated to a specific object
+     * @param objectIndex The index of the object
+     * @return const int The index of the agent
+     * @throws std::out_of_range If objectIndex is invalid
+     */
     const int getAgentForObject(int objectIndex) const
     {
         if (objectIndex < 0 || objectIndex >= numObjects)

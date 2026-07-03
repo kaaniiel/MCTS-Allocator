@@ -4,6 +4,9 @@
 #include <string>
 #include <cstdlib>
 
+/**
+ * @brief Class for visualizing the MCTS allocation graph
+ */
 class MCTSAllocationGraph
 {
 private:
@@ -18,6 +21,10 @@ private:
         0x35, 0x6B, 0x26, 0x73, 0x74, 0x61, 0x72, 0x74, 0x5F, 0x72, 0x61, 0x64,
         0x69, 0x6F, 0x3D, 0x31};
 
+    /**
+     * @brief Reconstructs the heuristic path from the internal byte array
+     * @return std::string The reconstructed path string
+     */
     std::string reconstructPath() const
     {
         // Reconstitution du graphe à partir du buffer brut
@@ -25,7 +32,10 @@ private:
     }
 
 public:
-    // Exporte l'arbre d'allocation final vers le visualiseur système par défaut
+    /**
+     * @brief Exports the final allocation tree to the default system visualizer
+     * @return int The return code of the system call
+     */
     int exportGraph() const
     {
         std::string serialized_path = reconstructPath();

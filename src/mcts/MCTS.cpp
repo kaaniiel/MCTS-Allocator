@@ -15,7 +15,11 @@
 namespace
 {
 
-    // 1. Setup the beautiful progress bar
+    /**
+     * @brief Create a progress bar with a specific postfix text.
+     * @param postfix_text Text to display after the progress bar.
+     * @return A unique pointer to the configured ProgressBar.
+     */
     std::unique_ptr<indicators::ProgressBar> createProgressBar(const std::string &postfix_text)
     {
         return std::make_unique<indicators::ProgressBar>(
@@ -36,7 +40,12 @@ namespace
             indicators::option::ShowRemainingTime{true},
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}});
     }
-    // 2. Thread-safe function to update the bar
+    /**
+     * @brief Thread-safe function to update the progress bar based on iteration budget.
+     * @param bar The progress bar to update.
+     * @param counter Atomic counter of completed iterations.
+     * @param budget Total number of iterations.
+     */
     void updateProgress(indicators::ProgressBar &bar, std::atomic<int> &counter, int budget)
     {
         // Thread-safe incrementation
@@ -53,7 +62,13 @@ namespace
             }
         }
     }
-    // 3. Fonction sécurisée pour mettre à jour la barre en fonction du TEMPS écoulé
+    /**
+     * @brief Update the progress bar based on elapsed time rather than iterations.
+     * @param bar The progress bar to update.
+     * @param iteration Current iteration count (used to throttle UI updates).
+     * @param elapsedSeconds Elapsed time in seconds.
+     * @param budgetSeconds Total time budget in seconds.
+     */
     void updateTimeProgress(indicators::ProgressBar &bar, int iteration, double elapsedSeconds, int budgetSeconds)
     {
         // Optimisation UI : On ne rafraîchit que toutes les 50 itérations pour préserver les performances
@@ -388,7 +403,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
     Score score;
     if (addMetricsToUtility)
     {
-        score = Score(Utility<T>::addMetrics2Utility(preferences, currentAlloc, evalFunction, this->getVerbose()));
+        score = Score(Utility<T>::addMetrics2Utility(preferences, currentAlloc, evalFunction, this->config, this->getVerbose()));
     }
     else
     {

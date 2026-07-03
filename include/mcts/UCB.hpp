@@ -3,6 +3,9 @@
 
 #include "Node.hpp"
 
+/**
+ * @brief Utility class for UCB1 (Upper Confidence Bound) calculations and selections.
+ */
 class UCB
 {
 public:

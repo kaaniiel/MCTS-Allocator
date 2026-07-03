@@ -9,7 +9,12 @@
 #include "../mcts/Preferences.hpp"
 #include "../mcts/Allocation.hpp"
 #include "Metrics.hpp"
+#include "../config/config.hpp"
 
+/**
+ * @brief Class providing utility calculation functions for allocations.
+ * @tparam T The type of the elements being allocated (usually int)
+ */
 template <typename T>
 class Utility
 {
@@ -60,25 +65,29 @@ public:
         return totalUtility;
     }
 
-    static double addMetrics2Utility(const Preferences<T> &prefs, const Allocation &alloc, std::function<double(const Preferences<T> &, const Allocation &, const bool)> &evalFunction, const bool verbose = false)
+    /**
+     * @brief Modify utility score by adding bonuses for satisfying certain fairness metrics.
+     * @param prefs The preferences of the agents
+     * @param alloc The allocation to evaluate
+     * @param evalFunction The base evaluation function to call first
+     * @param config The configuration containing the metric weights
+     * @param verbose Whether to output detailed logs
+     * @return double The modified utility score
+     */
+    static double addMetrics2Utility(const Preferences<T> &prefs, const Allocation &alloc, std::function<double(const Preferences<T> &, const Allocation &, const bool)> &evalFunction, const Config &config, const bool verbose = false)
     {
         double utility = evalFunction(prefs, alloc, verbose);
 
-        bool pareto = isParetoOptimal<T>(prefs, alloc); // 2
-        bool EFX = isEFX<T>(prefs, alloc);              // 3
-        bool EF1 = isEF1<T>(prefs, alloc);              // 1
-
-        if (pareto)
+        for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
         {
-            utility += 1.0; // Add a bonus for Pareto optimality
-        }
-        if (EFX)
-        {
-            utility += 0.5; // Add a bonus for EFX
-        }
-        if (EF1)
-        {
-            utility += 1.0; // Add a bonus for EF1
+            auto it = config.metricsWeights.find(name);
+            if (it != config.metricsWeights.end() && it->second > 0)
+            {
+                if (metricFunc(prefs, alloc))
+                {
+                    utility += it->second;
+                }
+            }
         }
 
         return utility;

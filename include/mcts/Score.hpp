@@ -1,6 +1,9 @@
 #ifndef SCORE_HPP
 #define SCORE_HPP
 
+/**
+ * @brief Class representing the score of an allocation.
+ */
 class Score
 {
 private:
@@ -9,7 +12,16 @@ private:
     bool verbose;
 
 public:
+    /**
+     * @brief Default constructor initializing score to 0.0.
+     */
     Score() : score(0.0), verbose(false) {};
+
+    /**
+     * @brief Constructor to initialize with a specific score.
+     * @param score The initial score
+     * @param verbose Enable verbose mode
+     */
     Score(const double score, const bool verbose = false) : score(score), verbose(verbose) {};
 
     /**

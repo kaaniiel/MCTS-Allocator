@@ -5,6 +5,9 @@
 #include "../PolicyRegistry.hpp"
 #include "../../config/config.hpp"
 
+/**
+ * @brief Policy that returns a fixed random ratio limit.
+ */
 class FixedPolicy : public IPolicy
 {
 private:
@@ -12,6 +15,10 @@ private:
     const double ratioLimit;
 
 public:
+    /**
+     * @brief Constructor initializing the fixed policy with a configuration.
+     * @param config The configuration object containing the fixed random ratio.
+     */
     FixedPolicy(const Config &config) : config(config), ratioLimit(config.ratioRandom) {}
     ~FixedPolicy() override = default;
 

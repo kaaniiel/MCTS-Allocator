@@ -11,6 +11,7 @@
 #include <type_traits>
 #include <map>
 #include "../policies/PolicyRegistry.hpp"
+#include "../metrics/Metrics.hpp"
 
 #include "toml.hpp"
 
@@ -63,6 +64,26 @@ struct Config
     // Solver
     int solverTimeoutSeconds = 60 * 2; // 2 minutes
     bool monitoringCuts = false;
+
+    // Metrics weights
+    std::map<std::string, double> metricsWeights = {
+        {"isParetoOptimal", 1.0},
+        {"isProp", 0.0},
+        {"isEF", 0.0},
+        {"isEFX", 0.5},
+        {"isEF1", 1.0}};
+
+    Config()
+    {
+        // Auto-register any missing metric from the registry with a default weight of 0.0
+        for (const auto &[name, func] : getMetricsRegistry<int>())
+        {
+            if (metricsWeights.find(name) == metricsWeights.end())
+            {
+                metricsWeights[name] = 0.0;
+            }
+        }
+    }
 
 private:
     /**
@@ -715,6 +736,14 @@ public:
             write_comment(file, 1, "Values specific to the solver experiment sweep.");
             write_comment(file, 1, "Time limit for the solver in seconds");
             write_value(file, 1, "solver_timeout_seconds", default_config.solverTimeoutSeconds);
+
+            write_section(file, "metrics_weights");
+            write_comment(file, 1, "Bonus added to the utility if the allocation satisfies the metric, only used when `add_metrics_to_utility` is true.");
+            for (const auto &[name, weight] : default_config.metricsWeights)
+            {
+                write_value(file, 1, name, weight);
+            }
+
             file << '\n';
             std::cout << "[Config] Default file created: " << filepath << "\n";
         }
@@ -754,6 +783,10 @@ public:
             {
                 missingFields.push_back("experiments");
             }
+            if (!tbl["metrics_weights"])
+            {
+                missingFields.push_back("metrics_weights");
+            }
 
             require_nested_value("mcts.launch", tbl, "mcts", "launch", missingFields, [&]
                                  { config.launch = tbl["mcts"]["launch"].value_or(config.launch); });
@@ -787,6 +820,21 @@ public:
                                  { config.useTimeBudget = read_bool(tbl, "mcts", "use_time_budget", config.useTimeBudget); });
             require_nested_value("mcts.time_budget_seconds", tbl, "mcts", "time_budget_seconds", missingFields, [&]
                                  { config.timeBudgetSeconds = read_double(tbl, "mcts", "time_budget_seconds", config.timeBudgetSeconds); });
+
+            // Metrics weights
+            if (tbl["metrics_weights"])
+            {
+                if (auto weights_table = tbl["metrics_weights"].as_table())
+                {
+                    for (auto &[k, v] : *weights_table)
+                    {
+                        if (v.is_number())
+                        {
+                            config.metricsWeights[std::string(k.str())] = v.value_or(0.0);
+                        }
+                    }
+                }
+            }
 
             // Experiments parameters
             require_nested_value("experiments.global.num_agents_min", tbl, "experiments", "global", "num_agents_min", missingFields, [&]

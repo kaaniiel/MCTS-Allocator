@@ -9,6 +9,10 @@
 #include "Allocation.hpp"
 #include "Score.hpp"
 
+/**
+ * @brief Represents a node in the Monte Carlo Tree Search.
+ * A node holds an allocation state and information about its tree position.
+ */
 class Node
 {
 private:
@@ -25,6 +29,9 @@ private:
     bool truncateTreeSearch = false;
 
 public:
+    /**
+     * @brief Default constructor for Node
+     */
     Node() : numObjects(0),
              numAgents(0),
              agentHasObject(0, false),
@@ -37,6 +44,12 @@ public:
     {
         children.reserve(numAgents);
     };
+    /**
+     * @brief Constructor to initialize a Node with given number of agents and objects
+     * @param numAgents Number of agents
+     * @param numObjects Number of objects
+     * @param verbose Whether to enable verbose mode
+     */
     Node(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
                                                                                   numAgents(numAgents),
                                                                                   agentHasObject(numAgents, false),
@@ -54,6 +67,10 @@ public:
         children.reserve(numAgents);
     };
 
+    /**
+     * @brief Copy constructor for Node
+     * @param other The node to copy
+     */
     Node(const Node &other) : numObjects(other.numObjects),
                               numAgents(other.numAgents),
                               agentHasObject(other.agentHasObject),
@@ -67,6 +84,10 @@ public:
         children.reserve(numAgents);
     };
 
+    /**
+     * @brief Constructor to initialize a Node with a specific allocation
+     * @param alloc The initial allocation for this node
+     */
     Node(const Allocation &alloc) : numObjects(alloc.getNumObjects()),
                                     numAgents(alloc.getNumAgents()),
                                     visits(0),
@@ -80,6 +101,12 @@ public:
         children.reserve(numAgents);
     };
 
+    /**
+     * @brief Constructor to initialize a Node with a specific allocation and height
+     * @param alloc The initial allocation for this node
+     * @param height The depth of the node in the tree
+     * @param verbose Whether to enable verbose mode
+     */
     Node(const Allocation &alloc, int height, const bool verbose = false) : numObjects(alloc.getNumObjects()),
                                                                             numAgents(alloc.getNumAgents()),
                                                                             agentHasObject(alloc.getNumAgents(), false),
@@ -344,6 +371,9 @@ public:
         return &children.back();
     };
 
+    /**
+     * @brief Print debugging information about the node and its best allocation
+     */
     void debug_print() const
     {
         std::cout << "Node at height " << h << " with allocation: ";
