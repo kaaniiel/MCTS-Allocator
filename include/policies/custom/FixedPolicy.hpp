@@ -3,7 +3,7 @@
 
 #include "../IPolicy.hpp"
 #include "../PolicyRegistry.hpp"
-#include "../config/Config.hpp"
+#include "../../config/config.hpp"
 
 class FixedPolicy : public IPolicy
 {

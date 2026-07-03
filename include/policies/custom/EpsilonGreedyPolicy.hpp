@@ -1,9 +1,9 @@
 #ifndef EPSILONGREEDYPOLICY_HPP
 #define EPSILONGREEDYPOLICY_HPP
 #include "../IPolicy.hpp"
-#include "PolicyRegistry.hpp"
-#include "../config/config.hpp"
-#include "../mcts/IMCTS.hpp"
+#include "../PolicyRegistry.hpp"
+#include "../../config/config.hpp"
+#include "../../mcts/IMCTS.hpp"
 #include <algorithm> // Pour std::clamp
 
 class EpsilonGreedyPolicy : public IPolicy
