@@ -162,8 +162,10 @@ public:
             objective += logAgentUtility[i];
         }
         model.setObjective(objective, GRB_MAXIMIZE);
-
-        model.set(GRB_DoubleParam_TimeLimit, timeoutSeconds);
+        if (timeoutSeconds > 0)
+        {
+            model.set(GRB_DoubleParam_TimeLimit, timeoutSeconds);
+        }
         // Optimize the model
         model.optimize();
 

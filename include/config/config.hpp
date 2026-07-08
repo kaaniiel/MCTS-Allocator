@@ -741,7 +741,7 @@ public:
 
             write_section(file, "experiments.solver");
             write_comment(file, 1, "Values specific to the solver experiment sweep.");
-            write_comment(file, 1, "Time limit for the solver in seconds");
+            write_comment(file, 1, "Time limit for the solver in seconds. Put a negative value to disable the time limit.");
             write_value(file, 1, "solver_timeout_seconds", default_config.solverTimeoutSeconds);
 
             write_section(file, "metrics_weights");
