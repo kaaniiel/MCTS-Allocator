@@ -47,14 +47,14 @@ public:
      * @param preferences The preferences to use
      */
     Solver(const Preferences<T> &preferences) : seed(static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())), prefs(preferences), timeoutSeconds(60) {};
-    
+
     /**
      * @brief Construct a new Solver object with given preferences and seed
      * @param preferences The preferences to use
      * @param seed The random seed
      */
     Solver(const Preferences<T> &preferences, const int seed) : seed(seed), prefs(preferences), timeoutSeconds(60) {};
-    
+
     /**
      * @brief Construct a new Solver object using a configuration object
      * @param config The configuration to load
@@ -216,6 +216,23 @@ public:
 
     const Preferences<T> &getPreferences() const { return prefs; }
 
+    /**
+     * @brief Get the execution time of the last solve in seconds
+     * @return double The execution time in seconds
+     */
+    double getExecutionTimeSeconds() const { return executionTimeSeconds; }
+
+    /**
+     * @brief Get the timeout value in seconds
+     * @return int The timeout value in seconds
+     */
+    int getTimeoutSeconds() const { return timeoutSeconds; }
+
+    /**
+     * @brief Check if the solver has reached its timeout
+     * @return bool True if the solver has reached its timeout, false otherwise
+     */
+    bool hasReachedTimeout() const { return executionTimeSeconds >= timeoutSeconds; }
     void clear()
     {
         // Reset stored optimal allocation and score
@@ -247,7 +264,9 @@ public:
         oss << "  \"num_objects\": " << numObjects << ",\n";
         // add preferences matrix
         oss << "  \"preferences\": [\n";
-        oss << "  \"execution_time_seconds\": " << executionTimeSeconds << ",\n"; // <-- Ajoutez cette ligne
+        oss << "  \"execution_time_seconds\": " << executionTimeSeconds << ",\n";
+        oss << "  \"timeout_seconds\": " << timeoutSeconds << ",\n";
+        oss << "  \"has_reached_timeout\": " << (hasReachedTimeout() ? "true" : "false") << ",\n";
         for (int i = 0; i < numAgents; ++i)
         {
             oss << "    [";

@@ -169,6 +169,7 @@ void showOptions(Config config)
     std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
     std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
     std::cout << " - Use Solver    : " << (config.useSolver ? "true" : "false") << "\n";
+    std::cout << " - Solver Timeout: " << config.solverTimeoutSeconds << " seconds\n";
     std::cout << " - Monitoring Cuts : " << (config.monitoringCuts ? "true" : "false") << "\n";
     std::cout << " - Uniformize Negative Values : " << (config.uniformizeNegativeValues ? "true" : "false") << "\n";
     std::cout << " - Agent Have Minimum One Object : " << (config.agentHaveMinimumOneObject ? "true" : "false") << "\n";
@@ -198,14 +199,15 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
 
     // Bind terminal options directly to the 'config' variables.
     // If an option is NOT passed in the terminal, the variable keeps its TOML value.
+    app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
+    app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
     app.add_option("-n,--num-agents", config.numAgents, "Override the number of agents");
     app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
-    app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
-    app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
-    app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
-    app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
-    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
     app.add_option("-p, --selected-politic", config.selectedPolicy, "Override the selected politic for determining the ratio of random simulations");
+    app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
+    app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
+    app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");
+    app.add_option("-v, --solver-timeout-seconds", config.solverTimeoutSeconds, "Override the timeout for the solver in seconds");
     app.add_flag("-A,--agent-have-minimum-one-object", config.agentHaveMinimumOneObject, "Ensure each agent has at least one object in the allocation");
     app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
     app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");

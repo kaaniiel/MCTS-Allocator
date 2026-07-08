@@ -65,6 +65,7 @@ namespace
         std::vector<int> allocation;
         long long timeUs{0};
         Preferences<T> prefs;
+        bool hasReachedTimeout{false};
     };
 
     /**
@@ -765,6 +766,9 @@ int main(int argc, char **argv)
         runConfig.iterations = params.budget;
         runConfig.selectedPolicy = params.selectedPolicy;
 
+        runConfig.useTimeBudget = config.experimentUseTimeBudget;
+        runConfig.timeBudgetSeconds = config.experimentTimeBudgetSeconds;
+
         const std::vector<int> stepTargets = build_step_targets(params.budget, numberOfSteps);
 
         out << "      \"parameters\": {\n";
@@ -821,6 +825,7 @@ int main(int argc, char **argv)
                 computedResult.score = solverResult.second.getScore();
                 computedResult.allocation = solverResult.first.getAllocation();
                 computedResult.timeUs = std::chrono::duration_cast<std::chrono::microseconds>(solverEnd - solverStart).count();
+                computedResult.hasReachedTimeout = (solver.hasReachedTimeout());
             }
             catch (const std::exception &)
             {
@@ -828,6 +833,7 @@ int main(int argc, char **argv)
                 computedResult.score = 0.0;
                 computedResult.allocation.clear();
                 computedResult.timeUs = 0;
+                computedResult.hasReachedTimeout = false;
             }
 
             cacheIt = solverCache.emplace(solverKey, std::move(computedResult)).first;
@@ -839,7 +845,12 @@ int main(int argc, char **argv)
         {
             out << "          \"score\": " << format_json_score(cacheIt->second.score) << ",\n";
             out << "          \"timeUs\": " << cacheIt->second.timeUs << ",\n";
+            if (runConfig.adaptBudgetWithSolverTimeout)
+            {
+                runConfig.timeBudgetSeconds = cacheIt->second.timeUs * 0.000001;
+            }
             // out << "          \"time\": \"" << format_duration_us(cacheIt->second.timeUs) << "\",\n";
+            out << "          \"has_reached_timeout\": " << (cacheIt->second.hasReachedTimeout ? "true" : "false") << ",\n";
             out << "          \"allocation\": ";
             write_array(out, cacheIt->second.allocation);
             if (config.enableMetrics)
@@ -865,12 +876,24 @@ int main(int argc, char **argv)
                 out << "\n";
             }
             out << "\n";
+
+            if (runConfig.adaptBudgetWithSolverTimeout)
+            {
+                runConfig.timeBudgetSeconds = cacheIt->second.timeUs * 0.000001;
+            }
         }
 
         out << "        },\n";
 
         out << "        \"mcts\": {\n";
         out << "          \"tries\": [\n";
+
+        // Compute time budget per step if enabled
+        double timeBudgetPerStep = 0.0;
+        if (runConfig.useTimeBudget && numberOfSteps > 0)
+        {
+            timeBudgetPerStep = runConfig.timeBudgetSeconds / numberOfSteps;
+        }
 
         for (int tryIndex = 1; tryIndex <= config.numberOfTrys; ++tryIndex)
         {
@@ -880,12 +903,15 @@ int main(int argc, char **argv)
             out << "              \"steps\": [\n";
 
             // Create MCTS in a limited scope to ensure memory is freed after each try
-            auto tryStart = std::chrono::steady_clock::now();
+
             long long tryMctsDurationUs = 0;
+            long budgetUsed = 0;
             {
                 MCTS<int> mcts(runConfig);
                 Preferences<int> pref = mcts.getPreferences();
+
                 int executedBudget = 0;
+                double executedTimeBudgetSeconds = 0.0;
 
                 for (std::size_t stepIdx = 0; stepIdx < stepTargets.size(); ++stepIdx)
                 {
@@ -893,10 +919,18 @@ int main(int argc, char **argv)
                     const int delta = targetBudget - executedBudget;
 
                     const auto stepStart = std::chrono::steady_clock::now();
-                    if (delta > 0)
+                    if (runConfig.useTimeBudget)
                     {
-                        mcts.run(delta, 0.0, false);
-                        executedBudget += delta;
+                        runConfig.timeBudgetSeconds = timeBudgetPerStep;
+                        mcts.run(0, runConfig.timeBudgetSeconds, false);
+                    }
+                    else
+                    {
+                        if (delta > 0)
+                        {
+                            mcts.run(delta, 0.0, false);
+                            executedBudget += delta;
+                        }
                     }
                     const auto stepEnd = std::chrono::steady_clock::now();
                     const auto stepDurationUs = std::chrono::duration_cast<std::chrono::microseconds>(stepEnd - stepStart).count();
@@ -944,13 +978,15 @@ int main(int argc, char **argv)
                     ++completedWorkUnits;
                     update_progress(progressBar, completedWorkUnits, totalWorkUnits);
                 }
+                budgetUsed = mcts.getCurrentIteration();
             } // MCTS object is destroyed here, freeing all memory
             // Force memory cleanup
             std::cout.flush();
 
             out << "              ],\n";
             out << "              \"tryDurationUs\": " << tryMctsDurationUs << ",\n";
-            out << "              \"finalScore\": " << format_json_score(uniformize_negative_values(finalBest.first.getNumAgents(), finalBest.first.getAllocation(), finalBest.second.getScore(), config)) << "\n";
+            out << "              \"finalScore\": " << format_json_score(uniformize_negative_values(finalBest.first.getNumAgents(), finalBest.first.getAllocation(), finalBest.second.getScore(), config)) << ",\n";
+            out << "              \"totalBudgetUsed\": " << (config.experimentUseTimeBudget ? budgetUsed : config.iterations) << "\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
             {

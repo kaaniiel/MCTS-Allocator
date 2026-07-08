@@ -33,6 +33,8 @@ struct Config
     bool useSolver = false;
     bool terminalJSONOutput = false;
     bool showProgress = false;
+    bool useTimeBudget = false;
+    double timeBudgetSeconds = 60.0 * 2; // 2 minutes
 
     // Default values for experiments
     // GLOBAL
@@ -52,12 +54,13 @@ struct Config
     double ratioRandomMin = 1.0;
     double ratioRandomMax = 1.0;
     double ratioRandomStep = 1.0;
-    bool useTimeBudget = false;
-    double timeBudgetSeconds = 60.0; // 1 minute
     int numberOfTrys = 1;
     double numberOfBudgetStep = 0;
     bool agentHaveMinimumOneObject = false;
     bool uniformizeNegativeValues = false;
+    bool experimentUseTimeBudget = false;
+    bool adaptBudgetWithSolverTimeout = false;
+    int experimentTimeBudgetSeconds = 60 * 2; // 2 minutes
 
     std::map<std::string, bool> experimentPolicys;
 
@@ -657,7 +660,7 @@ public:
             write_value(file, "show_progress", default_config.showProgress);
             write_comment(file, "Whether to use a time budget instead of a number of iterations");
             write_value(file, "use_time_budget", default_config.useTimeBudget);
-            write_comment(file, "Time budget for the MCTS in seconds");
+            write_comment(file, "Time budget for the MCTS algorithm in seconds (only used if use_time_budget is true)");
             write_value(file, "time_budget_seconds", default_config.timeBudgetSeconds);
 
             std::vector<std::string> availablePolicysComment = PolicyRegistry::getInstance().getAvailablePolicys();
@@ -714,8 +717,12 @@ public:
             write_value(file, 1, "uniformize_negative_values", default_config.uniformizeNegativeValues);
             write_comment(file, 1, "Get how many cuts are made by MCTS");
             write_value(file, 1, "monitoring_cuts", default_config.monitoringCuts);
-            write_comment(file, 1, "Whether to output results in JSON format to the terminal");
-            write_value(file, 1, "terminal_json_output", default_config.terminalJSONOutput);
+            write_comment(file, 1, "Set to true to use a time budget instead of a number of iterations for MCTS.");
+            write_value(file, 1, "experimentUseTimeBudget", default_config.experimentUseTimeBudget);
+            write_comment(file, 1, "Set to true to adapt the budget with the solver timeout for MCTS.");
+            write_value(file, 1, "adaptBudgetWithSolverTimeout", default_config.adaptBudgetWithSolverTimeout);
+            write_comment(file, 1, "Set to true to use a time budget instead of a number of iterations for MCTS.");
+            write_value(file, 1, "experimentTimeBudgetSeconds", default_config.experimentTimeBudgetSeconds);
 
             write_section(file, "experiments.mcts.politics");
             write_comment(file, 1, "Set to true to include the politic in the experiment sweep, false to exclude it.");
@@ -883,7 +890,12 @@ public:
                                  { config.uniformizeNegativeValues = read_bool(tbl, "experiments", "mcts", "uniformize_negative_values", config.uniformizeNegativeValues); });
             require_nested_value("experiments.mcts.monitoring_cuts", tbl, "experiments", "mcts", "monitoring_cuts", missingFields, [&]
                                  { config.monitoringCuts = read_bool(tbl, "experiments", "mcts", "monitoring_cuts", config.monitoringCuts); });
-
+            require_nested_value("experiments.mcts.experimentUseTimeBudget", tbl, "experiments", "mcts", "experimentUseTimeBudget", missingFields, [&]
+                                 { config.experimentUseTimeBudget = read_bool(tbl, "experiments", "mcts", "experimentUseTimeBudget", config.experimentUseTimeBudget); });
+            require_nested_value("experiments.mcts.adaptBudgetWithSolverTimeout", tbl, "experiments", "mcts", "adaptBudgetWithSolverTimeout", missingFields, [&]
+                                 { config.adaptBudgetWithSolverTimeout = read_bool(tbl, "experiments", "mcts", "adaptBudgetWithSolverTimeout", config.adaptBudgetWithSolverTimeout); });
+            require_nested_value("experiments.mcts.experimentTimeBudgetSeconds", tbl, "experiments", "mcts", "experimentTimeBudgetSeconds", missingFields, [&]
+                                 { config.experimentTimeBudgetSeconds = read_double(tbl, "experiments", "mcts", "experimentTimeBudgetSeconds", config.experimentTimeBudgetSeconds); });
             std::vector<std::string> availablePolicys = PolicyRegistry::getInstance().getAvailablePolicys();
 
             bool hasPolicysSection = static_cast<bool>(tbl["experiments"]["mcts"]["politics"]);
@@ -908,6 +920,8 @@ public:
                 }
             }
 
+            require_nested_value("experiments.solver.solver_timeout_seconds", tbl, "experiments", "solver", "solver_timeout_seconds", missingFields, [&]
+                                 { config.solverTimeoutSeconds = read_double(tbl, "experiments", "solver", "solver_timeout_seconds", config.solverTimeoutSeconds); });
             if (!missingFields.empty())
             {
                 std::cerr << "[Config] Missing required configuration values in " << filepath << "\n";
