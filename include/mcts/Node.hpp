@@ -21,7 +21,7 @@ private:
     int h;             // height of the node in the tree
     int childrenIndex; // index of the next child to expand
     Allocation currentAllocation;
-    std::pair<Allocation, Score> bestAllocation;
+    Score nodeScore; // Score of the current node
     std::vector<Node> children;
 
 public:
@@ -34,7 +34,7 @@ public:
              h(0),
              childrenIndex(0),
              currentAllocation(Allocation()),
-             bestAllocation(Allocation(), Score())
+             nodeScore(Score())
 
     {
     };
@@ -48,11 +48,8 @@ public:
                                                                                   h(0),
                                                                                   childrenIndex(0),
                                                                                   currentAllocation(Allocation(numAgents, numObjects, verbose)),
-                                                                                  bestAllocation(Allocation(numAgents, numObjects, verbose), Score(0.0, verbose))
+                                                                                  nodeScore(Score(0.0, verbose))
     {
-        bestAllocation.first.setAllocation(currentAllocation.getAllocation());
-        bestAllocation.second.setScore(0.0);
-
         // On peut toujours utiliser numAgents ici car il est passé en paramètre !
         children.reserve(numAgents);
     };
@@ -65,7 +62,7 @@ public:
                               h(other.h),
                               childrenIndex(0),
                               currentAllocation(other.currentAllocation),
-                              bestAllocation(other.bestAllocation)
+                              nodeScore(other.nodeScore)
     {
         // On récupère le nombre d'agents depuis l'allocation pour le reserve
         children.reserve(currentAllocation.getNumAgents());
@@ -79,7 +76,7 @@ public:
                                     h(0),
                                     childrenIndex(0),
                                     currentAllocation(alloc),
-                                    bestAllocation(alloc, Score(0.0, alloc.getVerbose()))
+                                    nodeScore(Score(0.0, alloc.getVerbose()))
     {
         children.reserve(alloc.getNumAgents());
     };
@@ -94,7 +91,7 @@ public:
                                                                             h(height),
                                                                             childrenIndex(0),
                                                                             currentAllocation(alloc),
-                                                                            bestAllocation(alloc, Score(0.0, verbose))
+                                                                            nodeScore(Score(0.0, verbose))
     {
         children.reserve(alloc.getNumAgents());
     };
@@ -235,11 +232,6 @@ public:
      * @return void
      */
     void incrementChildrenIndex() { childrenIndex++; };
-    /**
-     * @brief Get the best allocation and score
-     * @return const std::pair<Allocation, Score>& The best allocation and score
-     */
-    const std::pair<Allocation, Score> &getBestAllocation() const { return bestAllocation; };
 
     /**
      * @brief Set the height of the node in the tree
@@ -279,11 +271,17 @@ public:
     void setVisits(int v) { visits = v; };
 
     /**
-     * @brief Update the best allocation and score
-     * @param alloc The new best allocation and score
+     * @brief Get the score of the node
+     * @return Score The score of the node
+     */
+    Score getScore() const { return nodeScore; };
+
+    /**
+     * @brief Set the score of the node
+     * @param s The new score to set
      * @return void
      */
-    void updateBestAllocation(const std::pair<Allocation, Score> &alloc, bool verbose = false);
+    void setScore(const Score &s) { nodeScore = s; };
 
     /** @brief Expands a node by generating one of its unvisited children
      *  @param node The node to expand
@@ -327,15 +325,7 @@ public:
         {
             std::cout << object << " ";
         }
-        std::cout << "with score: " << bestAllocation.second.getScore() << std::endl;
-        // Show best allocation and score for debugging purposes
-        std::cout << "Best allocation (size : " << bestAllocation.first.getAllocation().size() << "): ";
-        const std::vector<int> &bestAllocVec = bestAllocation.first.getAllocation();
-        for (int object : bestAllocVec)
-        {
-            std::cout << object << " ";
-        }
-        std::cout << "with score: " << bestAllocation.second.getScore() << std::endl;
+        std::cout << "with score: " << nodeScore.getScore() << std::endl;
     }
 };
 

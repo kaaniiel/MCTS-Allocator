@@ -46,6 +46,9 @@ private:
     bool addMetricsToUtility = false; // Flag to determine if metrics should be added to utility
     bool workWithTimeBudget = false;  // Flag to determine if the MCTS should work with a time budget
     double timeBudgetSeconds = 60.0;  // Time budget in seconds for the MCTS search
+    Allocation bestAllocation;        // Store the best allocation found during the search
+    Score bestScore;                  // Store the best score found during the search
+
 private:
     std::vector<unsigned long long> factorialCache = {1};
     int iterTrackerBestSolution = 0;       // Timer to track how many iterations the best solution hasn't changed
@@ -61,6 +64,8 @@ public:
              nodeStack(std::stack<Node *>()),
              preferences(Preferences<T>()),
              explorationParameter(std::sqrt(2.0)),
+             bestAllocation(Allocation()),
+             bestScore(Score(0.0, false)),
              seed(42),
              evalFunction("MNW"),
              verbose(false),
@@ -140,6 +145,29 @@ public:
      */
     void setTrunckateTreeSearch(bool t) { trunckateTreeSearch = t; }
 
+    /**
+     * @brief Get the best allocation found during the MCTS search
+     * @return Allocation The best allocation found
+     */
+    Allocation getBestAllocation() const { return bestAllocation; }
+
+    /**
+     * @brief Set the best allocation found during the MCTS search
+     * @param alloc The best allocation found
+     */
+    void setBestAllocation(const Allocation &alloc) { bestAllocation = alloc; }
+
+    /**
+     * @brief Get the best score found during the MCTS search
+     * @return Score The best score found
+     */
+    Score getBestScore() const { return bestScore; }
+
+    /**
+     * @brief Set the best score found during the MCTS search
+     * @param s The best score found
+     */
+    void setBestScore(const Score &s) { bestScore = s; }
     /*----------------------------------------------*/
     /*                   Override                   */
     /*----------------------------------------------*/
@@ -162,7 +190,7 @@ public:
     {
         this->setVerbose(verbose);
         run(config.iterations, config.timeBudgetSeconds, config.showProgress);
-        return root.getBestAllocation();
+        return std::make_pair(bestAllocation, bestScore);
     }
     /** @brief Runs the MCTS algorithm for a specified number of iterations.
      *  @param budget The number of iterations to run (classic budget) or the time budget in seconds (if workWithTimeBudget is true)
@@ -276,10 +304,8 @@ public:
 
         oss << "  ],\n";
         // add best allocation and score
-        const Allocation &bestAlloc = root.getBestAllocation().first;
-        const Score &bestScore = root.getBestAllocation().second;
         oss << "  \"best_allocation\": [";
-        const std::vector<int> &allocVec = bestAlloc.getAllocation();
+        const std::vector<int> &allocVec = this->getBestAllocation().getAllocation();
         for (size_t i = 0; i < allocVec.size(); ++i)
         {
             oss << allocVec[i];
@@ -287,13 +313,13 @@ public:
                 oss << ", ";
         }
         oss << "],\n";
-        oss << "  \"best_score\": " << bestScore.getScore() << ",\n";
+        oss << "  \"best_score\": " << this->getBestScore().getScore() << ",\n";
         oss << "  \"metrics\": {\n";
         if (add_metrics)
         {
             for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
             {
-                double metricValue = metricFunc(getPreferences(), bestAlloc);
+                double metricValue = metricFunc(getPreferences(), getBestAllocation());
                 oss << "    \"" << name << "\": " << metricValue;
                 if (name != getMetricsRegistry<T>().rbegin()->first)
                     oss << ",";
@@ -379,6 +405,9 @@ public:
         nodeStack = std::stack<Node *>();
         preferences.clear();
         monitoringCuts = 0;
+        budgetCounter = 0;
+        bestAllocation = Allocation();
+        Score bestScore = Score();
     }
 };
 

@@ -12,7 +12,7 @@ double UCB::calculate(const Node &node, const int parentVisits, const double exp
     }
 
     // Calculate the average reward (exploitation term)
-    double averageReward = node.getBestAllocation().second.getScore();
+    double averageReward = node.getScore().getScore();
     // Calculate the exploration term
     double explorationTerm = explorationParameter * std::sqrt(static_cast<double>(parentVisits) / node.getVisits());
     // Return the sum of the exploitation and exploration terms
@@ -71,10 +71,10 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
 
         // _mm256_set_pd(highest..lowest) => lane 0 corresponds to child0 after store
         const __m256d scores = _mm256_set_pd(
-            child3.getBestAllocation().second.getScore(),
-            child2.getBestAllocation().second.getScore(),
-            child1.getBestAllocation().second.getScore(),
-            child0.getBestAllocation().second.getScore());
+            child3.getScore().getScore(),
+            child2.getScore().getScore(),
+            child1.getScore().getScore(),
+            child0.getScore().getScore());
 
         const __m256d visits = _mm256_set_pd(
             static_cast<double>(child3.getVisits()),
@@ -135,10 +135,10 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child3;
 
         const __m256d scores = _mm256_set_pd(
-            child3.getBestAllocation().second.getScore(),
-            child2.getBestAllocation().second.getScore(),
-            child1.getBestAllocation().second.getScore(),
-            child0.getBestAllocation().second.getScore());
+            child3.getScore().getScore(),
+            child2.getScore().getScore(),
+            child1.getScore().getScore(),
+            child0.getScore().getScore());
 
         const __m256d visits = _mm256_set_pd(
             static_cast<double>(child3.getVisits()),
@@ -193,7 +193,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child1;
 
         // _mm_set_pd(high, low): high goes to index 1, low goes to index 0
-        __m128d scores = _mm_set_pd(child1.getBestAllocation().second.getScore(), child0.getBestAllocation().second.getScore());
+        __m128d scores = _mm_set_pd(child1.getScore().getScore(), child0.getScore().getScore());
         __m128d visits = _mm_set_pd(static_cast<double>(child1.getVisits()), static_cast<double>(child0.getVisits()));
 
         // averageReward = scores / visits
@@ -231,7 +231,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child;
         }
 
-        double averageReward = child.getBestAllocation().second.getScore() / child.getVisits();
+        double averageReward = child.getScore().getScore();
         double explorationTerm = explorationParameter * std::sqrt(parentVisits / child.getVisits());
         double ucbValue = averageReward + explorationTerm;
 

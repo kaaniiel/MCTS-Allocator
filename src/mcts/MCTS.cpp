@@ -424,25 +424,35 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
 template <typename T>
 std::pair<Allocation, Score> MCTS<T>::backpropagate(std::stack<Node *> &nodeStack, const std::pair<Allocation, Score> &reward)
 {
-    // Backpropagate the reward obtained from a simulation up the tree and return the best allocation and score found during backpropagation
-    std::pair<Allocation, Score> bestAlloc = reward; // Initialize the best allocation and score with the reward from the simulation
+    // 1. Mise à jour de tes DEUX variables globales
+    if (reward.second.getScore() > this->bestScore.getScore())
+    {
+        this->bestAllocation = reward.first;
+        this->bestScore = reward.second;
+        iterTrackerBestSolution = 1; // On a trouvé mieux
+    }
+    else
+    {
+        iterTrackerBestSolution++; // On n'a pas trouvé mieux
+    }
+
+    // 2. Rétro-propagation du score pour l'algorithme UCB
     while (!nodeStack.empty())
     {
         Node *currentNode = nodeStack.top();
         nodeStack.pop();
-        currentNode->incrementVisits();            // Increment the visit count for the current node
-        currentNode->updateBestAllocation(reward); // Update the best allocation and score for the current node based on the reward from the simulation
-        if (currentNode->getBestAllocation().second.getScore() > bestAlloc.second.getScore())
+
+        currentNode->incrementVisits();
+
+        // Mise à jour du score du nœud
+        if (reward.second.getScore() > currentNode->getScore().getScore())
         {
-            bestAlloc = currentNode->getBestAllocation(); // Update the best allocation and score if the current node's best allocation has a better score than the current best allocation
-            iterTrackerBestSolution = 1;                  // Reset the timer if a better solution is found
-        }
-        else
-        {
-            iterTrackerBestSolution++; // Increment the timer if no better solution is found
+            currentNode->setScore(reward.second.getScore());
         }
     }
-    return bestAlloc;
+
+    // On retourne tes variables globales sous forme de paire
+    return std::make_pair(this->bestAllocation, this->bestScore);
 }
 
 template class MCTS<int>;

@@ -89,15 +89,14 @@ int testMCTS()
     mcts.run(budget);
     std::cout << "MCTS run completed." << std::endl;
     std::cout << "Get the best allocation and score from the root node: " << std::endl;
-    std::pair<Allocation, Score> bestAlloc = mcts.getRootNode()->getBestAllocation();
     std::cout << "Best allocation: ";
-    const std::vector<int> &allocVec = bestAlloc.first.getAllocation();
+    const std::vector<int> &allocVec = mcts.getBestAllocation().getAllocation();
     for (int object : allocVec)
     {
         std::cout << object << " ";
     }
     std::cout << std::endl;
-    std::cout << "Best score: " << bestAlloc.second.getScore() << std::endl;
+    std::cout << "Best score: " << mcts.getBestScore().getScore() << std::endl;
 
     return EXIT_SUCCESS;
 }

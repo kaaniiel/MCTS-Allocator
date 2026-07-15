@@ -897,7 +897,8 @@ int main(int argc, char **argv)
 
         for (int tryIndex = 1; tryIndex <= config.numberOfTrys; ++tryIndex)
         {
-            std::pair<Allocation, Score> finalBest(Allocation(params.numAgents, params.numObjects), Score(0.0));
+            Allocation finalBestAllocation = Allocation(params.numAgents, params.numObjects);
+            Score finalBestScore = Score(0.0);
 
             out << "            {\n";
             out << "              \"steps\": [\n";
@@ -952,17 +953,18 @@ int main(int argc, char **argv)
                             params.ratioRandom,
                             params.selectedPolicy)});
 
-                    finalBest = mcts.getRootNode()->getBestAllocation();
+                    finalBestAllocation = mcts.getBestAllocation();
+                    finalBestScore = mcts.getBestScore();
                     const int remainingBudget = std::max(0, params.budget - targetBudget);
 
                     out << "                {\n";
                     out << "                  \"stepTimeUs\": " << stepDurationUs << ",\n";
-                    out << "                  \"score\": " << format_json_score(uniformize_negative_values(finalBest.first.getNumAgents(), finalBest.first.getAllocation(), finalBest.second.getScore(), config)) << ",\n";
+                    out << "                  \"score\": " << format_json_score(uniformize_negative_values(finalBestAllocation.getNumAgents(), finalBestAllocation.getAllocation(), finalBestScore.getScore(), config)) << ",\n";
                     out << "                  \"allocation\": ";
-                    write_array(out, finalBest.first.getAllocation());
+                    write_array(out, finalBestAllocation.getAllocation());
                     if (config.enableMetrics)
                     {
-                        add_metrics(out, config.enableMetrics, pref, finalBest.first.getAllocation(), 18);
+                        add_metrics(out, config.enableMetrics, pref, finalBestAllocation.getAllocation(), 18);
                     }
                     else
                     {
@@ -985,7 +987,7 @@ int main(int argc, char **argv)
 
             out << "              ],\n";
             out << "              \"tryDurationUs\": " << tryMctsDurationUs << ",\n";
-            out << "              \"finalScore\": " << format_json_score(uniformize_negative_values(finalBest.first.getNumAgents(), finalBest.first.getAllocation(), finalBest.second.getScore(), config)) << ",\n";
+            out << "              \"finalScore\": " << format_json_score(uniformize_negative_values(finalBestAllocation.getNumAgents(), finalBestAllocation.getAllocation(), finalBestScore.getScore(), config)) << ",\n";
             out << "              \"totalBudgetUsed\": " << (config.experimentUseTimeBudget ? budgetUsed : config.iterations) << "\n";
             out << "            }";
             if (tryIndex < config.numberOfTrys)
