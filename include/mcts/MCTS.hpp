@@ -152,6 +152,11 @@ public:
      * @param s The best score found
      */
     void setBestScore(const Score &s) { bestScore = s; }
+
+    /** @brief Get the iteration tracker for the best solution
+     * @return int The iteration tracker for the best solution
+     */
+    int getIterTrackerBestSolution() const { return iterTrackerBestSolution; }
     /*----------------------------------------------*/
     /*                   Override                   */
     /*----------------------------------------------*/
@@ -294,6 +299,7 @@ public:
         }
         oss << "],\n";
         oss << "  \"best_score\": " << this->getBestScore().getScore() << ",\n";
+        oss << "  \"iterTrackerBestSolution\": " << iterTrackerBestSolution << ",\n";
         oss << "  \"metrics\": {\n";
         if (add_metrics)
         {

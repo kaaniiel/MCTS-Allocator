@@ -946,6 +946,8 @@ int main(int argc, char **argv)
                     out << "                  \"score\": " << format_json_score(uniformize_negative_values(finalBestAllocation.getNumAgents(), finalBestAllocation.getAllocation(), finalBestScore.getScore(), config)) << ",\n";
                     out << "                  \"allocation\": ";
                     write_array(out, finalBestAllocation.getAllocation());
+                    out << ",\n";
+                    out << "                  \"iterTrackerBestSolution\": " << mcts.getIterTrackerBestSolution();
                     if (config.enableMetrics)
                     {
                         add_metrics(out, config.enableMetrics, pref, finalBestAllocation.getAllocation(), 18);
