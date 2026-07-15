@@ -39,9 +39,9 @@ int testPreferences()
         std::cout << "total : " << std::accumulate(agentPrefs.begin(), agentPrefs.end(), 0) << " ";
         std::cout << std::endl;
     }
-    std::vector<int> allocVec = {0, 1, 2, 1};                         // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
-    Allocation alloc(numAgents, allocVec);                            // Create an allocation based on the example vector
-    double utility = Utility<int>::calculateUtilityMul(prefs, alloc); // Calculate the utility of the allocation based on the preferences
+    std::vector<int> allocVec = {0, 1, 2, 1};                             // Example allocation: object 0 to agent 0, object 1 to agent 1, object 2 to agent 2, object 3 to agent 1
+    Allocation alloc(numAgents, allocVec);                                // Create an allocation based on the example vector
+    double utility = Utility<int>::calculateUtility(prefs, alloc, "MNW"); // Calculate the utility of the allocation based on the preferences
     std::cout << "Utility of the allocation: " << utility << std::endl;
     return EXIT_SUCCESS;
 }
@@ -57,7 +57,7 @@ int testExtendNode()
     Node node(numAgents, numObjects); // Create a node with 4 agents and 4 objects
     while (true)
     {
-        Node *childNode = node.extend(); // Attempt to extend the node to create a new child node
+        Node *childNode = node.extend(numAgents, numObjects, false, false); // Attempt to extend the node to create a new child node
         if (childNode != nullptr)
         {
             std::cout << "Extended node at height " << childNode->getHeight() << " with allocation: ";
@@ -83,12 +83,9 @@ int testExtendNode()
  */
 int testMCTS()
 {
-    auto evalFn = [](const Preferences<int> &prefs, const Allocation &alloc, const bool verbose) -> double
-    {
-        return Utility<int>::calculateUtilityMul(prefs, alloc, verbose);
-    };
-    MCTS<int> mcts(3, 4, evalFn); // Create an MCTS instance with 3 agents and 4 objects
-    const int budget = 10;        // Set the budget for the MCTS run
+
+    MCTS<int> mcts(3, 4, "MNW"); // Create an MCTS instance with 3 agents and 4 objects
+    const int budget = 10;       // Set the budget for the MCTS run
     mcts.run(budget);
     std::cout << "MCTS run completed." << std::endl;
     std::cout << "Get the best allocation and score from the root node: " << std::endl;
@@ -165,6 +162,8 @@ void showOptions(Config config)
     std::cout << " - Iterations    : " << config.iterations << "\n";
     std::cout << " - Exploration C : " << config.exploration << "\n";
     std::cout << " - Seed          : " << config.seed << "\n";
+    std::cout << " - Eval Function : " << config.evalFunction << "\n";
+    std::cout << " - Selected Policy : " << config.selectedPolicy << "\n";
     std::cout << " - Verbose       : " << (config.verbose ? "true" : "false") << "\n";
     std::cout << " - Ratio Random  : " << config.ratioRandom << "\n";
     std::cout << " - Save Results  : " << (config.saveResults ? "true" : "false") << "\n";
@@ -201,9 +200,10 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
     // If an option is NOT passed in the terminal, the variable keeps its TOML value.
     app.add_option("-e,--exploration", config.exploration, "Override the exploration constant (C)");
     app.add_option("-i,--iterations", config.iterations, "Override the number of MCTS iterations");
+    app.add_option("-f,--evaluation-function", config.evalFunction, "Override the evaluation function for MCTS");
     app.add_option("-n,--num-agents", config.numAgents, "Override the number of agents");
     app.add_option("-o,--num-objects", config.numObjects, "Override the number of objects");
-    app.add_option("-p, --selected-politic", config.selectedPolicy, "Override the selected politic for determining the ratio of random simulations");
+    app.add_option("-p, --selected-policy", config.selectedPolicy, "Override the selected policy for determining the ratio of random simulations");
     app.add_option("-r,--ratio-random", config.ratioRandom, "Override the ratio of random simulations");
     app.add_option("-s,--seed", config.seed, "Override the random seed for preference generation");
     app.add_option("-t, --time-budget-seconds", config.timeBudgetSeconds, "Override the time budget in seconds for MCTS");

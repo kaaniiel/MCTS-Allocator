@@ -18,14 +18,47 @@
 template <typename T>
 class Utility
 {
+
 public:
+    /**
+     * @brief Get the registry of available utility functions.
+     * @return std::map<std::string, std::function<double(const Preferences<T> &, const Allocation &, const bool)>> A map of utility function names to their corresponding functions.
+     */
+    static std::map<std::string, std::function<double(const Preferences<T> &, const Allocation &, const bool)>> getUtilityRegistry()
+    {
+        return {
+            {"MNW", calculateUtilityMNW},
+            {"Sum", calculateUtilitySum}};
+    }
+    /**
+     * @brief Calculate the utility value for a given allocation using a specified utility function.
+     * @param prefs The preferences for the agents and objects
+     * @param alloc The allocation for which to calculate the utility
+     * @param utilityFunction The utility function to use (default is calculateUtilityMNW)
+     * @param verbose Whether to enable verbose output
+     * @return double The calculated utility value
+     */
+    static double calculateUtility(const Preferences<T> &prefs, const Allocation &alloc, const std::string &utilityFunction, const bool verbose = false)
+    {
+        auto utilityRegistry = getUtilityRegistry();
+        auto it = utilityRegistry.find(utilityFunction);
+        if (it != utilityRegistry.end())
+        {
+            return it->second(prefs, alloc, verbose);
+        }
+        else
+        {
+            std::cerr << "Unknown utility function: " << utilityFunction << ". Using default MNW." << std::endl;
+            return calculateUtilityMNW(prefs, alloc, verbose);
+        }
+    }
     /**
      * @brief Calculate the utility value for a given allocation. We multiply the utilities of each agent together to get the overall utility of the allocation. This encourages allocations that are good for all agents rather than just one.
      * @param prefs The preferences for the agents and objects
      * @param alloc The allocation for which to calculate the utility
      * @return double The calculated utility value
      */
-    static double calculateUtilityMul(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
+    static double calculateUtilityMNW(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
     {
         const std::vector<int> &allocation = alloc.getAllocation();
         int numAgents = alloc.getNumAgents();
@@ -65,6 +98,44 @@ public:
         return totalUtility;
     }
 
+    static double calculateUtilitySum(const Preferences<T> &prefs, const Allocation &alloc, const bool verbose = false)
+    {
+        const std::vector<int> &allocation = alloc.getAllocation();
+        int numAgents = alloc.getNumAgents();
+        int numObjects = alloc.getNumObjects();
+
+        // Use thread_local to avoid repeated memory allocation across MCTS simulations
+        thread_local std::vector<double> agentUtilities;
+        if (agentUtilities.size() < static_cast<size_t>(numAgents))
+        {
+            agentUtilities.resize(numAgents, 0.0);
+        }
+        else
+        {
+            std::fill(agentUtilities.begin(), agentUtilities.begin() + numAgents, 0.0);
+        }
+
+        for (int object = 0; object < numObjects; ++object)
+        {
+            int agent = allocation[object];
+            if (agent >= 0 && agent < numAgents)
+            { // Valid agent assignment
+                agentUtilities[agent] += prefs.getPreference(agent, object);
+            }
+        }
+
+        double totalUtility = 0.0;
+        for (int agent = 0; agent < numAgents; ++agent)
+        {
+            if (verbose)
+            {
+                std::cout << "Agent " << agent << " utility: " << agentUtilities[agent] << std::endl;
+            }
+            totalUtility += agentUtilities[agent];
+        }
+        return totalUtility;
+    }
+
     /**
      * @brief Modify utility score by adding bonuses for satisfying certain fairness metrics.
      * @param prefs The preferences of the agents
@@ -74,9 +145,9 @@ public:
      * @param verbose Whether to output detailed logs
      * @return double The modified utility score
      */
-    static double addMetrics2Utility(const Preferences<T> &prefs, const Allocation &alloc, std::function<double(const Preferences<T> &, const Allocation &, const bool)> &evalFunction, const Config &config, const bool verbose = false)
+    static double addMetrics2Utility(const Preferences<T> &prefs, const Allocation &alloc, const std::string &utilityFunction, const Config &config, const bool verbose = false)
     {
-        double utility = evalFunction(prefs, alloc, verbose);
+        double utility = calculateUtility(prefs, alloc, utilityFunction, verbose);
 
         for (const auto &[name, metricFunc] : getMetricsRegistry<T>())
         {

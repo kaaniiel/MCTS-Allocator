@@ -38,7 +38,7 @@ int main()
         std::cout << "Agent " << agent << " utility: " << agentUtilities[agent] << std::endl;
     }
     std::cout << "==============================" << std::endl;
-    double utility = Utility<int>::calculateUtilityMul(prefs, alloc, true);
+    double utility = Utility<int>::calculateUtility(prefs, alloc, "MNW", true);
     std::cout << "Utility: " << utility << std::endl;
 
     return 0;

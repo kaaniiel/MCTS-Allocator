@@ -16,8 +16,6 @@
 class Node
 {
 private:
-    int numObjects; // Number of objects to allocate, needed for generating children
-    int numAgents;  // Number of agents, needed for generating children
     std::vector<bool> agentHasObject; // To keep track of which agents have been allocated an object, needed for generating children
     int visits;
     int h;             // height of the node in the tree
@@ -25,24 +23,20 @@ private:
     Allocation currentAllocation;
     std::pair<Allocation, Score> bestAllocation;
     std::vector<Node> children;
-    bool verbose;
-    bool truncateTreeSearch = false;
 
 public:
     /**
      * @brief Default constructor for Node
      */
-    Node() : numObjects(0),
-             numAgents(0),
+    Node() : children(),
              agentHasObject(0, false),
              visits(0),
              h(0),
              childrenIndex(0),
              currentAllocation(Allocation()),
-             bestAllocation(Allocation(), Score()),
-             verbose(false)
+             bestAllocation(Allocation(), Score())
+
     {
-        children.reserve(numAgents);
     };
     /**
      * @brief Constructor to initialize a Node with given number of agents and objects
@@ -50,20 +44,16 @@ public:
      * @param numObjects Number of objects
      * @param verbose Whether to enable verbose mode
      */
-    Node(const int numAgents, const int numObjects, const bool verbose = false) : numObjects(numObjects),
-                                                                                  numAgents(numAgents),
-                                                                                  agentHasObject(numAgents, false),
-                                                                                  visits(0),
+    Node(const int numAgents, const int numObjects, const bool verbose = false) : visits(0),
                                                                                   h(0),
                                                                                   childrenIndex(0),
                                                                                   currentAllocation(Allocation(numAgents, numObjects, verbose)),
-                                                                                  bestAllocation(Allocation(numAgents, numObjects, verbose), Score(0.0, verbose)),
-                                                                                  verbose(verbose)
-
+                                                                                  bestAllocation(Allocation(numAgents, numObjects, verbose), Score(0.0, verbose))
     {
         bestAllocation.first.setAllocation(currentAllocation.getAllocation());
         bestAllocation.second.setScore(0.0);
-        // Pre-allocate space for children to avoid reallocations
+
+        // On peut toujours utiliser numAgents ici car il est passé en paramètre !
         children.reserve(numAgents);
     };
 
@@ -71,34 +61,27 @@ public:
      * @brief Copy constructor for Node
      * @param other The node to copy
      */
-    Node(const Node &other) : numObjects(other.numObjects),
-                              numAgents(other.numAgents),
-                              agentHasObject(other.agentHasObject),
-                              visits(other.visits),
+    Node(const Node &other) : visits(other.visits),
                               h(other.h),
                               childrenIndex(0),
                               currentAllocation(other.currentAllocation),
-                              bestAllocation(other.bestAllocation),
-                              verbose(other.verbose)
+                              bestAllocation(other.bestAllocation)
     {
-        children.reserve(numAgents);
+        // On récupère le nombre d'agents depuis l'allocation pour le reserve
+        children.reserve(currentAllocation.getNumAgents());
     };
 
     /**
      * @brief Constructor to initialize a Node with a specific allocation
      * @param alloc The initial allocation for this node
      */
-    Node(const Allocation &alloc) : numObjects(alloc.getNumObjects()),
-                                    numAgents(alloc.getNumAgents()),
-                                    visits(0),
+    Node(const Allocation &alloc) : visits(0),
                                     h(0),
                                     childrenIndex(0),
                                     currentAllocation(alloc),
-                                    agentHasObject(alloc.getNumAgents(), false),
-                                    bestAllocation(alloc, Score(0.0, alloc.getVerbose())),
-                                    verbose(alloc.getVerbose())
+                                    bestAllocation(alloc, Score(0.0, alloc.getVerbose()))
     {
-        children.reserve(numAgents);
+        children.reserve(alloc.getNumAgents());
     };
 
     /**
@@ -107,36 +90,21 @@ public:
      * @param height The depth of the node in the tree
      * @param verbose Whether to enable verbose mode
      */
-    Node(const Allocation &alloc, int height, const bool verbose = false) : numObjects(alloc.getNumObjects()),
-                                                                            numAgents(alloc.getNumAgents()),
-                                                                            agentHasObject(alloc.getNumAgents(), false),
-                                                                            visits(0),
+    Node(const Allocation &alloc, int height, const bool verbose = false) : visits(0),
                                                                             h(height),
                                                                             childrenIndex(0),
                                                                             currentAllocation(alloc),
-                                                                            bestAllocation(alloc, Score(0.0, verbose)),
-                                                                            verbose(verbose)
+                                                                            bestAllocation(alloc, Score(0.0, verbose))
     {
-        children.reserve(numAgents);
+        children.reserve(alloc.getNumAgents());
     };
-
-    /**
-     * @brief Get the number of objects
-     * @return int The number of objects
-     */
-    int getNumObjects() const { return numObjects; };
-
-    /**
-     * @brief Get the number of agents
-     * @return int The number of agents
-     */
-    int getNumAgents() const { return numAgents; };
 
     /**
      * @brief Get the agents that have not been allocated an object
      * @return std::vector<int> The agents that have not been allocated an object
      */
-    std::vector<int> getAgentWithoutObject() const {
+    std::vector<int> getAgentWithoutObject(int numAgents) const
+    {
         std::vector<int> agentsWithoutObject;
         std::vector<bool> hasObject(numAgents, false);
         const std::vector<int> &allocVec = currentAllocation.getAllocation();
@@ -159,23 +127,24 @@ public:
         }
         return agentsWithoutObject;
     }
-    
+
     /**
      * @brief Get the number of objects that have not been allocated
      * @return int The number of objects that have not been allocated
      */
-    int getObjectsNotAllocated() const {
-        // the height of the node in the tree corresponds to the number 
-        // of allocated objects, so the number of unallocated objects is 
+    int getObjectsNotAllocated(int numObjects) const
+    {
+        // the height of the node in the tree corresponds to the number
+        // of allocated objects, so the number of unallocated objects is
         // numObjects - h
-        return numObjects - h; 
+        return numObjects - h;
     }
 
     /**
      * @brief Get the agents that can be selected when truncation is enabled.
      * @return std::vector<int> The agents that can be expanded from this node.
      */
-    std::vector<int> getExpandableAgents() const
+    std::vector<int> getExpandableAgents(int numAgents, int numObjects, bool truncateTreeSearch) const
     {
         std::vector<int> allAgents;
         allAgents.reserve(numAgents);
@@ -189,8 +158,8 @@ public:
             return allAgents;
         }
 
-        const std::vector<int> agentsWithoutObject = getAgentWithoutObject();
-        const int remainingObjects = getObjectsNotAllocated();
+        const std::vector<int> agentsWithoutObject = getAgentWithoutObject(numAgents);
+        const int remainingObjects = getObjectsNotAllocated(numObjects);
 
         if (remainingObjects <= 0)
         {
@@ -219,18 +188,18 @@ public:
      * @brief Get the number of children that can still be generated from this node.
      * @return int The number of expandable children.
      */
-    int getMaxChildrenCount() const
+    int getMaxChildrenCount(int numAgents, int numObjects, bool truncateTreeSearch) const
     {
-        return static_cast<int>(getExpandableAgents().size());
+        return static_cast<int>(getExpandableAgents(numAgents, numObjects, truncateTreeSearch).size());
     }
 
     /**
      * @brief Check whether the node should be treated as a leaf for expansion.
      * @return bool True if the node should not be expanded.
      */
-    bool isLeafForExpansion() const
+    bool isLeafForExpansion(int numAgents, int numObjects, bool truncateTreeSearch) const
     {
-        if (getObjectsNotAllocated() <= 0)
+        if (getObjectsNotAllocated(numObjects) <= 0)
         {
             return true;
         }
@@ -240,7 +209,7 @@ public:
             return false;
         }
 
-        return static_cast<int>(getAgentWithoutObject().size()) > getObjectsNotAllocated();
+        return static_cast<int>(getAgentWithoutObject(numAgents).size()) > getObjectsNotAllocated(numObjects);
     }
 
     /**
@@ -274,9 +243,9 @@ public:
 
     /**
      * @brief Set the height of the node in the tree
-      * @return void
+     * @return void
      */
-     void setHeight(int height) { h = height; }
+    void setHeight(int height) { h = height; }
 
     /**
      * @brief Get the height of the node in the tree
@@ -314,36 +283,13 @@ public:
      * @param alloc The new best allocation and score
      * @return void
      */
-    void updateBestAllocation(const std::pair<Allocation, Score> &alloc);
+    void updateBestAllocation(const std::pair<Allocation, Score> &alloc, bool verbose = false);
 
-    /**
-     * @brief Set the verbose mode
-     * @param v The verbose mode
-     */
-    void setVerbose(bool v) { verbose = v; }
-
-    /**
-     * @brief Get the verbose mode
-     * @return bool The verbose mode
-     */
-    bool getVerbose() const { return verbose; }
-
-    /**
-     * @brief Check if the node is fully expanded (i.e., all children have been generated)
-     * @return bool True if the node is fully expanded, false otherwise
-     */
-    bool getTruncateTreeSearch() const { return truncateTreeSearch; }
-    
-    /**
-     * @brief Set the tree search to be truncated (agents must have at least one object)
-     * @return void
-     */
-    void setTruncateTreeSearch(bool t) { truncateTreeSearch = t; }
     /** @brief Expands a node by generating one of its unvisited children
      *  @param node The node to expand
      *  @return The expanded node
      */
-    Node *extend()
+    Node *extend(int numAgents, int numObjects, bool truncateTreeSearch, bool verbose)
     {
         // Generate a new child node by creating a new allocation based on the current allocation and modifying it
         int indexToModify = this->getHeight();
@@ -353,7 +299,7 @@ public:
             return nullptr;
         }
 
-        const std::vector<int> expandableAgents = getExpandableAgents();
+        const std::vector<int> expandableAgents = getExpandableAgents(numAgents, numObjects, truncateTreeSearch);
         if (expandableAgents.empty() || getChildrenIndex() >= static_cast<int>(expandableAgents.size()))
         {
             return nullptr;
@@ -366,8 +312,7 @@ public:
         this->incrementChildrenIndex();
 
         // Use move semantics to avoid copying the allocation vector
-        children.emplace_back(Allocation(this->getNumAgents(), std::move(allocVec), verbose), this->getHeight() + 1, this->getVerbose());
-        children.back().setTruncateTreeSearch(this->getTruncateTreeSearch());
+        children.emplace_back(Allocation(numAgents, std::move(allocVec), verbose), this->getHeight() + 1, verbose);
         return &children.back();
     };
 

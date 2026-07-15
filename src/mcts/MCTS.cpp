@@ -127,7 +127,7 @@ void MCTS<T>::classicRun(const int budget, bool showProgress)
         {
             std::cout << "Expanding node..." << std::endl;
         }
-        Node *childNode = node->extend();
+        Node *childNode = node->extend(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, this->verbose);
         if (this->getVerbose())
         {
             std::cout << "Budget counter: " << budgetCounter << std::endl;
@@ -184,7 +184,7 @@ void MCTS<T>::runWithTimeBudget(const double timeBudget, bool showProgress)
         Node *node = selectNode(&root, &nodeStack);
 
         // --- Expansion ---
-        Node *childNode = node->extend();
+        Node *childNode = node->extend(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, this->verbose);
 
         Node *simulationNode = (childNode != nullptr) ? childNode : node;
         if (simulationNode != nullptr)
@@ -235,12 +235,22 @@ Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
 {
     nodeStack->push(node);
     Node *currentNode = node;
-    while (!currentNode->isLeafForExpansion() && currentNode->getChildren().size() >= static_cast<std::size_t>(currentNode->getMaxChildrenCount()))
+
+    while (!currentNode->isLeafForExpansion(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch) &&
+           currentNode->getChildren().size() >= static_cast<std::size_t>(currentNode->getMaxChildrenCount(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch)))
     {
-        currentNode = UCB::selectBestChild(currentNode, std::sqrt(2.0)); // Use an exploration parameter of sqrt(2) for UCB
+        currentNode = UCB::selectBestChild(currentNode, explorationParameter, this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch);
         if (currentNode == nullptr)
         {
             break;
+        }
+        nodeStack->push(currentNode);
+    }
+    {
+        currentNode = UCB::selectBestChild(currentNode, std::sqrt(2.0), this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch); // Use an exploration parameter of sqrt(2) for UCB
+        if (currentNode == nullptr)
+        {
+            return nullptr; // Return nullptr if no child was selected
         }
         nodeStack->push(currentNode);
     }
@@ -275,7 +285,6 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
     while (currentHeight < currentAlloc.getNumObjects())
     {
         std::vector<int> nextAllocVec = currentAlloc.getAllocation();
-        const bool truncateTree = node.getTruncateTreeSearch();
 
         std::vector<bool> hasObject(numAgents, false);
         for (int object = 0; object < currentHeight; ++object)
@@ -304,7 +313,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
             totalPossibleSubtreeLeaves = std::pow(numAgents, remainingObjects);
         }
 
-        if (truncateTree && static_cast<int>(agentsWithoutObject.size()) > remainingObjects)
+        if (this->trunckateTreeSearch && static_cast<int>(agentsWithoutObject.size()) > remainingObjects)
         {
             if (config.monitoringCuts)
             {
@@ -317,7 +326,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
         // 2. Coupe d'entonnoir : Évaluation de la contrainte forcée
         // ---------------------------------------------------------
         // On stocke le booléen pour s'en servir dans les heuristiques juste après
-        bool isForcedPath = truncateTree && !agentsWithoutObject.empty() &&
+        bool isForcedPath = this->trunckateTreeSearch && !agentsWithoutObject.empty() &&
                             static_cast<int>(agentsWithoutObject.size()) == remainingObjects;
 
         if (isForcedPath && config.monitoringCuts)
@@ -407,7 +416,7 @@ std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
     }
     else
     {
-        score = Score(evalFunction(preferences, currentAlloc, this->getVerbose()));
+        score = Score(Utility<T>::calculateUtility(preferences, currentAlloc, evalFunction, this->getVerbose()));
     }
     return std::make_pair(currentAlloc, score);
 }

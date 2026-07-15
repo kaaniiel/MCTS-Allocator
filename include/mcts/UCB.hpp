@@ -23,7 +23,7 @@ public:
      * @param explorationParameter The exploration parameter to use in the UCB1 calculation
      * @return Node* The child node with the highest UCB1 value, or the current node if it was not fully expanded
      */
-    static Node *selectBestChild(Node *node, const double explorationParameter, const bool verbose = false);
+    static Node *selectBestChild(Node *node, const double explorationParameter, int numAgents, int numObjects, bool truncateTreeSearch, const bool verbose = false);
 };
 
 #endif // UCB_HPP

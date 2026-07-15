@@ -3,7 +3,7 @@
 #include <numeric>
 #include <iostream>
 
-void Node::updateBestAllocation(const std::pair<Allocation, Score> &alloc)
+void Node::updateBestAllocation(const std::pair<Allocation, Score> &alloc, bool verbose)
 {
     // Update best allocation if uninitialized, better score, or equal score.
     // Keeping equal-score updates avoids freezing on an early zero-score allocation.

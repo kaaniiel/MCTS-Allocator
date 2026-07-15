@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     }
 
     Allocation alloc(numAgents, allocVec);
-    const double mctsUtility = Utility<int>::calculateUtilityMul(prefs, alloc, true);
+    const double mctsUtility = Utility<int>::calculateUtility(prefs, alloc, "MNW", true);
 
     // Re-transform from log-space to product-space.
     const double productFromLogs = std::exp(model.get(GRB_DoubleAttr_ObjVal));

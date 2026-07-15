@@ -35,6 +35,7 @@ add_library(mcts_core
     src/mcts/Node.cpp
     src/mcts/MCTS.cpp
     src/mcts/UCB.cpp
+    src/config/config.cpp
 )
 
 target_include_directories(mcts_core PUBLIC
