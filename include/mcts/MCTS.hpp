@@ -21,8 +21,7 @@
 #include "metrics/Utility.hpp"
 #include "config/config.hpp"
 
-/**
- * @brief Main class implementing the Monte Carlo Tree Search for the allocation problem.
+/** @brief Main class implementing the Monte Carlo Tree Search for the allocation problem.
  * @tparam T The type of the elements being allocated (usually int)
  */
 template <typename T>
@@ -55,8 +54,7 @@ private:
     unsigned long long monitoringCuts = 0; // Counter for how many times the search has been cut due to no improvement in the best solution
 
 public:
-    /**
-     * @brief Default constructor initializing an empty MCTS instance.
+    /** @brief Default constructor initializing an empty MCTS instance.
      */
     MCTS() : numberOfAgents(0),
              numberOfObjects(0),
@@ -76,8 +74,7 @@ public:
              timeBudgetSeconds(60.0),
              politic(new FixedPolicy(config)) {};
 
-    /**
-     * @brief Constructor for deep initialization of MCTS.
+    /** @brief Constructor for deep initialization of MCTS.
      */
     MCTS(const int numAgents, const int numObjects, const Node root, const std::stack<Node *> nodeStack, const Preferences<T> &prefs, const double explorationParameter, const int threads, const int seed, const std::string evalFunction, const bool verbose) : numberOfAgents(numAgents),
                                                                                                                                                                                                                                                                   numberOfObjects(numObjects),
@@ -89,23 +86,19 @@ public:
                                                                                                                                                                                                                                                                   evalFunction(evalFunction),
                                                                                                                                                                                                                                                                   verbose(verbose) {};
 
-    /**
-     * @brief Constructor initializing MCTS with given preferences and evaluation function.
+    /** @brief Constructor initializing MCTS with given preferences and evaluation function.
      */
     MCTS(const int numAgents, const int numObjects, const Preferences<T> &prefs, const double explorationParameter, std::string evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), prefs, explorationParameter, 1, 42, evalFunction, verbose) {};
 
-    /**
-     * @brief Constructor initializing MCTS with randomly generated preferences.
+    /** @brief Constructor initializing MCTS with randomly generated preferences.
      */
     MCTS(const int numAgents, const int numObjects, const double explorationParameter, std::string evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), explorationParameter, 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
 
-    /**
-     * @brief Constructor initializing MCTS with randomly generated preferences and default exploration parameter.
+    /** @brief Constructor initializing MCTS with randomly generated preferences and default exploration parameter.
      */
     MCTS(const int numAgents, const int numObjects, std::string evalFunction, const bool verbose = false) : MCTS(numAgents, numObjects, Node(numAgents, numObjects, verbose), std::stack<Node *>(), Preferences<T>(numAgents, numObjects, verbose), std::sqrt(2.0), 1, 42, evalFunction, verbose) { preferences.generateRandomPreferences(numObjects * numAgents); };
 
-    /**
-     * @brief Constructor initializing MCTS using a configuration object.
+    /** @brief Constructor initializing MCTS using a configuration object.
      */
     MCTS(Config &config) : MCTS() { load_config(config); };
 
@@ -116,55 +109,46 @@ public:
 
     const Preferences<T> &getPreferences() const override { return preferences; }
 
-    /**
-     * @brief Set the verbose mode
+    /** @brief Set the verbose mode
      * @param v The verbose mode
      */
     void setVerbose(bool v) { verbose = v; }
 
-    /**
-     * @brief Get the verbose mode
+    /** @brief Get the verbose mode
      * @return bool The verbose mode
      */
     bool getVerbose() const { return verbose; }
 
-    /**
-     * @brief Get if the tree search is truncated (agents must have at least one object)
+    /** @brief Get if the tree search is truncated (agents must have at least one object)
      * @return bool True if the tree search is truncated, false otherwise
      */
     bool getTrunckateTreeSearch() const { return trunckateTreeSearch; }
-    /**
-     * @brief Get the evaluation function used to calculate scores
+    /** @brief Get the evaluation function used to calculate scores
      * @return std::function<double(const Preferences<T> &, const Allocation &, bool)> The evaluation function
      */
     std::string getEvalFunction() const { return evalFunction; }
 
-    /**
-     * @brief Set the tree search to be truncated (agents must have at least one object)
+    /** @brief Set the tree search to be truncated (agents must have at least one object)
      * @param t True to truncate the tree search, false otherwise
      */
     void setTrunckateTreeSearch(bool t) { trunckateTreeSearch = t; }
 
-    /**
-     * @brief Get the best allocation found during the MCTS search
+    /** @brief Get the best allocation found during the MCTS search
      * @return Allocation The best allocation found
      */
     Allocation getBestAllocation() const { return bestAllocation; }
 
-    /**
-     * @brief Set the best allocation found during the MCTS search
+    /** @brief Set the best allocation found during the MCTS search
      * @param alloc The best allocation found
      */
     void setBestAllocation(const Allocation &alloc) { bestAllocation = alloc; }
 
-    /**
-     * @brief Get the best score found during the MCTS search
+    /** @brief Get the best score found during the MCTS search
      * @return Score The best score found
      */
     Score getBestScore() const { return bestScore; }
 
-    /**
-     * @brief Set the best score found during the MCTS search
+    /** @brief Set the best score found during the MCTS search
      * @param s The best score found
      */
     void setBestScore(const Score &s) { bestScore = s; }
@@ -199,16 +183,14 @@ public:
      */
     void run(const int budget, const double timeBudget = 0, bool showProgress = true);
 
-    /**
-     * @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
+    /** @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
      * @param budget The number of iterations to run
      * @param showProgress Whether to show the progress bar during the run
      * @return void
      */
     void classicRun(const int budget, bool showProgress = true);
 
-    /**
-     * @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
+    /** @brief Runs the MCTS algorithm for a specified number of iterations with a time budget
      * @param budget The time budget in seconds to run
      * @param showProgress Whether to show the progress bar during the run
      * @return void
@@ -220,13 +202,13 @@ public:
      *  @param nodeStack The stack of nodes
      *  @return The selected node
      */
-    Node *selectNode(Node *node, std::stack<Node *> *nodeStack);
+    Node *selectNode(Node *node, std::stack<Node *> *nodeStack, Allocation &floatingAllocation);
 
     /** @brief Simulates a playout from the given node. The simulation can be either random or heuristic based on the configuration.
      *  @param node The node to simulate from
      *  @return The reward obtained from the simulation
      */
-    std::pair<Allocation, Score> simulate(Node &node);
+    std::pair<Allocation, Score> simulate(Node &node, Allocation &floatingAllocation);
 
     /** @brief Backpropagates the reward obtained from a simulation up the tree
      *  @param nodeStack The stack of nodes to backpropagate through
@@ -235,8 +217,7 @@ public:
      */
     std::pair<Allocation, Score> backpropagate(std::stack<Node *> &nodeStack, const std::pair<Allocation, Score> &reward);
 
-    /**
-     * @brief Loads the MCTS settings from a Config object
+    /** @brief Loads the MCTS settings from a Config object
      * @param conf The configuration object
      */
     void load_config(const Config &conf) override
@@ -265,8 +246,7 @@ public:
         }
     }
 
-    /**
-     * @brief Converts the MCTS state and results to a JSON string
+    /** @brief Converts the MCTS state and results to a JSON string
      * @param add_metrics Whether to include metrics
      * @return std::string The JSON representation
      */
@@ -330,8 +310,7 @@ public:
         oss << "}\n";
         return oss.str();
     }
-    /**
-     * @brief Saves the JSON results to a file
+    /** @brief Saves the JSON results to a file
      * @param filename The output filename
      * @param add_metrics Whether to include metrics in the output
      */
@@ -360,7 +339,8 @@ public:
         }
     }
 
-    /** \brief Calculate the factorial of a number
+    /**
+     * \brief Calculate the factorial of a number
      * \param n The number to calculate the factorial of
      * \return The factorial of n
      */
@@ -396,8 +376,7 @@ public:
         }
     }
 
-    /**
-     * @brief Clears the internal state of the MCTS tree, including the root node and memory.
+    /** @brief Clears the internal state of the MCTS tree, including the root node and memory.
      */
     void clear() override
     {

@@ -15,8 +15,7 @@
 namespace
 {
 
-    /**
-     * @brief Create a progress bar with a specific postfix text.
+    /** @brief Create a progress bar with a specific postfix text.
      * @param postfix_text Text to display after the progress bar.
      * @return A unique pointer to the configured ProgressBar.
      */
@@ -40,8 +39,7 @@ namespace
             indicators::option::ShowRemainingTime{true},
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}});
     }
-    /**
-     * @brief Thread-safe function to update the progress bar based on iteration budget.
+    /** @brief Thread-safe function to update the progress bar based on iteration budget.
      * @param bar The progress bar to update.
      * @param counter Atomic counter of completed iterations.
      * @param budget Total number of iterations.
@@ -62,8 +60,7 @@ namespace
             }
         }
     }
-    /**
-     * @brief Update the progress bar based on elapsed time rather than iterations.
+    /** @brief Update the progress bar based on elapsed time rather than iterations.
      * @param bar The progress bar to update.
      * @param iteration Current iteration count (used to throttle UI updates).
      * @param elapsedSeconds Elapsed time in seconds.
@@ -117,17 +114,19 @@ void MCTS<T>::classicRun(const int budget, bool showProgress)
     {
         nodeStack = std::stack<Node *>(); // Clear the stack at the beginning of each run
         /*Selection*/
+        Allocation floatingAllocation(this->numberOfAgents, this->numberOfObjects, this->verbose);
+
         if (this->getVerbose())
         {
             std::cout << "Selecting node..." << std::endl;
         }
-        Node *node = selectNode(&root, &nodeStack);
+        Node *node = selectNode(&root, &nodeStack, floatingAllocation);
         /*expansion*/
         if (this->getVerbose())
         {
             std::cout << "Expanding node..." << std::endl;
         }
-        Node *childNode = node->extend(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, this->verbose);
+        Node *childNode = node->extend(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, this->verbose, floatingAllocation);
         if (this->getVerbose())
         {
             std::cout << "Budget counter: " << budgetCounter << std::endl;
@@ -135,20 +134,23 @@ void MCTS<T>::classicRun(const int budget, bool showProgress)
         Node *simulationNode = (childNode != nullptr) ? childNode : node;
         if (simulationNode != nullptr)
         {
-            if (childNode != nullptr && this->getVerbose())
-            {
-                for (int object : childNode->getCurrentAllocation().getAllocation())
-                {
-                    std::cout << object << " ";
-                }
-                std::cout << std::endl;
-            }
             if (childNode != nullptr)
             {
-                nodeStack.push(childNode);
+                std::vector<int> allocVec = floatingAllocation.getAllocation();
+                allocVec[childNode->getHeight() - 1] = childNode->getAssignedAgent();
+                floatingAllocation.setAllocation(allocVec);
+                if (this->verbose)
+                {
+                    for (int object : floatingAllocation.getAllocation())
+                    {
+                        std::cout << object << " ";
+                    }
+                    std::cout << std::endl;
+                }
             }
+
             /*simulation*/
-            std::pair<Allocation, Score> reward = simulate(*simulationNode);
+            std::pair<Allocation, Score> reward = simulate(*simulationNode, floatingAllocation);
             /*backpropagation*/
             backpropagate(nodeStack, reward);
         }
@@ -180,11 +182,12 @@ void MCTS<T>::runWithTimeBudget(const double timeBudget, bool showProgress)
     {
         nodeStack = std::stack<Node *>();
 
+        Allocation floatingAllocation(this->numberOfAgents, this->numberOfObjects, this->verbose);
         // --- Selection ---
-        Node *node = selectNode(&root, &nodeStack);
+        Node *node = selectNode(&root, &nodeStack, floatingAllocation);
 
         // --- Expansion ---
-        Node *childNode = node->extend(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, this->verbose);
+        Node *childNode = node->extend(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, this->verbose, floatingAllocation);
 
         Node *simulationNode = (childNode != nullptr) ? childNode : node;
         if (simulationNode != nullptr)
@@ -194,7 +197,7 @@ void MCTS<T>::runWithTimeBudget(const double timeBudget, bool showProgress)
                 nodeStack.push(childNode);
             }
             // --- Simulation ---
-            std::pair<Allocation, Score> reward = simulate(*simulationNode);
+            std::pair<Allocation, Score> reward = simulate(*simulationNode, floatingAllocation);
             // --- Backpropagation ---
             backpropagate(nodeStack, reward);
         }
@@ -231,37 +234,42 @@ void MCTS<T>::runWithTimeBudget(const double timeBudget, bool showProgress)
     }
 }
 template <typename T>
-Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack)
+Node *MCTS<T>::selectNode(Node *node, std::stack<Node *> *nodeStack, Allocation &floatingAllocation)
 {
     nodeStack->push(node);
     Node *currentNode = node;
 
-    while (!currentNode->isLeafForExpansion(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch) &&
-           currentNode->getChildren().size() >= static_cast<std::size_t>(currentNode->getMaxChildrenCount(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch)))
+    while (!currentNode->isLeafForExpansion(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, floatingAllocation) &&
+           currentNode->getChildren().size() >= static_cast<std::size_t>(currentNode->getMaxChildrenCount(this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, floatingAllocation)))
     {
-        currentNode = UCB::selectBestChild(currentNode, explorationParameter, this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch);
+        currentNode = UCB::selectBestChild(currentNode, explorationParameter, this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, floatingAllocation, this->verbose);
         if (currentNode == nullptr)
         {
             break;
         }
+        std::vector<int> allocVec = floatingAllocation.getAllocation();
+        allocVec[currentNode->getHeight() - 1] = currentNode->getAssignedAgent();
+        floatingAllocation.setAllocation(allocVec);
+
         nodeStack->push(currentNode);
     }
     {
-        currentNode = UCB::selectBestChild(currentNode, std::sqrt(2.0), this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch); // Use an exploration parameter of sqrt(2) for UCB
+        currentNode = UCB::selectBestChild(currentNode, std::sqrt(2.0), this->numberOfAgents, this->numberOfObjects, this->trunckateTreeSearch, floatingAllocation, this->verbose); // Use an exploration parameter of sqrt(2) for UCB
         if (currentNode == nullptr)
         {
             return nullptr; // Return nullptr if no child was selected
         }
+
         nodeStack->push(currentNode);
     }
     return currentNode;
 }
 
 template <typename T>
-std::pair<Allocation, Score> MCTS<T>::simulate(Node &node)
+std::pair<Allocation, Score> MCTS<T>::simulate(Node &node, Allocation &floatingAllocation)
 {
     // Algorithm 4: Create TEMPORARY allocations during simulation, not persistent nodes
-    Allocation currentAlloc = node.getCurrentAllocation();
+    Allocation currentAlloc = floatingAllocation;
     // Simulate initial score at 0.0
     Score bestSimulValue = Score(0.0);
 

@@ -7,8 +7,7 @@
 #include <thread>     // Pour std::this_thread
 #include <functional> // Pour std::hash
 
-/**
- * @brief Policy that returns a completely random uniform ratio limit between 0.0 and 1.0.
+/** @brief Policy that returns a completely random uniform ratio limit between 0.0 and 1.0.
  */
 class RandomUniformPolicy : public IPolicy
 {
@@ -21,8 +20,7 @@ private:
     inline static thread_local std::uniform_real_distribution<double> dist{0.0, 1.0};
 
 public:
-    /**
-     * @brief Constructor initializing the random policy.
+    /** @brief Constructor initializing the random policy.
      * @param config The configuration object (unused for this policy).
      */
     RandomUniformPolicy(const Config &config) {};

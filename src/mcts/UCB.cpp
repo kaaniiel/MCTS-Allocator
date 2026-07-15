@@ -12,14 +12,14 @@ double UCB::calculate(const Node &node, const int parentVisits, const double exp
     }
 
     // Calculate the average reward (exploitation term)
-    double averageReward = node.getScore().getScore();
+    double averageReward = node.getScore().getScore() / static_cast<double>(node.getVisits());
     // Calculate the exploration term
     double explorationTerm = explorationParameter * std::sqrt(static_cast<double>(parentVisits) / node.getVisits());
     // Return the sum of the exploitation and exploration terms
     return averageReward + explorationTerm;
 }
 
-Node *UCB::selectBestChild(Node *node, const double explorationParameter, int numAgents, int numObjects, bool truncateTreeSearch, const bool verbose)
+Node *UCB::selectBestChild(Node *node, const double explorationParameter, int numAgents, int numObjects, bool truncateTreeSearch, const Allocation &currentAlloc, const bool verbose)
 {
     if (node == nullptr)
     {
@@ -31,8 +31,8 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
         return node; // Return the current node if it is not fully expanded
     }
 
-    bool isLeaf = node->isLeafForExpansion(numAgents, numObjects, truncateTreeSearch);
-    bool hasMaxChildren = node->getChildren().size() >= static_cast<std::size_t>(node->getMaxChildrenCount(numAgents, numObjects, truncateTreeSearch));
+    bool isLeaf = node->isLeafForExpansion(numAgents, numObjects, truncateTreeSearch, currentAlloc);
+    bool hasMaxChildren = node->getChildren().size() >= static_cast<std::size_t>(node->getMaxChildrenCount(numAgents, numObjects, truncateTreeSearch, currentAlloc));
     if (isLeaf || hasMaxChildren)
     {
         return node;

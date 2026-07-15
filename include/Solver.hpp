@@ -15,8 +15,7 @@
 #include "config/config.hpp"
 #include <gurobi_c++.h>
 
-/**
- * @brief A solver class that finds the optimal allocation using Gurobi ILP.
+/** @brief A solver class that finds the optimal allocation using Gurobi ILP.
  * @tparam T The type of the items being allocated
  */
 template <typename T>
@@ -31,8 +30,7 @@ private:
     double executionTimeSeconds = 0.0;
 
 public:
-    /**
-     * @brief Construct a new Solver object with random preferences
+    /** @brief Construct a new Solver object with random preferences
      * @param numAgents The number of agents
      * @param numObjects The number of objects
      * @param seed The random seed for preference generation
@@ -42,21 +40,18 @@ public:
         prefs.generateRandomPreferences(numAgents * numObjects, seed);
     };
 
-    /**
-     * @brief Construct a new Solver object with given preferences
+    /** @brief Construct a new Solver object with given preferences
      * @param preferences The preferences to use
      */
     Solver(const Preferences<T> &preferences) : seed(static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count())), prefs(preferences), timeoutSeconds(60) {};
 
-    /**
-     * @brief Construct a new Solver object with given preferences and seed
+    /** @brief Construct a new Solver object with given preferences and seed
      * @param preferences The preferences to use
      * @param seed The random seed
      */
     Solver(const Preferences<T> &preferences, const int seed) : seed(seed), prefs(preferences), timeoutSeconds(60) {};
 
-    /**
-     * @brief Construct a new Solver object using a configuration object
+    /** @brief Construct a new Solver object using a configuration object
      * @param config The configuration to load
      */
     Solver(const Config &config) : seed(), prefs(), timeoutSeconds()
@@ -65,8 +60,7 @@ public:
     };
 
 public:
-    /**
-     * @brief Solve the allocation problem using the stored preferences
+    /** @brief Solve the allocation problem using the stored preferences
      * @param verbose Whether to output Gurobi logs
      * @return std::pair<Allocation, Score> The optimal allocation and its score
      */
@@ -75,8 +69,7 @@ public:
         return solve(prefs, verbose);
     }
 
-    /**
-     * @brief Solve the allocation problem with specific preferences using Gurobi ILP
+    /** @brief Solve the allocation problem with specific preferences using Gurobi ILP
      * @param inputPrefs The preferences to use for this solve
      * @param verbose Whether to output Gurobi logs
      * @return std::pair<Allocation, Score> The optimal allocation and its score
@@ -218,20 +211,17 @@ public:
 
     const Preferences<T> &getPreferences() const { return prefs; }
 
-    /**
-     * @brief Get the execution time of the last solve in seconds
+    /** @brief Get the execution time of the last solve in seconds
      * @return double The execution time in seconds
      */
     double getExecutionTimeSeconds() const { return executionTimeSeconds; }
 
-    /**
-     * @brief Get the timeout value in seconds
+    /** @brief Get the timeout value in seconds
      * @return int The timeout value in seconds
      */
     int getTimeoutSeconds() const { return timeoutSeconds; }
 
-    /**
-     * @brief Check if the solver has reached its timeout
+    /** @brief Check if the solver has reached its timeout
      * @return bool True if the solver has reached its timeout, false otherwise
      */
     bool hasReachedTimeout() const { return executionTimeSeconds >= timeoutSeconds; }

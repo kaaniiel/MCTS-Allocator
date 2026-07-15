@@ -4,16 +4,14 @@
 #include "../IPolicy.hpp"
 #include "../PolicyRegistry.hpp"
 
-/**
- * @brief Policy that alternates between 1.0 and 0.0 on each call.
+/** @brief Policy that alternates between 1.0 and 0.0 on each call.
  */
 class SwitchPolicy : public IPolicy
 {
 private:
     bool switch_state = false; // Variable to keep track of the current state
 public:
-    /**
-     * @brief Constructor initializing the switch policy.
+    /** @brief Constructor initializing the switch policy.
      * @param config The configuration object (unused for this policy).
      */
     SwitchPolicy(const Config &config) {};

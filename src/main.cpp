@@ -13,8 +13,7 @@
 #include "omp.h"
 #include "Solver.hpp"
 
-/**
- * @brief Test function to generate and print random preferences, and calculate utility for a sample allocation.
+/** @brief Test function to generate and print random preferences, and calculate utility for a sample allocation.
  * @return Exit status code.
  */
 int testPreferences()
@@ -46,23 +45,36 @@ int testPreferences()
     return EXIT_SUCCESS;
 }
 
-/**
- * @brief Test function to demonstrate the expansion of a Node in the MCTS tree.
+/** @brief Test function to demonstrate the expansion of a Node in the MCTS tree.
  * @return Exit status code.
  */
 int testExtendNode()
 {
     int numAgents = 3;
     int numObjects = 4;
-    Node node(numAgents, numObjects); // Create a node with 4 agents and 4 objects
+
+    // 1. Create a floating allocation to keep track of the current allocation state
+    Allocation floatingAlloc(numAgents, numObjects, false);
+
+    // 2. Create a Node to represent the root of the MCTS tree
+    Node node;
+
     while (true)
     {
-        Node *childNode = node.extend(numAgents, numObjects, false, false); // Attempt to extend the node to create a new child node
+        // 3. Add floatingAlloc as the 5th argument
+        Node *childNode = node.extend(numAgents, numObjects, false, false, floatingAlloc);
+
         if (childNode != nullptr)
         {
             std::cout << "Extended node at height " << childNode->getHeight() << " with allocation: ";
-            const std::vector<int> &allocVec = childNode->getCurrentAllocation().getAllocation();
-            for (int object : allocVec)
+
+            // 4. Update the floating state with the child's action
+            std::vector<int> allocVec = floatingAlloc.getAllocation();
+            allocVec[childNode->getHeight() - 1] = childNode->getAssignedAgent();
+            floatingAlloc.setAllocation(allocVec);
+
+            // 5. Display the allocation directly from the floating state
+            for (int object : floatingAlloc.getAllocation())
             {
                 std::cout << object << " ";
             }
@@ -71,14 +83,14 @@ int testExtendNode()
         else
         {
             std::cout << "No more children can be expanded from this node." << std::endl;
-            break; // Exit the loop if no more children can be expanded
+            break;
         }
     }
 
     return EXIT_SUCCESS;
 }
-/**
- * @brief Test function to run a simple MCTS simulation and print the best allocation found.
+
+/** @brief Test function to run a simple MCTS simulation and print the best allocation found.
  * @return Exit status code.
  */
 int testMCTS()
@@ -106,8 +118,7 @@ int testMCTS()
 #include <windows.h>
 #endif
 
-/**
- * @brief Configure the console to output UTF-8 characters properly (mostly for Windows).
+/** @brief Configure the console to output UTF-8 characters properly (mostly for Windows).
  */
 void setConsoleToUTF8()
 {
@@ -129,8 +140,7 @@ void setConsoleToUTF8()
 #endif
 }
 
-/**
- * @brief Show fairness metrics for the given allocation.
+/** @brief Show fairness metrics for the given allocation.
  * @tparam T Type of preference values.
  * @param prefs The preferences object.
  * @param alloc The allocation to evaluate.
@@ -144,8 +154,7 @@ void show_metrics(const Preferences<T> &prefs, const Allocation &alloc)
     }
 }
 
-/**
- * @brief Display the final configuration settings to the user.
+/** @brief Display the final configuration settings to the user.
  * @param config The configuration object containing the settings.
  */
 void showOptions(Config config)
@@ -180,8 +189,7 @@ void showOptions(Config config)
     std::cout << "================================================\n\n";
 }
 
-/**
- * @brief Parse command-line arguments and override configuration settings.
+/** @brief Parse command-line arguments and override configuration settings.
  * @param config Reference to the configuration object.
  * @param argc Number of command-line arguments.
  * @param argv Array of command-line arguments.
@@ -239,8 +247,7 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
     }
 }
 
-/**
- * @brief Launch the interface for the MCTS allocation graph visualization.
+/** @brief Launch the interface for the MCTS allocation graph visualization.
  * This function initializes the MCTSAllocationGraph and exports the graph to the default system viewer.
  */
 void launch_interface()
@@ -252,8 +259,7 @@ void launch_interface()
     // For now, we'll just print a message and exit
 }
 
-/**
- * @brief Prepare a file name with a timestamp.
+/** @brief Prepare a file name with a timestamp.
  * @param prefix The prefix for the file name.
  * @param suffix The suffix for the file name.
  * @return The prepared file name.
@@ -272,8 +278,7 @@ std::string prepare_file_name(std::string prefix, std::string suffix)
     return prefix + oss.str() + suffix;
 }
 
-/**
- * @brief Main entry point of the MCTS-Allocator application.
+/** @brief Main entry point of the MCTS-Allocator application.
  * @param argc Number of command-line arguments.
  * @param argv Array of command-line arguments.
  * @return Exit status code.

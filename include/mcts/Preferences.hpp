@@ -9,8 +9,7 @@
 #include <algorithm>
 #include <numeric>
 
-/**
- * @brief Class representing the preferences of agents for objects.
+/** @brief Class representing the preferences of agents for objects.
  * @tparam T The type used to score preferences (e.g. int, double).
  */
 template <typename T>
@@ -23,13 +22,11 @@ private:
     bool verbose;
 
 public:
-    /**
-     * @brief Default constructor
+    /** @brief Default constructor
      */
     Preferences() = default;
 
-    /**
-     * @brief Constructor to initialize preferences with all zeros
+    /** @brief Constructor to initialize preferences with all zeros
      * @param numAgents Number of agents
      * @param numObjects Number of objects
      * @param verbose Enable verbose mode
@@ -38,9 +35,8 @@ public:
                                                                                          numObjects(numObjects),
                                                                                          preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))),
                                                                                          verbose(verbose) {}; // Initialize with 0.0 to indicate no preference
-    
-    /**
-     * @brief Constructor to initialize preferences with all zeros, specifically ignoring the seed parameter during construction but setting totalPerAgents for possible later use (though not stored).
+
+    /** @brief Constructor to initialize preferences with all zeros, specifically ignoring the seed parameter during construction but setting totalPerAgents for possible later use (though not stored).
      * @param numAgents Number of agents
      * @param numObjects Number of objects
      * @param seed Seed for random generation (ignored here)
@@ -50,9 +46,8 @@ public:
                                                                                                        numObjects(numObjects),
                                                                                                        preferences(numAgents, std::vector<T>(numObjects, static_cast<T>(0))),
                                                                                                        verbose(false) {}; // Initialize with 0 to indicate no preference
-    
-    /**
-     * @brief Constructor from an existing 2D vector of preferences and known agent count
+
+    /** @brief Constructor from an existing 2D vector of preferences and known agent count
      * @param numAgents Number of agents
      * @param prefs The 2D vector of preferences
      */
@@ -60,9 +55,8 @@ public:
                                                                                  numObjects(prefs.empty() ? 0 : prefs[0].size()),
                                                                                  preferences(prefs),
                                                                                  verbose(false) {};
-    
-    /**
-     * @brief Constructor from an existing 2D vector of preferences
+
+    /** @brief Constructor from an existing 2D vector of preferences
      * @param prefs The 2D vector of preferences
      */
     Preferences(const std::vector<std::vector<T>> &prefs) : numAgents(prefs.size()),
@@ -70,29 +64,25 @@ public:
                                                             preferences(prefs),
                                                             verbose(false) {};
 
-    /**
-     * @brief Constructor that loads preferences from a file
+    /** @brief Constructor that loads preferences from a file
      * @param filename Path to the file containing preferences
      */
     Preferences(const std::string &filename) : numAgents(0),
                                                numObjects(0),
                                                verbose(false) { loadFromFile(filename); };
-    /**
-     * @brief Get the preference score of an agent for an object
+    /** @brief Get the preference score of an agent for an object
      * @param agentIndex The index of the agent
      * @param objectIndex The index of the object
      * @return T The preference score of the agent for the object
      */
     T getPreference(int agentIndex, int objectIndex) const { return preferences[agentIndex][objectIndex]; };
 
-    /**
-     * @brief Get the preference scores of an agent for all objects
+    /** @brief Get the preference scores of an agent for all objects
      * @param agentIndex The index of the agent
      * @return std::vector<T> A vector containing the preference scores of the agent for all objects
      */
     std::vector<T> getPreference(int agentIndex) const { return preferences[agentIndex]; };
-    /**
-     * @brief Set the preference score of an agent for an object
+    /** @brief Set the preference score of an agent for an object
      * @param agentIndex The index of the agent
      * @param objectIndex The index of the object
      * @param score The preference score to set
@@ -100,23 +90,19 @@ public:
      */
     void setPreference(int agentIndex, int objectIndex, T score) { preferences[agentIndex][objectIndex] = score; };
 
-    /**
-     * @brief Get the full matrix of preferences
+    /** @brief Get the full matrix of preferences
      * @return std::vector<std::vector<T>> A 2D vector of all preferences
      */
     std::vector<std::vector<T>> getAllPreferences() const { return preferences; };
-    /**
-     * @brief Set the verbose mode
+    /** @brief Set the verbose mode
      * @param v The verbose mode
      */
     void setVerbose(bool v) { verbose = v; }
-    /**
-     * @brief Get the verbose mode
+    /** @brief Get the verbose mode
      * @return bool The verbose mode
      */
     bool getVerbose() const { return verbose; }
-    /**
-     * @brief Print the preferences for debugging purposes
+    /** @brief Print the preferences for debugging purposes
      * @return void
      */
     void printPreferences() const
@@ -134,27 +120,23 @@ public:
         }
     }
 
-    /**
-     * @brief Generate random preferences for all agents and objects. This can be useful for testing and simulations when you don't have specific preferences to work with. The random values will be between 0 and 1.
+    /** @brief Generate random preferences for all agents and objects. This can be useful for testing and simulations when you don't have specific preferences to work with. The random values will be between 0 and 1.
      * @param seed The seed for the random number generator to ensure reproducibility
      * @param totalPerAgents The total preference score for each agent. The generated preferences will be scaled to ensure that the sum of preferences for each agent equals this value.
      * @return void
      */
     void generateRandomPreferences(int totalPerAgents, int seed = static_cast<int>(std::time(nullptr)));
 
-    /**
-     * @brief Get the number of agents
+    /** @brief Get the number of agents
      * @return int The number of agents
      */
     int getNumAgents() const { return numAgents; };
-    /**
-     * @brief Get the number of objects
+    /** @brief Get the number of objects
      * @return int The number of objects
      */
     int getNumObjects() const { return numObjects; };
 
-    /**
-     * @brief Load preferences from a file. The file should be formatted as follows:
+    /** @brief Load preferences from a file. The file should be formatted as follows:
      * The first line contains two integers: the number of agents and the number of objects.
      * The subsequent lines contain the preference scores for each agent and object, with each line corresponding to an agent and containing the preference scores for all objects separated by spaces.
      * @param filename The name of the file to load preferences from
@@ -162,8 +144,7 @@ public:
      */
     bool loadFromFile(const std::string &filename);
 
-    /**
-     * @brief Release internal memory used by preferences.
+    /** @brief Release internal memory used by preferences.
      */
     void clear()
     {

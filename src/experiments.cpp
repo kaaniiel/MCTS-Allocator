@@ -84,8 +84,7 @@ namespace
             out << "          \"score\": 0,\n";
             out << "          \"allocation\": []\n";
         }
-    /**
-     * @brief Check if a double value is near an integer within a small epsilon.
+    /** @brief Check if a double value is near an integer within a small epsilon.
      * @param value The value to check.
      * @param eps The tolerance epsilon.
      * @return true if the value is near an integer, false otherwise.
@@ -95,8 +94,7 @@ namespace
         return std::fabs(value - std::round(value)) <= eps;
     }
 
-    /**
-     * @brief Format a double as a string with sufficient precision for
+    /** @brief Format a double as a string with sufficient precision for
      * JSON/TOML output and logging.
      *
      * @param value The double to format.
@@ -109,8 +107,7 @@ namespace
         return oss.str();
     }
 
-    /**
-     * @brief Serialize a score value for JSON output.
+    /** @brief Serialize a score value for JSON output.
      *
      * Returns the numeric string when finite, or the literal "null"
      * when the value is infinite or NaN.
@@ -127,8 +124,7 @@ namespace
         return "null";
     }
 
-    /**
-     * @brief Write a flat JSON-style array to the provided stream.
+    /** @brief Write a flat JSON-style array to the provided stream.
      *
      * This helper is used when emitting preference vectors and
      * allocations into per-experiment JSON output files.
@@ -152,8 +148,7 @@ namespace
         out << "]";
     }
 
-    /**
-     * @brief Build a sequence of ratio values between min and max.
+    /** @brief Build a sequence of ratio values between min and max.
      *
      * Two behaviours are supported:
      * - If `step` > 1 and is an integer, it is treated as the number of
@@ -212,8 +207,7 @@ namespace
         return values;
     }
 
-    /**
-     * @brief Build a list of integer values between two bounds using one or more step sizes.
+    /** @brief Build a list of integer values between two bounds using one or more step sizes.
      *
      * If `steps` contains a single element it is used as a fixed increment.
      * If multiple steps are provided they are applied cyclically until the
@@ -279,8 +273,7 @@ namespace
         return values;
     }
 
-    /**
-     * @brief Construct the full grid of experiments from the configuration.
+    /** @brief Construct the full grid of experiments from the configuration.
      *
      * This expands ranges for agents, objects, seeds and ratioRandom into
      * an explicit list of `ExperimentParams` describing each experiment
@@ -326,8 +319,7 @@ namespace
         return experiments;
     }
 
-    /**
-     * @brief Compute cumulative budget targets for each step.
+    /** @brief Compute cumulative budget targets for each step.
      *
      * Distributes `budget` across `numberOfSteps` steps as evenly as
      * possible, returning a vector of cumulative targets for each step.
@@ -370,8 +362,7 @@ namespace
         return targets;
     }
 
-    /**
-     * @brief Build a timestamped filename for the experiment run.
+    /** @brief Build a timestamped filename for the experiment run.
      *
      * The produced filename has the form `experiments_DD-MM-YYYY_HH-MM-SS.json`.
      *
@@ -391,8 +382,7 @@ namespace
         return oss.str();
     }
 
-    /**
-     * @brief Create and configure a progress bar used during experiment runs.
+    /** @brief Create and configure a progress bar used during experiment runs.
      *
      * The progress bar is preconfigured with visual options used by this
      * program (width, colors, prefix/postfix text, etc.).
@@ -417,8 +407,7 @@ namespace
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{indicators::FontStyle::bold}}};
     }
 
-    /**
-     * @brief Update a progress bar based on work completed and total units.
+    /** @brief Update a progress bar based on work completed and total units.
      *
      * Safely handles the case `total == 0`.
      *
@@ -437,8 +426,7 @@ namespace
         bar.set_progress(progress);
     }
 
-    /**
-     * @brief Format a duration given in microseconds into a human-readable string.
+    /** @brief Format a duration given in microseconds into a human-readable string.
      *
      * The output includes hours, minutes, seconds, milliseconds and microseconds
      * as appropriate.
@@ -468,8 +456,7 @@ namespace
         return oss.str();
     }
 
-    /**
-     * @brief Throttle status updates to a minimum time interval.
+    /** @brief Throttle status updates to a minimum time interval.
      *
      * Returns true and updates `lastStatus` when at least `minInterval`
      * has elapsed since the previous update.
@@ -490,8 +477,7 @@ namespace
         return false;
     }
 
-    /**
-     * @brief Build a human-readable postfix string displayed in the live progress bar.
+    /** @brief Build a human-readable postfix string displayed in the live progress bar.
      *
      * Contains experiment/try/step indices, budget progress and configuration
      * identifiers (agents, objects, seed, ratioRandom).
@@ -525,8 +511,7 @@ namespace
         return oss.str();
     }
 
-    /**
-     * @brief Append fairness/utility metrics to the experiment JSON output.
+    /** @brief Append fairness/utility metrics to the experiment JSON output.
      *
      * If `enableMetrics` is false the function is a no-op. When enabled the
      * function writes a JSON object with metric boolean results (Prop, EF, EFX, EF1).
@@ -576,8 +561,7 @@ namespace
         out << whiteSpaceStr << "}\n";
     }
 
-    /**
-     * @brief Uniformize negative score values to a consistent value if configured.
+    /** @brief Uniformize negative score values to a consistent value if configured.
      *
      * When `config.uniformizeNegativeValues` is true, any negative score value is replaced with the negative count of agents that did not receive any object. This provides a more interpretable and
      * consistent way to handle negative scores, which may arise from certain preference structures or scoring functions. When the configuration option is false, the original score value is returned unchanged.

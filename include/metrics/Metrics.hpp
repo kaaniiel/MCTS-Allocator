@@ -6,8 +6,7 @@
 #include "../mcts/Preferences.hpp"
 #include "../mcts/Allocation.hpp"
 
-/**
- * @brief Check if an allocation is Envy-Free (EF).
+/** @brief Check if an allocation is Envy-Free (EF).
  * An allocation is Envy-Free if no agent envies the bundle of any other agent.
  * @param pref The preferences of the agents
  * @param alloc The allocation vector
@@ -57,8 +56,7 @@ bool isEF(const Preferences<T> &pref, const std::vector<int> &alloc)
     return true;
 }
 
-/**
- * @brief Check if an allocation is Envy-Free (EF).
+/** @brief Check if an allocation is Envy-Free (EF).
  * @param pref The preferences of the agents
  * @param alloc The Allocation object
  * @return true if the allocation is Envy-Free, false otherwise
@@ -69,8 +67,7 @@ bool isEF(const Preferences<T> &pref, const Allocation &alloc)
     return isEF(pref, alloc.getAllocation());
 }
 
-/**
- * @brief Check if an allocation is Envy-Free up to any good (EFX).
+/** @brief Check if an allocation is Envy-Free up to any good (EFX).
  * @param pref The preferences of the agents
  * @param alloc The allocation vector
  * @return true if the allocation is EFX, false otherwise
@@ -133,8 +130,7 @@ bool isEFX(const Preferences<T> &pref, const std::vector<int> &alloc)
     return true;
 }
 
-/**
- * @brief Check if an allocation is Envy-Free up to any good (EFX).
+/** @brief Check if an allocation is Envy-Free up to any good (EFX).
  * @param pref The preferences of the agents
  * @param alloc The Allocation object
  * @return true if the allocation is EFX, false otherwise
@@ -145,8 +141,7 @@ bool isEFX(const Preferences<T> &pref, const Allocation &alloc)
     return isEFX(pref, alloc.getAllocation());
 }
 
-/**
- * @brief Check if an allocation is Envy-Free up to one good (EF1).
+/** @brief Check if an allocation is Envy-Free up to one good (EF1).
  * @param pref The preferences of the agents
  * @param alloc The allocation vector
  * @return true if the allocation is EF1, false otherwise
@@ -204,8 +199,7 @@ bool isEF1(const Preferences<T> &pref, const std::vector<int> &alloc)
     return true;
 }
 
-/**
- * @brief Check if an allocation is Envy-Free up to one good (EF1).
+/** @brief Check if an allocation is Envy-Free up to one good (EF1).
  * @param pref The preferences of the agents
  * @param alloc The Allocation object
  * @return true if the allocation is EF1, false otherwise
@@ -216,8 +210,7 @@ bool isEF1(const Preferences<T> &pref, const Allocation &alloc)
     return isEF1(pref, alloc.getAllocation());
 }
 
-/**
- * @brief Check if an allocation is Proportional (Prop).
+/** @brief Check if an allocation is Proportional (Prop).
  * @param pref The preferences of the agents
  * @param alloc The allocation vector
  * @return true if the allocation is Proportional, false otherwise
@@ -260,8 +253,7 @@ bool isProp(const Preferences<T> &pref, const std::vector<int> &alloc)
     return true;
 }
 
-/**
- * @brief Check if an allocation is Proportional (Prop).
+/** @brief Check if an allocation is Proportional (Prop).
  * @param pref The preferences of the agents
  * @param alloc The Allocation object
  * @return true if the allocation is Proportional, false otherwise
@@ -272,8 +264,7 @@ bool isProp(const Preferences<T> &pref, const Allocation &alloc)
     return isProp(pref, alloc.getAllocation());
 }
 
-/**
- * @brief Check if an allocation is Pareto Optimal.
+/** @brief Check if an allocation is Pareto Optimal.
  * @param pref The preferences of the agents
  * @param alloc The allocation vector
  * @return true if the allocation is Pareto Optimal, false otherwise
@@ -366,8 +357,7 @@ bool isParetoOptimal(const Preferences<T> &pref, const std::vector<int> &alloc)
     return true; // Pareto optimal
 }
 
-/**
- * @brief Check if an allocation is Pareto Optimal.
+/** @brief Check if an allocation is Pareto Optimal.
  * @param pref The preferences of the agents
  * @param alloc The Allocation object
  * @return true if the allocation is Pareto Optimal, false otherwise
@@ -378,8 +368,7 @@ bool isParetoOptimal(const Preferences<T> &pref, const Allocation &alloc)
     return isParetoOptimal(pref, alloc.getAllocation());
 }
 
-/**
- * @brief Get a registry of all available metric functions
+/** @brief Get a registry of all available metric functions
  * @return A vector of pairs, where each pair contains the name of the metric and the corresponding function
  */
 template <typename T>

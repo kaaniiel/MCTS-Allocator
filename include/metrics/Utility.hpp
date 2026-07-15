@@ -11,8 +11,7 @@
 #include "Metrics.hpp"
 #include "../config/config.hpp"
 
-/**
- * @brief Class providing utility calculation functions for allocations.
+/** @brief Class providing utility calculation functions for allocations.
  * @tparam T The type of the elements being allocated (usually int)
  */
 template <typename T>
@@ -20,8 +19,7 @@ class Utility
 {
 
 public:
-    /**
-     * @brief Get the registry of available utility functions.
+    /** @brief Get the registry of available utility functions.
      * @return std::map<std::string, std::function<double(const Preferences<T> &, const Allocation &, const bool)>> A map of utility function names to their corresponding functions.
      */
     static std::map<std::string, std::function<double(const Preferences<T> &, const Allocation &, const bool)>> getUtilityRegistry()
@@ -30,8 +28,7 @@ public:
             {"MNW", calculateUtilityMNW},
             {"Sum", calculateUtilitySum}};
     }
-    /**
-     * @brief Calculate the utility value for a given allocation using a specified utility function.
+    /** @brief Calculate the utility value for a given allocation using a specified utility function.
      * @param prefs The preferences for the agents and objects
      * @param alloc The allocation for which to calculate the utility
      * @param utilityFunction The utility function to use (default is calculateUtilityMNW)
@@ -52,8 +49,7 @@ public:
             return calculateUtilityMNW(prefs, alloc, verbose);
         }
     }
-    /**
-     * @brief Calculate the utility value for a given allocation. We multiply the utilities of each agent together to get the overall utility of the allocation. This encourages allocations that are good for all agents rather than just one.
+    /** @brief Calculate the utility value for a given allocation. We multiply the utilities of each agent together to get the overall utility of the allocation. This encourages allocations that are good for all agents rather than just one.
      * @param prefs The preferences for the agents and objects
      * @param alloc The allocation for which to calculate the utility
      * @return double The calculated utility value
@@ -136,8 +132,7 @@ public:
         return totalUtility;
     }
 
-    /**
-     * @brief Modify utility score by adding bonuses for satisfying certain fairness metrics.
+    /** @brief Modify utility score by adding bonuses for satisfying certain fairness metrics.
      * @param prefs The preferences of the agents
      * @param alloc The allocation to evaluate
      * @param evalFunction The base evaluation function to call first

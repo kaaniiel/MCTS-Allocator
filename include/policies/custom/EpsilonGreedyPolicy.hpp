@@ -6,8 +6,7 @@
 #include "../../mcts/IMCTS.hpp"
 #include <algorithm> // Pour std::clamp
 
-/**
- * @brief Epsilon-greedy policy for MCTS that decays the random ratio over time or iterations.
+/** @brief Epsilon-greedy policy for MCTS that decays the random ratio over time or iterations.
  */
 class EpsilonGreedyPolicy : public IPolicy
 {
@@ -20,8 +19,7 @@ private:
     std::chrono::time_point<std::chrono::steady_clock> start_time;
 
 public:
-    /**
-     * @brief Constructor initializing the policy with a configuration.
+    /** @brief Constructor initializing the policy with a configuration.
      * Starts with the ratio limit from config and decays to 0 (100% heuristic) at the end.
      * @param config The configuration object containing the initial random ratio.
      */
