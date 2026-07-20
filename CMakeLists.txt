@@ -16,6 +16,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 if(MSVC)
     add_compile_options(/utf-8)
+else()
+    # Désactive le faux positif de GCC sur les vecteurs alloués localement
+    add_compile_options(-Wno-free-nonheap-object)
 endif()
 
 # ----------------------------
