@@ -62,7 +62,6 @@ Options:
   -B,--use-time-budget                  Use a time budget instead of a number of iterations for MCTS
   -G,--show-metrics                     Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run
   -J,--terminal-json-output             Output results in JSON format to the terminal
-  -L,--launch                           Launch the interface
   -M,--monitoring-cuts                  Enable monitoring of cuts to get how many cuts are made inside the tree
   -N,--uniformize-negative-values       Uniformize negative values in preferences
   -S,--save-results                     Save results to a JSON file in the results directory
