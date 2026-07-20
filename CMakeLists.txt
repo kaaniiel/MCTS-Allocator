@@ -1,56 +1,187 @@
-# Spécifie la version minimale de CMake requise
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.20)
 
-# Nom du projet et langage utilisé
+if(MSVC AND NOT DEFINED CMAKE_GENERATOR_PLATFORM)
+    set(CMAKE_GENERATOR_PLATFORM x64 CACHE STRING "Target platform" FORCE)
+endif()
+
 project(MCTS_Allocation VERSION 1.0 LANGUAGES CXX)
 
-# Exiger la norme C++17
+if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 4)
+    message(FATAL_ERROR "This project requires an x64 Visual Studio generator because the bundled OR-Tools Windows package is x64-only. Reconfigure with -A x64 or delete the existing build directory.")
+endif()
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-# --- 1. RECHERCHE DES LIBRAIRIES DE PARALLÉLISATION ---
-
-# Recherche d'OpenMP
-find_package(OpenMP)
-if(OpenMP_CXX_FOUND)
-    message(STATUS "OpenMP trouvé ! Le support multi-thread est activé.")
+if(MSVC)
+    add_compile_options(/utf-8)
 else()
-    message(WARNING "OpenMP n'a pas été trouvé sur ce système.")
+    # Désactive le faux positif de GCC sur les vecteurs alloués localement
+    add_compile_options(-Wno-free-nonheap-object)
 endif()
 
-# Recherche de oneTBB (Intel Threading Building Blocks)
-# Décommentez ces lignes si vous avez installé TBB (ex: via apt-get install libtbb-dev ou vcpkg)
-# find_package(TBB REQUIRED)
-# if(TBB_FOUND)
-#     message(STATUS "oneTBB trouvé !")
-# endif()
+# ----------------------------
+# OpenMP (optionnel)
+# ----------------------------
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    message(STATUS "OpenMP trouve, multi-thread active.")
+else()
+    message(WARNING "OpenMP non trouve.")
+endif()
 
-# --- 2. CRÉATION DE LA BIBLIOTHÈQUE CENTRALE ---
+# ----------------------------
+# Targets
+# ----------------------------
 add_library(mcts_core
     src/mcts/Node.cpp
-    # Ajoutez vos autres fichiers sources ici au fur et à mesure
-    # src/mcts/MCTS.cpp
+    src/mcts/MCTS.cpp
+    src/mcts/UCB.cpp
+    src/config/config.cpp
 )
 
-target_include_directories(mcts_core PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(mcts_core PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
 
-# --- 3. LIAISON DES LIBRAIRIES DE PARALLÉLISATION ---
-
-# Si OpenMP est trouvé, on le lie au coeur de notre programme
 if(OpenMP_CXX_FOUND)
     target_link_libraries(mcts_core PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-# Si oneTBB est utilisé, on le lie également
-# if(TBB_FOUND)
-#     target_link_libraries(mcts_core PUBLIC TBB::tbb)
-# endif()
+# ----------------------------
+# Gurobi (optionnel, pour testLp)
+# ----------------------------
+set(GUROBI_HOME "" CACHE PATH "Path to the Gurobi installation root")
 
-# --- 4. EXÉCUTABLE PRINCIPAL ---
+if(NOT GUROBI_HOME AND DEFINED ENV{GUROBI_HOME})
+    set(GUROBI_HOME "$ENV{GUROBI_HOME}")
+endif()
+
+if(NOT GUROBI_HOME AND DEFINED ENV{GUROBU_HOME})
+    message(FATAL_ERROR "Environment variable GUROBU_HOME was found, but the correct variable name is GUROBI_HOME.")
+endif()
+
+if(GUROBI_HOME)
+    set(GUROBI_HOME_INPUT "${GUROBI_HOME}")
+    if(NOT IS_ABSOLUTE "${GUROBI_HOME}")
+        set(_GUROBI_HOME_CANDIDATES
+            "${GUROBI_HOME}"
+            "${CMAKE_SOURCE_DIR}/${GUROBI_HOME}"
+            "$ENV{HOME}/${GUROBI_HOME}"
+            "/opt/${GUROBI_HOME}"
+        )
+
+        foreach(_GUROBI_HOME_CANDIDATE IN LISTS _GUROBI_HOME_CANDIDATES)
+            if(EXISTS "${_GUROBI_HOME_CANDIDATE}")
+                set(GUROBI_HOME "${_GUROBI_HOME_CANDIDATE}")
+                break()
+            endif()
+        endforeach()
+    endif()
+
+    if(EXISTS "${GUROBI_HOME}")
+        get_filename_component(GUROBI_HOME "${GUROBI_HOME}" ABSOLUTE)
+        set(GUROBI_HOME "${GUROBI_HOME}" CACHE PATH "Path to the Gurobi installation root" FORCE)
+    endif()
+
+    find_path(GUROBI_INCLUDE_DIR
+        NAMES gurobi_c++.h
+        PATHS "${GUROBI_HOME}/include"
+        NO_DEFAULT_PATH
+    )
+
+    file(GLOB GUROBI_ALL_LIBS
+        "${GUROBI_HOME}/lib/gurobi*.lib"
+        "${GUROBI_HOME}/lib/gurobi*.a"
+        "${GUROBI_HOME}/lib/gurobi*.so"
+        "${GUROBI_HOME}/lib/gurobi[0-9]*.so"
+        "${GUROBI_HOME}/lib/gurobi*.dylib"
+        "${GUROBI_HOME}/lib/libgurobi*.lib"
+        "${GUROBI_HOME}/lib/libgurobi*.a"
+        "${GUROBI_HOME}/lib/libgurobi*.so"
+        "${GUROBI_HOME}/lib/libgurobi[0-9]*.so"
+        "${GUROBI_HOME}/lib/libgurobi*.dylib"
+    )
+
+    set(GUROBI_CORE_LIBS "")
+    foreach(GUROBI_LIB IN LISTS GUROBI_ALL_LIBS)
+        string(FIND "${GUROBI_LIB}" "gurobi_c++" GUROBI_CXX_INDEX)
+        if(GUROBI_CXX_INDEX EQUAL -1)
+            list(APPEND GUROBI_CORE_LIBS "${GUROBI_LIB}")
+        endif()
+    endforeach()
+
+    file(GLOB GUROBI_CXX_LIBS_DEBUG
+        "${GUROBI_HOME}/lib/gurobi_c++mdd*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++mtd*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++mdd*.a"
+        "${GUROBI_HOME}/lib/gurobi_c++mtd*.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.so"
+        "${GUROBI_HOME}/lib/libgurobi_c++.dylib"
+    )
+    file(GLOB GUROBI_CXX_LIBS_RELEASE
+        "${GUROBI_HOME}/lib/gurobi_c++md*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++mt*.lib"
+        "${GUROBI_HOME}/lib/gurobi_c++md*.a"
+        "${GUROBI_HOME}/lib/gurobi_c++mt*.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.a"
+        "${GUROBI_HOME}/lib/libgurobi_c++.so"
+        "${GUROBI_HOME}/lib/libgurobi_c++.dylib"
+    )
+
+    list(SORT GUROBI_CXX_LIBS_DEBUG)
+    list(SORT GUROBI_CXX_LIBS_RELEASE)
+    if(GUROBI_CXX_LIBS_DEBUG)
+        list(GET GUROBI_CXX_LIBS_DEBUG 0 GUROBI_CXX_LIBRARY_DEBUG)
+    endif()
+    if(GUROBI_CXX_LIBS_RELEASE)
+        list(GET GUROBI_CXX_LIBS_RELEASE 0 GUROBI_CXX_LIBRARY_RELEASE)
+    endif()
+
+    if(NOT GUROBI_INCLUDE_DIR OR NOT GUROBI_CXX_LIBRARY_RELEASE OR NOT GUROBI_CORE_LIBS)
+        message(FATAL_ERROR
+            "Gurobi was not found under GUROBI_HOME='${GUROBI_HOME_INPUT}' (resolved to '${GUROBI_HOME}'). Expected include/gurobi_c++.h and library files in lib/."
+        )
+    endif()
+
+    if(NOT GUROBI_CXX_LIBRARY_DEBUG)
+        set(GUROBI_CXX_LIBRARY_DEBUG "${GUROBI_CXX_LIBRARY_RELEASE}")
+    endif()
+    message(STATUS "Gurobi configured from ${GUROBI_HOME}")
+else()
+    message(STATUS "Gurobi not configured. Set GUROBI_HOME to build testLp.")
+endif()
+
+
+
 add_executable(mcts_main src/main.cpp)
 target_link_libraries(mcts_main PRIVATE mcts_core)
 
-# --- 5. EXÉCUTABLES D'EXPÉRIMENTATION ---
-# add_executable(run_scalability experiments/run_scalability.cpp)
-# target_link_libraries(run_scalability PRIVATE mcts_core)
+add_executable(mcts_experiments src/experiments.cpp)
+target_link_libraries(mcts_experiments PRIVATE mcts_core)
+
+add_executable(testAlloc src/testAlloc.cpp)
+target_link_libraries(testAlloc PRIVATE mcts_core)
+
+if(GUROBI_HOME)
+    # 1. On donne l'accès à Gurobi pour le cœur du projet (mcts_core)
+    target_include_directories(mcts_core PUBLIC "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(mcts_core PUBLIC debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
+
+    # 2. Vos cibles existantes
+    target_include_directories(mcts_main PRIVATE "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(mcts_main PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
+    target_include_directories(mcts_experiments PRIVATE "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(mcts_experiments PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
+endif()
+
+# add executable for testLp
+add_executable(testLp src/testLp.cpp)
+target_link_libraries(testLp PRIVATE mcts_core)
+
+if(GUROBI_HOME)
+    target_include_directories(testLp PRIVATE "${GUROBI_INCLUDE_DIR}")
+    target_link_libraries(testLp PRIVATE debug ${GUROBI_CXX_LIBRARY_DEBUG} optimized ${GUROBI_CXX_LIBRARY_RELEASE} ${GUROBI_CORE_LIBS})
+endif()
