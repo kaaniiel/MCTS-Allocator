@@ -19,7 +19,6 @@
 struct Config
 {
     // 1. Default values (Source of truth)
-    bool launch = false;
     int numAgents = 3;
     int numObjects = 4;
     int iterations = 100;

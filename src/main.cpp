@@ -9,7 +9,6 @@
 #include "mcts/Allocation.hpp"
 #include "mcts/Node.hpp"
 #include "mcts/MCTS.hpp"
-#include "mcts_allocation_graph.hpp"
 #include "omp.h"
 #include "Solver.hpp"
 
@@ -164,7 +163,6 @@ void showOptions(Config config)
     // ---------------------------------------------------------
 
     std::cout << "\n=== [MCTS] Starting with final configuration ===\n";
-    std::cout << " - launch        : " << (config.launch ? "true" : "false") << "\n";
     std::cout << " - Num Agents    : " << config.numAgents << "\n";
     std::cout << " - Num Objects   : " << config.numObjects << "\n";
     std::cout << " - Iterations    : " << config.iterations << "\n";
@@ -219,7 +217,6 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
     app.add_flag("-B, --use-time-budget", config.useTimeBudget, "Use a time budget instead of a number of iterations for MCTS");
     app.add_flag("-G, --show-metrics", config.show_metrics, "Show metrics (EF, EFX, Prop, ...) for the best allocation after MCTS run");
     app.add_flag("-J, --terminal-json-output", config.terminalJSONOutput, "Output results in JSON format to the terminal");
-    app.add_flag("-L,--launch", config.launch, "Launch the interface");
     app.add_flag("-M,--monitoring-cuts", config.monitoringCuts, "Enable monitoring of cuts when the best solution hasn't improved for a certain number of iterations");
     app.add_flag("-N,--uniformize-negative-values", config.uniformizeNegativeValues, "Uniformize negative values in preferences (transform to how much agent hasn't received an object)");
     app.add_flag("-S,--save-results", config.saveResults, "Save results to a JSON file in the results directory");
@@ -245,18 +242,6 @@ int CLI_conf(Config &config, int argc, char **argv, bool showOptionsOutput = tru
         // et quitte proprement le programme entier sans retourner au main().
         std::exit(app.exit(e));
     }
-}
-
-/** @brief Launch the interface for the MCTS allocation graph visualization.
- * This function initializes the MCTSAllocationGraph and exports the graph to the default system viewer.
- */
-void launch_interface()
-{
-    std::cout << "Launching the interface..." << std::endl;
-    // Code to launch your interface would go here
-    MCTSAllocationGraph graph;
-    graph.exportGraph();
-    // For now, we'll just print a message and exit
 }
 
 /** @brief Prepare a file name with a timestamp.
@@ -323,12 +308,6 @@ int main(int argc, char **argv)
     // Example of how you would instantiate and run your engine:
     // MCTS mcts_engine(config.iterations, config.exploration);
     // mcts_engine.run(config.threads);
-    if (config.launch)
-    {
-        launch_interface();
-        return EXIT_SUCCESS;
-    }
-
     std::unique_ptr<IAllocator<int>> allocator;
     std::string filePrefix;
 

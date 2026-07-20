@@ -10,7 +10,6 @@ void Config::generate_default(const std::string &filepath, const Config &default
         file << "# Automatically generated configuration file\n";
 
         write_section(file, "mcts");
-        write_value(file, "launch", default_config.launch);
         write_comment(file, "Number of agents in the allocation problem");
         write_value(file, "num_agents", default_config.numAgents);
         write_comment(file, "Number of objects in the allocation problem");
@@ -181,8 +180,6 @@ Config Config::load(const std::string &filepath)
             missingFields.push_back("metrics_weights");
         }
 
-        require_nested_value("mcts.launch", tbl, "mcts", "launch", missingFields, [&]
-                             { config.launch = tbl["mcts"]["launch"].value_or(config.launch); });
         require_nested_value("mcts.num_agents", tbl, "mcts", "num_agents", missingFields, [&]
                              { config.numAgents = static_cast<int>(tbl["mcts"]["num_agents"].value_or(static_cast<int64_t>(config.numAgents))); });
         require_nested_value("mcts.num_objects", tbl, "mcts", "num_objects", missingFields, [&]
