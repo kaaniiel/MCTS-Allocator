@@ -1,0 +1,178 @@
+{
+      "parameters": {
+        "numAgents": 10,
+        "numObjects": 10,
+        "seed": 48,
+        "ratioRandom": 0.12,
+        "selectedPolicy": "FixedPolicy",
+        "budget": 100
+      },
+      "preferences": [
+				[4, 9, 10, 7, 12, 10, 6, 10, 16, 16],
+				[9, 9, 12, 9, 9, 9, 4, 7, 14, 18],
+				[10, 14, 9, 8, 10, 10, 7, 13, 8, 11],
+				[11, 7, 9, 10, 17, 10, 12, 7, 9, 8],
+				[13, 7, 6, 9, 10, 11, 13, 5, 18, 8],
+				[6, 10, 9, 10, 13, 10, 10, 15, 8, 9],
+				[7, 11, 11, 10, 8, 13, 9, 12, 9, 10],
+				[13, 16, 7, 11, 11, 12, 9, 9, 3, 9],
+				[9, 11, 15, 8, 14, 7, 4, 8, 10, 14],
+				[9, 10, 14, 6, 5, 13, 11, 12, 11, 9]],
+      "results": {
+        "solver": {
+          "score": 26.5487654338,
+          "timeUs": 13002,
+          "has_reached_timeout": false,
+          "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+          "metrics": {
+            "ParetoOptimal": true,
+            "Prop": false,
+            "EF": false,
+            "EFX": true,
+            "EF1": true
+          }
+
+        },
+        "mcts": {
+          "tries": [
+            {
+              "steps": [
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 31194343,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000001,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 62142516,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 93073663,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 123918828,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000001,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 154785153,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 185712388,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000000,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 216645594,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000001,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 247618318,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000001,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 278556393,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 26.5487654338,
+                  "allocation": [7, 2, 8, 6, 3, 9, 4, 5, 0, 1],
+                  "iterTrackerBestSolution": 309510884,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                }
+              ],
+              "tryDurationUs": 600000014,
+              "finalScore": 26.5487654338,
+              "totalBudgetUsed": 309517536
+            }
+          ]
+        }
+      }
+}

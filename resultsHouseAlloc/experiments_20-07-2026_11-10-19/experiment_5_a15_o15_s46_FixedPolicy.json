@@ -1,0 +1,183 @@
+{
+      "parameters": {
+        "numAgents": 15,
+        "numObjects": 15,
+        "seed": 46,
+        "ratioRandom": 0.12,
+        "selectedPolicy": "FixedPolicy",
+        "budget": 225
+      },
+      "preferences": [
+				[13, 18, 19, 14, 7, 17, 15, 22, 12, 24, 16, 11, 12, 10, 15],
+				[19, 17, 18, 13, 19, 17, 17, 12, 13, 7, 11, 21, 14, 14, 13],
+				[16, 14, 13, 12, 20, 15, 16, 15, 12, 16, 22, 10, 18, 19, 7],
+				[16, 15, 11, 10, 12, 18, 20, 15, 13, 18, 16, 11, 14, 16, 20],
+				[12, 8, 18, 8, 18, 16, 12, 12, 12, 14, 15, 17, 23, 18, 22],
+				[18, 13, 12, 20, 9, 15, 16, 23, 24, 8, 16, 13, 11, 15, 12],
+				[15, 21, 18, 14, 14, 13, 6, 21, 12, 9, 11, 18, 18, 17, 18],
+				[14, 15, 13, 15, 15, 15, 25, 12, 18, 17, 12, 12, 8, 17, 17],
+				[12, 17, 13, 14, 16, 14, 17, 7, 16, 16, 15, 14, 13, 22, 19],
+				[14, 9, 14, 13, 15, 23, 27, 16, 11, 12, 12, 14, 17, 13, 15],
+				[10, 17, 18, 18, 15, 13, 15, 21, 11, 12, 19, 11, 12, 19, 14],
+				[11, 13, 15, 11, 19, 14, 8, 28, 11, 19, 14, 14, 20, 12, 16],
+				[16, 9, 10, 14, 27, 22, 14, 15, 13, 16, 14, 8, 17, 12, 18],
+				[10, 10, 20, 12, 13, 15, 13, 15, 19, 18, 15, 14, 15, 18, 18],
+				[19, 13, 14, 12, 17, 16, 20, 12, 10, 12, 8, 14, 18, 21, 19]],
+      "results": {
+        "solver": {
+          "score": 46.5714190373,
+          "timeUs": 18779,
+          "has_reached_timeout": false,
+          "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+          "metrics": {
+            "ParetoOptimal": true,
+            "Prop": false,
+            "EF": false,
+            "EFX": true,
+            "EF1": true
+          }
+
+        },
+        "mcts": {
+          "tries": [
+            {
+              "steps": [
+                {
+                  "stepTimeUs": 60000003,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 21671818,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000001,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 43172775,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 64769362,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000001,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 86372903,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000003,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 107950911,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000003,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 129547964,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 151112005,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 172697190,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 194288603,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                },
+                {
+                  "stepTimeUs": 60000002,
+                  "score": 46.5714190373,
+                  "allocation": [14, 6, 13, 10, 12, 9, 7, 11, 5, 0, 2, 1, 4, 8, 3],
+                  "iterTrackerBestSolution": 215743921,
+                  "metrics": {
+                    "ParetoOptimal": true,
+                    "Prop": false,
+                    "EF": false,
+                    "EFX": true,
+                    "EF1": true
+                  }
+                }
+              ],
+              "tryDurationUs": 600000021,
+              "finalScore": 46.5714190373,
+              "totalBudgetUsed": 215756913
+            }
+          ]
+        }
+      }
+}
