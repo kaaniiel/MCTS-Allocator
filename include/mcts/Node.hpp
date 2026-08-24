@@ -17,10 +17,11 @@ class Node
 private:
     std::vector<bool> agentHasObject; // To keep track of which agents have been allocated an object, needed for generating children
     int visits;
-    int h;             // height of the node in the tree
-    int childrenIndex; // index of the next child to expand
-    Score nodeScore;   // Score of the current node
-    int assignedAgent; // The agent assigned to the current object
+    int h;                  // height of the node in the tree
+    int childrenIndex;      // index of the next child to expand
+    Score nodeScore;        // Score of the current node
+    double cumulativeScore; // Cumulative score obtained from all simulations passing through this node
+    int assignedAgent;      // The agent assigned to the current object
     std::vector<Node> children;
 
 public:
@@ -32,7 +33,8 @@ public:
              h(0),
              childrenIndex(0),
              assignedAgent(-1),
-             nodeScore(Score())
+             nodeScore(Score()),
+             cumulativeScore(0.0)
 
     {
     };
@@ -45,7 +47,8 @@ public:
                                                                                   h(0),
                                                                                   childrenIndex(0),
                                                                                   assignedAgent(-1),
-                                                                                  nodeScore(Score(0.0, verbose))
+                                                                                  nodeScore(Score(0.0, verbose)),
+                                                                                  cumulativeScore(0.0)
     {
         // On peut toujours utiliser numAgents ici car il est passé en paramètre !
         children.reserve(numAgents);
@@ -58,7 +61,8 @@ public:
                                     h(0),
                                     childrenIndex(0),
                                     assignedAgent(-1),
-                                    nodeScore(Score(0.0, alloc.getVerbose()))
+                                    nodeScore(Score(0.0, alloc.getVerbose())),
+                                    cumulativeScore(0.0)
     {
         children.reserve(alloc.getNumAgents());
     };
@@ -72,7 +76,8 @@ public:
                                                                             h(height),
                                                                             childrenIndex(0),
                                                                             assignedAgent(-1),
-                                                                            nodeScore(Score(0.0, verbose))
+                                                                            nodeScore(Score(0.0, verbose)),
+                                                                            cumulativeScore(0.0)
     {
         children.reserve(alloc.getNumAgents());
     };
@@ -246,6 +251,23 @@ public:
      * @return int The agent id assigned to the current object
      */
     int getAssignedAgent() const { return assignedAgent; }
+
+    /** @brief Get the cumulative score of the node
+     * @return double The cumulative score of the node
+     */
+    double getCumulativeScore() const { return cumulativeScore; }
+
+    /** @brief Add to the cumulative score of the node
+     * @param scoreToAdd The score to add
+     * @return void
+     */
+    void addToCumulativeScore(double scoreToAdd) { cumulativeScore += scoreToAdd; }
+
+    /** @brief Set the cumulative score of the node
+     * @param newCumulativeScore The new cumulative score to set
+     * @return void
+     */
+    void setCumulativeScore(double newCumulativeScore) { cumulativeScore = newCumulativeScore; }
 
     /** @brief Expands a node by generating one of its unvisited children
      *  @param node The node to expand
