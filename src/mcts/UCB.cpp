@@ -231,7 +231,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child;
         }
 
-        double averageReward = child.getCumulativeScore();
+        double averageReward = child.getCumulativeScore() / static_cast<double>(child.getVisits());
         double explorationTerm = explorationParameter * std::sqrt(parentVisits / child.getVisits());
         double ucbValue = averageReward + explorationTerm;
 
