@@ -22,7 +22,7 @@ struct Config
     int numAgents = 3;
     int numObjects = 4;
     int iterations = 100;
-    double exploration = 1.414;
+    double exploration = 1.4142135624; // sqrt(2)
     int seed = static_cast<int>(std::chrono::system_clock::now().time_since_epoch().count());
     bool verbose = false;
     double ratioRandom = 1;

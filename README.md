@@ -23,7 +23,7 @@ cmake --build build --config Release
 .\build\Release\mcts_main.exe
 ```
 
-*Note: The program will read `config.toml` automatically, or generate a default one if the file is missing.*
+_Note: The program will read `config.toml` automatically, or generate a default one if the file is missing._
 
 ## Requirements
 
@@ -92,16 +92,19 @@ verbose = false               # Keep terminal logs sparse
 The separate `mcts_experiments` executable allows you to run multiple MCTS instances over a range of parameters and export the results as JSON files. It reads the `[experiments]` section from your `config.toml`.
 
 Build it with:
+
 ```bash
 cmake --build build --config Release --target mcts_experiments
 ```
 
 Run it:
+
 ```bash
 ./build/mcts_experiments
 ```
 
 Example `[experiments]` configuration in `config.toml`:
+
 ```toml
 [experiments]
 num_agents_min = 3
@@ -121,12 +124,14 @@ output_directory = "results"
 ## Concept
 
 The project models a simple allocation problem:
+
 - there are a fixed number of agents,
 - there are a fixed number of objects,
 - each agent has a preference score for each object,
 - the algorithm searches for an allocation that maximizes the overall score.
 
 Instead of enumerating every possible allocation directly, the application uses Monte Carlo Tree Search:
+
 1. Starts from an empty or partial allocation.
 2. Expands the search tree by exploring candidate decisions.
 3. Simulates completions of the current partial solution.
