@@ -457,6 +457,8 @@ std::pair<Allocation, Score> MCTS<T>::backpropagate(std::stack<Node *> &nodeStac
         {
             currentNode->setScore(reward.second.getScore());
         }
+
+        currentNode->addToCumulativeScore(reward.second.getScore());
     }
 
     // On retourne tes variables globales sous forme de paire
