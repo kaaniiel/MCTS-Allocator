@@ -71,10 +71,10 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
 
         // _mm256_set_pd(highest..lowest) => lane 0 corresponds to child0 after store
         const __m256d scores = _mm256_set_pd(
-            child3.getScore().getScore(),
-            child2.getScore().getScore(),
-            child1.getScore().getScore(),
-            child0.getScore().getScore());
+            child3.getCumulativeScore(),
+            child2.getCumulativeScore(),
+            child1.getCumulativeScore(),
+            child0.getCumulativeScore());
 
         const __m256d visits = _mm256_set_pd(
             static_cast<double>(child3.getVisits()),
@@ -135,10 +135,10 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child3;
 
         const __m256d scores = _mm256_set_pd(
-            child3.getScore().getScore(),
-            child2.getScore().getScore(),
-            child1.getScore().getScore(),
-            child0.getScore().getScore());
+            child3.getCumulativeScore(),
+            child2.getCumulativeScore(),
+            child1.getCumulativeScore(),
+            child0.getCumulativeScore());
 
         const __m256d visits = _mm256_set_pd(
             static_cast<double>(child3.getVisits()),
@@ -193,7 +193,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child1;
 
         // _mm_set_pd(high, low): high goes to index 1, low goes to index 0
-        __m128d scores = _mm_set_pd(child1.getScore().getScore(), child0.getScore().getScore());
+        __m128d scores = _mm_set_pd(child1.getCumulativeScore(), child0.getCumulativeScore());
         __m128d visits = _mm_set_pd(static_cast<double>(child1.getVisits()), static_cast<double>(child0.getVisits()));
 
         // averageReward = scores / visits
@@ -231,7 +231,7 @@ Node *UCB::selectBestChild(Node *node, const double explorationParameter, int nu
             return &child;
         }
 
-        double averageReward = child.getScore().getScore();
+        double averageReward = child.getCumulativeScore() / static_cast<double>(child.getVisits());
         double explorationTerm = explorationParameter * std::sqrt(parentVisits / child.getVisits());
         double ucbValue = averageReward + explorationTerm;
 
